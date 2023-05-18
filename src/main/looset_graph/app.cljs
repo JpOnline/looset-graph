@@ -84,16 +84,10 @@ nodeA->nodeB"
       chrs (new (.-InputStream antlr4) input)
       lxr (new (.-default lexer) chrs)
       tokens (new (.-CommonTokenStream antlr4) lxr)
-      _ (js/console.log "jp6" tokens)
       prsr (new (.-default parser) tokens)
       _ (set! (.-buildParseTrees prsr) true)
       tree ^js/LoosetGraphContext (.loosetGraph prsr)]
-  (js/console.log "jp7" prsr)
   (js/console.log "jp5" (clj->js (ast tree (mapv keyword (.-ruleNames prsr)) (mapv keyword (.-symbolicNames prsr)) #{} #{"->"}))))
-
-;; (let [parsed-data (-> js/vis (.parseDOTNetwork "dinetwork {1 -> 1 -> 2; 2 -> 3; 2 -- 4; 2 -> 1 }"))
-;;       data #js {:nodes (.-nodes parsed-data) :edges (.-edges parsed-data)}]
-;;   (js/console.log "jp8" (-> js/vis .-Network (new co))))
 
 (when ^boolean js/goog.DEBUG ;; Code removed in production
   (js/console.log "Debugger mode!"))
@@ -101,6 +95,42 @@ nodeA->nodeB"
 ;; Redef re-frame subscribe and dispatch for brevity
 (def <sub (comp deref re-frame.core/subscribe))
 (def >evt re-frame.core/dispatch)
+
+;; ---- Subs ----
+
+(defn dot-graph
+  [app-state]
+  (get-in app-state [:domain :dot-graph] ""))
+(re-frame/reg-sub ::dot-graph dot-graph)
+
+(defn left-panel-size
+  [app-state]
+  (get-in app-state [:ui :panels :left-panel-size] "400px"))
+(re-frame/reg-sub ::left-panel-size left-panel-size)
+
+;; ---- Events ----
+
+(defn resizing-panels
+  [app-state [_event new-state]]
+  (assoc-in app-state [:ui :panels :resizing-panels] new-state))
+(re-frame/reg-event-db ::resizing-panels resizing-panels)
+
+(defn mouse-moved
+  [app-state [_event x y]]
+  (js/console.log x y)
+  (let [resizing-panels? (get-in app-state [:ui :panels :resizing-panels])]
+    (cond-> app-state
+      resizing-panels?
+      (assoc-in [:ui :panels :left-panel-size] (str x"px")))))
+(re-frame/reg-event-db ::mouse-moved mouse-moved)
+
+(defn mouse-up
+  [app-state]
+  (js/console.log "mouse-up")
+  (-> app-state
+    (resizing-panels [::mouse-up false])
+    (assoc-in [:ui :diagram :zooming?] false)))
+(re-frame/reg-event-db ::mouse-up mouse-up)
 
 ;; ---- Views ----
 
@@ -111,7 +141,10 @@ nodeA->nodeB"
      [:div
       {:id "looset-graph"
        :style #js {:height "100%" :width "100%" #_#_:flexGrow 5}
-       :component-did-mount (draw-graph "looset-graph" "dinetwork {1 -> 1 -> 2; 2 -> 3; 2 -- 4; 2 -> 1 }" #js{})}
+       :component-did-mount (draw-graph
+                              "looset-graph"
+                              (<sub [::dot-graph])
+                              #js{})}
       [:p "Loading.."]])])
 
 (defn panel-splitter []
@@ -201,7 +234,7 @@ nodeA->nodeB"
              :user-select "none"
              :max-height "100vh"}}
     [:div#left-panel
-     {:style {:width 500 #_(<sub [::left-panel-size])
+     {:style {:width (<sub [::left-panel-size])
               :min-width "20vw"
               :display "flex"
               :flex-direction "column"}}
@@ -228,12 +261,10 @@ nodeA->nodeB"
 ;; ---- Initialization ----
 
 (def initial-state
-  {:domain {}
-   :ui "Hello graph"})
+  {:domain {:dot-graph "dinetwork {1 -> 1 -> 2; 2 -> 3; 2 -- 4; 2 -> 1 }"}
+   :ui {:panels {:resizing-panels false
+                 :left-panel-size "65vw"}}})
 
-(re-frame/reg-event-db ::set-app-state
-  (fn [_ [_ application-state]]
-    application-state))
 
 (defn gzip [cs-mode b-array]
   (let [cs (-> "gzip" cs-mode.)
@@ -257,13 +288,28 @@ nodeA->nodeB"
     (gzip js/DecompressionStream $)
     (.then $ #(.decode (js/TextDecoder.) %))))
 
+(defn init-mousemove []
+  (js/document.body.addEventListener
+    "mousemove"
+    #(>evt [::mouse-moved (-> % .-x) (-> % .-y)])))
+
+(defn init-mouseup []
+  (js/document.body.addEventListener
+    "mouseup"
+    #(>evt [::mouse-up false])))
+
+(re-frame/reg-event-db ::set-app-state
+  (fn [_ [_ _application-state]]
+    initial-state))
+
 (defn init-state []
-  (let [compressed-graph (.get (js/URLSearchParams. js/window.location.search) "g")
-        default-graph (get-in initial-state [:domain :graph-text])]
-    (if compressed-graph
-      (.then (gzip-decompress (js/atob compressed-graph))
-             #(re-frame/dispatch-sync [::set-app-state "compressed-graph"]))
-      (re-frame/dispatch-sync [::set-app-state default-graph]))))
+  (re-frame/dispatch-sync [::set-app-state]))
+  ;; (let [compressed-graph (.get (js/URLSearchParams. js/window.location.search) "g")
+  ;;       default-graph (get-in initial-state [:domain :graph-text])]
+  ;;   (if compressed-graph
+  ;;     (.then (gzip-decompress (js/atob compressed-graph))
+  ;;            #(re-frame/dispatch-sync [::set-app-state "compressed-graph"]))
+  ;;     (re-frame/dispatch-sync [::set-app-state default-graph]))))
 
 (defn ^:dev/after-load mount-app-element []
   (when ^boolean js/goog.DEBUG ;; Code removed in production
@@ -273,4 +319,6 @@ nodeA->nodeB"
 
 (defn init []
   (init-state)
+  (init-mousemove)
+  (init-mouseup)
   (mount-app-element))
