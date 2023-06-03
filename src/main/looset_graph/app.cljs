@@ -20,9 +20,16 @@
 (defn draw-graph-no-memo [id dot-string options]
   (fn []
     (let [parsed-data (-> js/vis (.parseDOTNetwork dot-string))
+          ;; _ (set! ^js(.-widthConstraint (get (.-nodes parsed-data) 0)) 30)
+          ;; _ (set! ^js(.-heightConstraint (get (.-nodes parsed-data) 0)) 30)
+          ;; _ (set! ^js(.-font (get (.-nodes parsed-data) 0)) #js{:size 40}) ;; Possibility to differentiate different abstraction levels
           container (-> js/document (.getElementById id))
           data #js {:nodes (.-nodes parsed-data) :edges (.-edges parsed-data)}]
+      (js/console.log "parsedDot" parsed-data)
+      (js/console.log "parsedDot2" parsed-data)
       (-> js/vis .-Network (new container data options)))))
+
+;; (js/console.log "jp6" (clj->js (assoc-in #js{:n [{}]} [:n 0 :a] 1)))
 
 (def draw-graph (memoize draw-graph-no-memo))
 
@@ -117,7 +124,7 @@ nodeA->nodeB"
 
 (defn mouse-moved
   [app-state [_event x y]]
-  (js/console.log x y)
+  ;; (js/console.log x y)
   (let [resizing-panels? (get-in app-state [:ui :panels :resizing-panels])]
     (cond-> app-state
       resizing-panels?
@@ -250,7 +257,7 @@ nodeA->nodeB"
               :display "flex"
               :flex-direction "column"
               :min-width "20vw"}}
-     [:p
+     [:p#text-component
        {:style {:overflow "auto"
                 :display "flex"
                 :flex-grow "1"
@@ -261,7 +268,7 @@ nodeA->nodeB"
 ;; ---- Initialization ----
 
 (def initial-state
-  {:domain {:dot-graph "dinetwork {1 -> 1 -> 2; 2 -> 3; 2 -- 4; 2 -> 1 }"}
+  {:domain {:dot-graph "dinetwork {\"superlongnamethatwontfitboll1\" -> superlongnamethatwontfitboll1 -> 2; 2 -> 3; 2 -- 4; 2 -> superlongnamethatwontfitboll1 }"}
    :ui {:panels {:resizing-panels false
                  :left-panel-size "65vw"}}})
 
@@ -311,6 +318,14 @@ nodeA->nodeB"
   ;;            #(re-frame/dispatch-sync [::set-app-state "compressed-graph"]))
   ;;     (re-frame/dispatch-sync [::set-app-state default-graph]))))
 
+;; Snippet on how to react on CSS change
+;; (defn init-style-observer []
+;;   (let [observer (new js/MutationObserver
+;;                    (fn [mutations]
+;;                      (js/console.log "something changed" mutations)))
+;;         target-element (js/document.getElementById "text-component")]
+;;     (.observe observer target-element #js{:attributes true :attributeFilter #js["style"]})))
+
 (defn ^:dev/after-load mount-app-element []
   (when ^boolean js/goog.DEBUG ;; Code removed in production
     (re-frame/clear-subscription-cache!))
@@ -322,3 +337,4 @@ nodeA->nodeB"
   (init-mousemove)
   (init-mouseup)
   (mount-app-element))
+  ;; (init-style-observer))
