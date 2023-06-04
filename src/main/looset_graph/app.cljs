@@ -26,7 +26,6 @@
           container (-> js/document (.getElementById id))
           data #js {:nodes (.-nodes parsed-data) :edges (.-edges parsed-data)}]
       (js/console.log "parsedDot" parsed-data)
-      (js/console.log "parsedDot2" parsed-data)
       (-> js/vis .-Network (new container data options)))))
 
 ;; (js/console.log "jp6" (clj->js (assoc-in #js{:n [{}]} [:n 0 :a] 1)))
@@ -75,12 +74,53 @@
       (when-not (contains? hide-literals content)
         [token-type content]))))
 
+(defn graph-text->ast [input]
+  (let [chrs (new (.-InputStream antlr4) input)
+        lxr (new (.-default lexer) chrs)
+        tokens (new (.-CommonTokenStream antlr4) lxr)
+        prsr (new (.-default parser) tokens)
+        _ (set! (.-buildParseTrees prsr) true)
+        tree ^js/LoosetGraphContext (.loosetGraph prsr)]
+    (clj->js (ast tree (mapv keyword (.-ruleNames prsr)) (mapv keyword (.-symbolicNames prsr)) #{} #{"->" ":"}))))
+
+(defn extract-nodes-from-foldable-rule
+  [foldable]
+  (let [foldable-id-name (get-in foldable [1 1 1])
+        foldable-type-str (get-in foldable [1 1 0])
+        foldable-type (if (= "LABEL_ID" foldable-type-str) :label :node)
+        label-or-parent (if (= :label foldable-type)
+                          {:label #{foldable-id-name}}
+                          {:parent foldable-id-name})
+        extract-node-info (fn [node]
+                            (let [id (get-in node [1 1])
+                                  type-str (get-in node [1 0])
+                                  type (if (= "LABEL_ID" type-str) :label :node)]
+                              {id (merge label-or-parent {:type type})}))
+        inner-nodes (map extract-node-info (drop 2 foldable))
+        foldable-id-node {foldable-id-name {:type foldable-type :foldable true}}]
+    (apply merge foldable-id-node inner-nodes)))
+
+(defn merge-nodes
+  "union for the set of labels and merge the rest"
+  [nodes]
+  (apply merge-with
+    #(merge-with
+       (fn [res latter]
+         (if (set? res)
+           (clojure.set/union res latter)
+           latter))
+       %1 %2)
+   nodes))
 
 (let [input "
 =>label1:
   node1
-  node2 
-  
+  node2
+  node5
+
+=>label2:
+  node5
+
 node3:
   node4
   node5
@@ -88,13 +128,9 @@ node3:
 node1 -> node2
 node4->node1
 nodeA->nodeB"
-      chrs (new (.-InputStream antlr4) input)
-      lxr (new (.-default lexer) chrs)
-      tokens (new (.-CommonTokenStream antlr4) lxr)
-      prsr (new (.-default parser) tokens)
-      _ (set! (.-buildParseTrees prsr) true)
-      tree ^js/LoosetGraphContext (.loosetGraph prsr)]
-  (js/console.log "jp5" (clj->js (ast tree (mapv keyword (.-ruleNames prsr)) (mapv keyword (.-symbolicNames prsr)) #{} #{"->"}))))
+      foldables (clj->js (filter #(= "foldable" (first %)) (graph-text->ast input)))
+      foldable (first foldables)]
+  (tap> (merge-nodes (mapv extract-nodes-from-foldable-rule foldables))))
 
 (when ^boolean js/goog.DEBUG ;; Code removed in production
   (js/console.log "Debugger mode!"))
