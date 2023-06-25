@@ -32,7 +32,29 @@
 
 (def draw-graph (memoize draw-graph-no-memo))
 
-;; ---- Graph language grammar ----
+(when ^boolean js/goog.DEBUG ;; Code removed in production
+  (js/console.log "Debugger mode!"))
+
+;; Redef re-frame subscribe and dispatch for brevity
+(def <sub (comp deref re-frame.core/subscribe))
+(def >evt re-frame.core/dispatch)
+
+;; ---- Subs ----
+
+(defn dot-graph
+  [app-state]
+  (get-in app-state [:domain :dot-graph] ""))
+(re-frame/reg-sub ::dot-graph dot-graph)
+
+(defn left-panel-size
+  [app-state]
+  (get-in app-state [:ui :panels :left-panel-size] "400px"))
+(re-frame/reg-sub ::left-panel-size left-panel-size)
+
+(defn graph-text
+  [app-state]
+  (get-in app-state [:domain :graph-text] ""))
+(re-frame/reg-sub ::graph-text graph-text)
 
 (defn- parser-rule-meta
   [^ParserRuleContext this]
@@ -74,82 +96,18 @@
       (when-not (contains? hide-literals content)
         [token-type content]))))
 
-(defn graph-text->ast [input]
-  (let [chrs (new (.-InputStream antlr4) input)
+(defn graph-ast [graph-text]
+  (let [chrs (new (.-InputStream antlr4) graph-text)
         lxr (new (.-default lexer) chrs)
         tokens (new (.-CommonTokenStream antlr4) lxr)
         prsr (new (.-default parser) tokens)
         _ (set! (.-buildParseTrees prsr) true)
         tree ^js/LoosetGraphContext (.loosetGraph prsr)]
     (clj->js (ast tree (mapv keyword (.-ruleNames prsr)) (mapv keyword (.-symbolicNames prsr)) #{} #{"->" ":"}))))
-
-(defn extract-nodes-from-foldable-rule
-  [foldable]
-  (let [foldable-id-name (get-in foldable [1 1 1])
-        foldable-type-str (get-in foldable [1 1 0])
-        foldable-type (if (= "LABEL_ID" foldable-type-str) :label :node)
-        label-or-parent (if (= :label foldable-type)
-                          {:label #{foldable-id-name}}
-                          {:parent foldable-id-name})
-        extract-node-info (fn [node]
-                            (let [id (get-in node [1 1])
-                                  type-str (get-in node [1 0])
-                                  type (if (= "LABEL_ID" type-str) :label :node)]
-                              {id (merge label-or-parent {:type type})}))
-        inner-nodes (map extract-node-info (drop 2 foldable))
-        foldable-id-node {foldable-id-name {:type foldable-type :foldable true}}]
-    (apply merge foldable-id-node inner-nodes)))
-
-(defn merge-nodes
-  "union for the set of labels and merge the rest"
-  [nodes]
-  (apply merge-with
-    #(merge-with
-       (fn [res latter]
-         (if (set? res)
-           (clojure.set/union res latter)
-           latter))
-       %1 %2)
-   nodes))
-
-(let [input "
-=>label1:
-  node1
-  node2
-  node5
-
-=>label2:
-  node5
-
-node3:
-  node4
-  node5
-
-node1 -> node2
-node4->node1
-nodeA->nodeB"
-      foldables (clj->js (filter #(= "foldable" (first %)) (graph-text->ast input)))
-      foldable (first foldables)]
-  (tap> (merge-nodes (mapv extract-nodes-from-foldable-rule foldables))))
-
-(when ^boolean js/goog.DEBUG ;; Code removed in production
-  (js/console.log "Debugger mode!"))
-
-;; Redef re-frame subscribe and dispatch for brevity
-(def <sub (comp deref re-frame.core/subscribe))
-(def >evt re-frame.core/dispatch)
-
-;; ---- Subs ----
-
-(defn dot-graph
-  [app-state]
-  (get-in app-state [:domain :dot-graph] ""))
-(re-frame/reg-sub ::dot-graph dot-graph)
-
-(defn left-panel-size
-  [app-state]
-  (get-in app-state [:ui :panels :left-panel-size] "400px"))
-(re-frame/reg-sub ::left-panel-size left-panel-size)
+(re-frame/reg-sub
+  ::graph-ast
+  :<- [::graph-text]
+  graph-ast)
 
 ;; ---- Events ----
 
@@ -174,6 +132,13 @@ nodeA->nodeB"
     (resizing-panels [::mouse-up false])
     (assoc-in [:ui :diagram :zooming?] false)))
 (re-frame/reg-event-db ::mouse-up mouse-up)
+
+(defn set-graph-text
+  [{app-state :db} [_event v]]
+  (let [new-app-state (assoc-in app-state [:domain :graph-text] v)]
+    {:db new-app-state}))
+     ;; :set-url-state (get-in new-app-state [:ui :validation :valid-cardume-text])}))
+(re-frame/reg-event-fx ::set-graph-text set-graph-text)
 
 ;; ---- Views ----
 
@@ -221,25 +186,70 @@ nodeA->nodeB"
       {:width "30" :height "30" :fill "currentColor" :viewBox "0 0 16 16"}
       [:path {:d "M6.956 1.745C7.021.81 7.908.087 8.864.325l.261.066c.463.116.874.456 1.012.965.22.816.533 2.511.062 4.51a9.84 9.84 0 0 1 .443-.051c.713-.065 1.669-.072 2.516.21.518.173.994.681 1.2 1.273.184.532.16 1.162-.234 1.733.058.119.103.242.138.363.077.27.113.567.113.856 0 .289-.036.586-.113.856-.039.135-.09.273-.16.404.169.387.107.819-.003 1.148a3.163 3.163 0 0 1-.488.901c.054.152.076.312.076.465 0 .305-.089.625-.253.912C13.1 15.522 12.437 16 11.5 16H8c-.605 0-1.07-.081-1.466-.218a4.82 4.82 0 0 1-.97-.484l-.048-.03c-.504-.307-.999-.609-2.068-.722C2.682 14.464 2 13.846 2 13V9c0-.85.685-1.432 1.357-1.615.849-.232 1.574-.787 2.132-1.41.56-.627.914-1.28 1.039-1.639.199-.575.356-1.539.428-2.59z"}]]]]])
 
+(defn label-node [{:keys [level color open?]} text]
+  [:p.hover-gray
+   {:style {:color color
+            :paddingLeft (+ 16 (* 12 level))}}
+   (str (if open? "=v " "=> ")
+        text)])
+
+(defn simple-node [{:keys [level open?]} text]
+  [:p.hover-gray
+   {:style {:paddingLeft (+ 16 (* 12 level))}}
+   (str (cond (nil? open?) ""
+              (true? open?) "v "
+              :else "> ")
+        text)])
+
 (defn nodes-list []
-  [:p "nodes-list"])
+  [:div
+    [label-node
+     {:level 0 :color "red" :open? true}
+     "Etiqueta 1"]
+    [simple-node
+     {:level 1}
+     "Nó 1"]
+    [simple-node
+     {:level 1}
+     "Nó 2"]
+    [simple-node
+     {:level 1}
+     "Nó 5"]
+    [label-node
+     {:level 0 :color "blue" :open? true}
+     "Etiqueta 2"]
+    [simple-node
+     {:level 1}
+     "Nó 5"]
+    [simple-node
+     {:level 0 :open? true}
+     "Nó 3"]
+    [simple-node
+     {:level 1}
+     "Nó 4"]
+    [simple-node
+     {:level 1}
+     "Nó 5"]
+    [simple-node
+     {:level 0 :open? true}
+     "Nó 6"]
+    [simple-node
+     {:level 1 :open? true}
+     "Nó 7"]
+    [simple-node
+     {:level 2 :open? true}
+     "Nó 8"]
+    [simple-node
+     {:level 3 :open? true}
+     "Nó 9"]
+    [simple-node
+     {:level 4 :open? true}
+     "Nó 10"]])
 
 (def code-font-family "dejavu sans mono, monospace")
 (def code-font-size "small")
 (def code-margin "0")
 (def code-padding "0 10px")
-
-(defn set-graph-text
-  [{app-state :db} [_event v]]
-  (let [new-app-state (assoc-in app-state [:domain :graph-text] v)]
-    {:db new-app-state}))
-     ;; :set-url-state (get-in new-app-state [:ui :validation :valid-cardume-text])}))
-(re-frame/reg-event-fx ::set-graph-text set-graph-text)
-
-(defn graph-text
-  [app-state]
-  (get-in app-state [:domain :graph-text] ""))
-(re-frame/reg-sub ::graph-text graph-text)
 
 (defn debug-raw-graph-text []
   [:textarea
@@ -266,6 +276,11 @@ nodeA->nodeB"
         width: 5px;
         height: 5px;
     }
+
+   .hover-gray:hover {
+     background-color: lightgray;
+     cursor: pointer;
+   }
 
    .button-1 {
      display: flex;
@@ -373,9 +388,52 @@ nodeA->nodeB"
     "mouseup"
     #(>evt [::mouse-up false])))
 
+(defn extract-nodes-from-foldable-rule
+  [foldable]
+  (let [foldable-id-name (get-in foldable [1 1 1])
+        foldable-type-str (get-in foldable [1 1 0])
+        foldable-type (if (= "LABEL_ID" foldable-type-str) :label :node)
+        label-or-parent (if (= :label foldable-type)
+                          {:label #{foldable-id-name}}
+                          {:parent foldable-id-name})
+        extract-node-info (fn [node]
+                            (let [id (get-in node [1 1])
+                                  type-str (get-in node [1 0])
+                                  type (if (= "LABEL_ID" type-str) :label :node)]
+                              {id (merge label-or-parent {:type type})}))
+        inner-nodes (map extract-node-info (drop 2 foldable))
+        foldable-id-node {foldable-id-name {:type foldable-type :foldable true}}]
+    (apply merge foldable-id-node inner-nodes)))
+
+(defn merge-nodes
+  "union for the set of labels and merge the rest"
+  [nodes]
+  (apply merge-with
+    #(merge-with
+       (fn [res latter]
+         (if (set? res)
+           (clojure.set/union res latter)
+           latter))
+       %1 %2)
+   nodes))
+
+;; TODO: review this, it's probably going to be a sub merging the info user
+;;provides (like closing and opening) with the ast calculated from the graph-text
+(defn graph-ast->nodes-map
+  [graph-ast]
+  (->> graph-ast
+    (filter #(= "foldable" (first %)))
+    (mapv extract-nodes-from-foldable-rule)
+    (merge-nodes)
+    (#(do (tap> %) %))))
+
 (re-frame/reg-event-db ::set-app-state
   (fn [_ [_ _application-state]]
-    initial-state))
+    (-> initial-state
+      (assoc-in [:ui :dot-graph-text] "x")
+      ;; TODO: review this, it's probably going to be a sub merging the info user
+      ;;provides (like closing and opening) with the ast calculated from the graph-text
+      (assoc-in [:ui :nodes] (graph-ast->nodes-map (graph-ast (get-in initial-state [:domain :graph-text] "")))))))
 
 (defn init-state []
   (re-frame/dispatch-sync [::set-app-state]))
