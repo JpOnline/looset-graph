@@ -221,6 +221,36 @@ nodeA->nodeB"
       {:width "30" :height "30" :fill "currentColor" :viewBox "0 0 16 16"}
       [:path {:d "M6.956 1.745C7.021.81 7.908.087 8.864.325l.261.066c.463.116.874.456 1.012.965.22.816.533 2.511.062 4.51a9.84 9.84 0 0 1 .443-.051c.713-.065 1.669-.072 2.516.21.518.173.994.681 1.2 1.273.184.532.16 1.162-.234 1.733.058.119.103.242.138.363.077.27.113.567.113.856 0 .289-.036.586-.113.856-.039.135-.09.273-.16.404.169.387.107.819-.003 1.148a3.163 3.163 0 0 1-.488.901c.054.152.076.312.076.465 0 .305-.089.625-.253.912C13.1 15.522 12.437 16 11.5 16H8c-.605 0-1.07-.081-1.466-.218a4.82 4.82 0 0 1-.97-.484l-.048-.03c-.504-.307-.999-.609-2.068-.722C2.682 14.464 2 13.846 2 13V9c0-.85.685-1.432 1.357-1.615.849-.232 1.574-.787 2.132-1.41.56-.627.914-1.28 1.039-1.639.199-.575.356-1.539.428-2.59z"}]]]]])
 
+(defn nodes-list []
+  [:p "nodes-list"])
+
+(def code-font-family "dejavu sans mono, monospace")
+(def code-font-size "small")
+(def code-margin "0")
+(def code-padding "0 10px")
+
+(defn set-graph-text
+  [{app-state :db} [_event v]]
+  (let [new-app-state (assoc-in app-state [:domain :graph-text] v)]
+    {:db new-app-state}))
+     ;; :set-url-state (get-in new-app-state [:ui :validation :valid-cardume-text])}))
+(re-frame/reg-event-fx ::set-graph-text set-graph-text)
+
+(defn graph-text
+  [app-state]
+  (get-in app-state [:domain :graph-text] ""))
+(re-frame/reg-sub ::graph-text graph-text)
+
+(defn debug-raw-graph-text []
+  [:textarea
+   {:style {:flex-grow "1"
+            :margin code-margin
+            :padding code-padding
+            :font-family code-font-family
+            :font-size code-font-size}
+    :onChange #(>evt [::set-graph-text (-> % .-target .-value)])
+    :value (<sub [::graph-text])}])
+
 (defn global-style []
   [:style
    (str "
@@ -293,18 +323,20 @@ nodeA->nodeB"
               :display "flex"
               :flex-direction "column"
               :min-width "20vw"}}
-     [:p#text-component
+     [:div#text-component
        {:style {:overflow "auto"
-                :display "flex"
+                :display "grid"
                 :flex-grow "1"
                 :padding "7px 0"}}
-       "Text component"]
+       [nodes-list]
+       [debug-raw-graph-text]]
      [botton-buttons]]]])
 
 ;; ---- Initialization ----
 
 (def initial-state
-  {:domain {:dot-graph "dinetwork {\"superlongnamethatwontfitboll1\" -> superlongnamethatwontfitboll1 -> 2; 2 -> 3; 2 -- 4; 2 -> superlongnamethatwontfitboll1 }"}
+  {:domain {:dot-graph "dinetwork {\"superlongnamethatwontfitboll1\" -> superlongnamethatwontfitboll1 -> 2; 2 -> 3; 2 -- 4; 2 -> superlongnamethatwontfitboll1 }"
+            :graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label2:\n  node5\n\nnode3:\n  node4\n  node5\n\nnode1 -> node2\nnode4->node1\nnodeA->nodeB"}
    :ui {:panels {:resizing-panels false
                  :left-panel-size "65vw"}}})
 
