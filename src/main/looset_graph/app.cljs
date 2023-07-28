@@ -1,21 +1,12 @@
 (ns looset-graph.app
   (:require
-    [reagent.dom]
-    [reagent.core :as reagent]
-    [re-frame.core :as re-frame]
-    ["antlr4" :as antlr4]
     ;; ["/looset_graph/antlr/loosetGraphLexer" :as loosetGraphLexer]
+    ["/looset_graph/antlr/loosetGraphLexer" :as lexer]
     ["/looset_graph/antlr/loosetGraphParser" :as parser]
-    ["/looset_graph/antlr/loosetGraphLexer" :as lexer]))
-
-(defn with-mount-fn
-  "Wrap component in the create-class fn so the react component-did-mount
-  hook can be used."
-  [[_n {:keys [component-did-mount]} :as to-render]]
-  (reagent/create-class
-    {:reagent-render #(into [] (update-in to-render [1]
-                                          dissoc :component-did-mount))
-     :component-did-mount component-did-mount}))
+    ["antlr4" :as antlr4]
+    [looset-graph.util :as util]
+    [re-frame.core :as re-frame]
+    [reagent.dom]))
 
 (defn draw-graph-no-memo [id dot-string options]
   (fn []
@@ -223,7 +214,7 @@
 (def quattrocento-font "Quattrocento, serif")
 
 (defn graph-component []
-  [(with-mount-fn
+  [(util/with-mount-fn
      [:div
       {:id "looset-graph"
        :style #js {:height "100%" :width "100%" #_#_:flexGrow 5}
