@@ -109,6 +109,84 @@
   :<- [::graph-text]
   graph-ast)
 
+(defn extract-nodes-from-foldable-rule
+  [foldable]
+  (let [foldable-id-name (get-in foldable [1 1 1])
+        foldable-type-str (get-in foldable [1 1 0])
+        foldable-type (if (= "LABEL_ID" foldable-type-str) :label :node)
+        label-or-parent (if (= :label foldable-type)
+                          {:label #{foldable-id-name}}
+                          {:parent foldable-id-name})
+        extract-node-info (fn [node]
+                            (let [id (get-in node [1 1])
+                                  type-str (get-in node [1 0])
+                                  type (if (= "LABEL_ID" type-str) :label :node)]
+                              {id (merge label-or-parent {:type type})}))
+        inner-nodes (map extract-node-info (drop 2 foldable))
+        foldable-id-node {foldable-id-name {:type foldable-type :foldable true}}]
+    (apply merge foldable-id-node inner-nodes)))
+
+(defn merge-nodes
+  "union for the set of labels and merge the rest"
+  [nodes]
+  (apply merge-with
+    #(merge-with
+       (fn [res latter]
+         (if (set? res)
+           (clojure.set/union res latter)
+           latter))
+       %1 %2)
+   nodes))
+
+;; This could be optimized as I don't need to process nodes that are closed (maybe change how the graph is defined)
+;; This is good enough for MVP, but there's a problem if I have a cycle or depending on the order of the definition, for instance the graph-text
+;; =>label5:
+;;   =>label6
+;; =>label6:
+;;   =>label5
+;; Should generate a structure like
+;; -=vlabel5
+;;  -=vlabel6
+;;   -=>label5
+;; -=vlabel6
+;;  -=vlabel5
+;;   -=>label6
+(defn list-structure
+  [nodes-map]
+  (reduce
+    (fn [r [k v]]
+        (let [path (fn path
+                     ([cur-k cur-v] (conj (path cur-v) cur-k))
+                     ([cur]
+                      (if-let [parent (:parent cur)]
+                        (conj (path (nodes-map parent)) parent)
+                        [])))
+              to-assoc (get-in r (path k v) {})]
+          ;; (assoc-in r [k] {:path (path k v)
+          ;;                  :label (map #(into {% (path % (nodes-map %))}) (:label v))})
+          ;; (assoc-in r (path k v) to-assoc)))
+          (reduce
+            #(assoc-in %1 (path %2 (nodes-map %2)) {k to-assoc})
+            (assoc-in r (path k v) to-assoc)
+            (:label v))))
+    {} nodes-map))
+
+;; TODO: review this, it's probably going to be a sub merging the info user
+;;provides (like closing and opening) with the ast calculated from the graph-text
+(defn graph-ast->nodes-map
+  [graph-ast]
+  (->> graph-ast
+    (filter #(= "foldable" (first %)))
+    (mapv extract-nodes-from-foldable-rule)
+    (merge-nodes)
+    (#(do (tap> "jp1") (tap> %) %))
+    (list-structure)
+    (#(do (tap> "jp2") (tap> %) %))))
+(re-frame/reg-sub
+  ::nodes-map
+  :<- [::graph-ast]
+  graph-ast->nodes-map)
+
 ;; ---- Events ----
 
 (defn resizing-panels
@@ -202,49 +280,55 @@
         text)])
 
 (defn nodes-list []
-  [:div
-    [label-node
-     {:level 0 :color "red" :open? true}
-     "Etiqueta 1"]
-    [simple-node
-     {:level 1}
-     "Nó 1"]
-    [simple-node
-     {:level 1}
-     "Nó 2"]
-    [simple-node
-     {:level 1}
-     "Nó 5"]
-    [label-node
-     {:level 0 :color "blue" :open? true}
-     "Etiqueta 2"]
-    [simple-node
-     {:level 1}
-     "Nó 5"]
-    [simple-node
-     {:level 0 :open? true}
-     "Nó 3"]
-    [simple-node
-     {:level 1}
-     "Nó 4"]
-    [simple-node
-     {:level 1}
-     "Nó 5"]
-    [simple-node
-     {:level 0 :open? true}
-     "Nó 6"]
-    [simple-node
-     {:level 1 :open? true}
-     "Nó 7"]
-    [simple-node
-     {:level 2 :open? true}
-     "Nó 8"]
-    [simple-node
-     {:level 3 :open? true}
-     "Nó 9"]
-    [simple-node
-     {:level 4 :open? true}
-     "Nó 10"]])
+  (let [label-or-simple {:label label-node :node simple-node}]
+    [:div
+      ;; (for [{:keys [text node-type level color opened?]}
+      ;;       (<sub [::nodes-list])]
+      ;;   ^{:key text}
+      ;;   [(if)])]))
+      [:p (<sub [::nodes-map])]
+      [label-node
+       {:level 0 :color "red" :open? true}
+       "Etiqueta 1"]
+      [simple-node
+       {:level 1}
+       "Nó 1"]
+      [simple-node
+       {:level 1}
+       "Nó 2"]
+      [simple-node
+       {:level 1}
+       "Nó 5"]
+      [label-node
+       {:level 0 :color "blue" :open? true}
+       "Etiqueta 2"]
+      [simple-node
+       {:level 1}
+       "Nó 5"]
+      [simple-node
+       {:level 0 :open? true}
+       "Nó 3"]
+      [simple-node
+       {:level 1}
+       "Nó 4"]
+      [simple-node
+       {:level 1}
+       "Nó 5"]
+      [simple-node
+       {:level 0 :open? true}
+       "Nó 6"]
+      [simple-node
+       {:level 1 :open? true}
+       "Nó 7"]
+      [simple-node
+       {:level 2 :open? true}
+       "Nó 8"]
+      [simple-node
+       {:level 3 :open? true}
+       "Nó 9"]
+      [simple-node
+       {:level 4 :open? true}
+       "Nó 10"]]))
 
 (def code-font-family "dejavu sans mono, monospace")
 (def code-font-size "small")
@@ -387,45 +471,6 @@
   (js/document.body.addEventListener
     "mouseup"
     #(>evt [::mouse-up false])))
-
-(defn extract-nodes-from-foldable-rule
-  [foldable]
-  (let [foldable-id-name (get-in foldable [1 1 1])
-        foldable-type-str (get-in foldable [1 1 0])
-        foldable-type (if (= "LABEL_ID" foldable-type-str) :label :node)
-        label-or-parent (if (= :label foldable-type)
-                          {:label #{foldable-id-name}}
-                          {:parent foldable-id-name})
-        extract-node-info (fn [node]
-                            (let [id (get-in node [1 1])
-                                  type-str (get-in node [1 0])
-                                  type (if (= "LABEL_ID" type-str) :label :node)]
-                              {id (merge label-or-parent {:type type})}))
-        inner-nodes (map extract-node-info (drop 2 foldable))
-        foldable-id-node {foldable-id-name {:type foldable-type :foldable true}}]
-    (apply merge foldable-id-node inner-nodes)))
-
-(defn merge-nodes
-  "union for the set of labels and merge the rest"
-  [nodes]
-  (apply merge-with
-    #(merge-with
-       (fn [res latter]
-         (if (set? res)
-           (clojure.set/union res latter)
-           latter))
-       %1 %2)
-   nodes))
-
-;; TODO: review this, it's probably going to be a sub merging the info user
-;;provides (like closing and opening) with the ast calculated from the graph-text
-(defn graph-ast->nodes-map
-  [graph-ast]
-  (->> graph-ast
-    (filter #(= "foldable" (first %)))
-    (mapv extract-nodes-from-foldable-rule)
-    (merge-nodes)
-    (#(do (tap> %) %))))
 
 (re-frame/reg-event-db ::set-app-state
   (fn [_ [_ _application-state]]
