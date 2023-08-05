@@ -92,7 +92,7 @@
 ;; -=vlabel6
 ;;  -=vlabel5
 ;;   -=>label6
-(defn list-structure
+(defn nodes-hierarchy
   [nodes-map]
   (reduce
     (fn [r [k v]]
@@ -103,14 +103,20 @@
                         (conj (path (nodes-map parent)) parent)
                         [])))
               to-assoc (get-in r (path k v) {})]
-          ;; (assoc-in r [k] {:path (path k v)
-          ;;                  :label (map #(into {% (path % (nodes-map %))}) (:label v))})
-          ;; (assoc-in r (path k v) to-assoc)))
           (reduce
             #(assoc-in %1 (path %2 (nodes-map %2)) {k to-assoc})
             (assoc-in r (path k v) to-assoc)
             (:label v))))
     {} nodes-map))
+
+(defn nodes-list
+  [level [node nodes-hierarchy]]
+  (cons {:text node
+         :node-type (if (= "=" (first node)) :label :lix)
+         :level level
+         :color "black"
+         :opened? false}
+        (mapcat #(nodes-list (inc level) %) nodes-hierarchy)))
 
 ;; TODO: review this, it's probably going to be a sub merging the info user
 ;;provides (like closing and opening) with the ast calculated from the graph-text
@@ -120,9 +126,11 @@
     (filter #(= "foldable" (first %)))
     (mapv extract-nodes-from-foldable-rule)
     (merge-nodes)
-    (#(do (tap> "jp1") (tap> %) %))
-    (list-structure)
-    (#(do (tap> "jp2") (tap> %) %))))
+    ;; (#(do (tap> "nodes-map") (tap> %) %))
+    (nodes-hierarchy)
+    ;; (#(do (tap> "nodes-hierarchy") (tap> %) %))
+    (mapcat #(nodes-list 0 %))))
+    ;; (#(do (tap> "jp1") (tap> %) %))))
 (re-frame/reg-sub
   ::nodes-map
   :<- [::graph-ast]
@@ -205,71 +213,29 @@
       {:width "30" :height "30" :fill "currentColor" :viewBox "0 0 16 16"}
       [:path {:d "M6.956 1.745C7.021.81 7.908.087 8.864.325l.261.066c.463.116.874.456 1.012.965.22.816.533 2.511.062 4.51a9.84 9.84 0 0 1 .443-.051c.713-.065 1.669-.072 2.516.21.518.173.994.681 1.2 1.273.184.532.16 1.162-.234 1.733.058.119.103.242.138.363.077.27.113.567.113.856 0 .289-.036.586-.113.856-.039.135-.09.273-.16.404.169.387.107.819-.003 1.148a3.163 3.163 0 0 1-.488.901c.054.152.076.312.076.465 0 .305-.089.625-.253.912C13.1 15.522 12.437 16 11.5 16H8c-.605 0-1.07-.081-1.466-.218a4.82 4.82 0 0 1-.97-.484l-.048-.03c-.504-.307-.999-.609-2.068-.722C2.682 14.464 2 13.846 2 13V9c0-.85.685-1.432 1.357-1.615.849-.232 1.574-.787 2.132-1.41.56-.627.914-1.28 1.039-1.639.199-.575.356-1.539.428-2.59z"}]]]]])
 
-(defn label-node [{:keys [level color open?]} text]
+(defn label-node [{:keys [level color opened?]} text]
   [:p.hover-gray
    {:style {:color color
             :paddingLeft (+ 16 (* 12 level))}}
-   (str (if open? "=v " "=> ")
+   (str (if opened? "=v " "=> ")
         text)])
 
-(defn simple-node [{:keys [level open?]} text]
+(defn simple-node [{:keys [level opened?]} text]
   [:p.hover-gray
    {:style {:paddingLeft (+ 16 (* 12 level))}}
-   (str (cond (nil? open?) ""
-              (true? open?) "v "
+   (str (cond (nil? opened?) ""
+              (true? opened?) "v "
               :else "> ")
         text)])
 
-(defn nodes-list []
-  (let [label-or-simple {:label label-node :node simple-node}]
-    [:div
-      ;; (for [{:keys [text node-type level color opened?]}
-      ;;       (<sub [::nodes-list])]
-      ;;   ^{:key text}
-      ;;   [(if)])]))
-      [:p (<sub [::nodes-map])]
-      [label-node
-       {:level 0 :color "red" :open? true}
-       "Etiqueta 1"]
-      [simple-node
-       {:level 1}
-       "Nó 1"]
-      [simple-node
-       {:level 1}
-       "Nó 2"]
-      [simple-node
-       {:level 1}
-       "Nó 5"]
-      [label-node
-       {:level 0 :color "blue" :open? true}
-       "Etiqueta 2"]
-      [simple-node
-       {:level 1}
-       "Nó 5"]
-      [simple-node
-       {:level 0 :open? true}
-       "Nó 3"]
-      [simple-node
-       {:level 1}
-       "Nó 4"]
-      [simple-node
-       {:level 1}
-       "Nó 5"]
-      [simple-node
-       {:level 0 :open? true}
-       "Nó 6"]
-      [simple-node
-       {:level 1 :open? true}
-       "Nó 7"]
-      [simple-node
-       {:level 2 :open? true}
-       "Nó 8"]
-      [simple-node
-       {:level 3 :open? true}
-       "Nó 9"]
-      [simple-node
-       {:level 4 :open? true}
-       "Nó 10"]]))
+(defn nodes-list-view []
+  [:div
+    (for [{:keys [text node-type level color opened?]} (<sub [::nodes-map])
+          :let [node-type-comp ({:label label-node :lix simple-node} node-type)]]
+      ^{:key text}
+      [node-type-comp
+       {:level level :color color :opened? opened?}
+       text])])
 
 (def code-font-family "dejavu sans mono, monospace")
 (def code-font-size "small")
@@ -368,7 +334,7 @@
                 :display "grid"
                 :flex-grow "1"
                 :padding "7px 0"}}
-       [nodes-list]
+       [nodes-list-view]
        [debug-raw-graph-text]]
      [botton-buttons]]]])
 
