@@ -7,14 +7,19 @@ loosetGraph
 foldable
   : foldableID node* ;
 
-foldableID : (LABEL_ID | ID) ':' ;
+foldableID : (labelID | lixID) ':' ;
 
 edge : node '->' node ;
 
-node : ID | LABEL_ID ;
+node : lixID | labelID ;
 
-LABEL_ID : '=>'[a-zA-Z0-9]+ ;
+labelID : '=>' ID ;
+
+lixID : ID ;
+
 ID : [a-zA-Z0-9]+ ;
 SPACES_RULE_TOKEN
    : [ \t\r\n]+ -> skip
    ;
+
+// Try it in http://lab.antlr.org/

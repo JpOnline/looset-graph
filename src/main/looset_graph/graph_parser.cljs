@@ -50,5 +50,6 @@
         tokens (new (.-CommonTokenStream antlr4) lxr)
         prsr (new (.-default parser) tokens)
         _ (set! (.-buildParseTrees prsr) true)
-        tree ^js/LoosetGraphContext (.loosetGraph prsr)]
-    (clj->js (ast tree (mapv keyword (.-ruleNames prsr)) (mapv keyword (.-symbolicNames prsr)) #{} #{"->" ":"}))))
+        tree ^js/LoosetGraphContext (.loosetGraph prsr)
+        to-hide #{"->" ":" "=>"}]
+    (clj->js (ast tree (mapv keyword (.-ruleNames prsr)) (mapv keyword (.-symbolicNames prsr)) #{} to-hide))))

@@ -1,4 +1,4 @@
-// Generated from loosetGraph.g4 by ANTLR 4.12.0
+// Generated from loosetGraph.g4 by ANTLR 4.13.0
 // jshint ignore: start
 import antlr4 from 'antlr4';
 
@@ -47,6 +47,24 @@ export default class loosetGraphListener extends antlr4.ParseTreeListener {
 
 	// Exit a parse tree produced by loosetGraphParser#node.
 	exitNode(ctx) {
+	}
+
+
+	// Enter a parse tree produced by loosetGraphParser#labelID.
+	enterLabelID(ctx) {
+	}
+
+	// Exit a parse tree produced by loosetGraphParser#labelID.
+	exitLabelID(ctx) {
+	}
+
+
+	// Enter a parse tree produced by loosetGraphParser#lixID.
+	enterLixID(ctx) {
+	}
+
+	// Exit a parse tree produced by loosetGraphParser#lixID.
+	exitLixID(ctx) {
 	}
 
 

@@ -52,16 +52,17 @@
 
 (defn extract-nodes-from-foldable-rule
   [foldable]
-  (let [foldable-id-name (get-in foldable [1 1 1])
+  (let [foldable-id-name (get-in foldable [1 1 1 1])
         foldable-type-str (get-in foldable [1 1 0])
-        foldable-type (if (= "LABEL_ID" foldable-type-str) :label :node)
+        type-str->type #(if (= "labelID" %) :label :lix)
+        foldable-type (type-str->type foldable-type-str)
         label-or-parent (if (= :label foldable-type)
                           {:label #{foldable-id-name}}
                           {:parent foldable-id-name})
         extract-node-info (fn [node]
-                            (let [id (get-in node [1 1])
+                            (let [id (get-in node [1 1 1])
                                   type-str (get-in node [1 0])
-                                  type (if (= "LABEL_ID" type-str) :label :node)]
+                                  type (type-str->type type-str)]
                               {id (merge label-or-parent {:type type})}))
         inner-nodes (map extract-node-info (drop 2 foldable))
         foldable-id-node {foldable-id-name {:type foldable-type :foldable true}}]
@@ -103,8 +104,14 @@
                         (conj (path (nodes-map parent)) parent)
                         [])))
               to-assoc (get-in r (path k v) {})]
+          ;; (tap> (str "k "k" v "v))
+          ;; (tap> (str "to-assoc "to-assoc))
+          ;; (tap> (str "(path k v) "(path k v)))
           (reduce
-            #(assoc-in %1 (path %2 (nodes-map %2)) {k to-assoc})
+            #(do
+               ;; (tap> "Jp3")
+               ;; (tap> (path %2 (nodes-map %2)))
+               (assoc-in %1 (conj (path %2 (nodes-map %2)) k) to-assoc))
             (assoc-in r (path k v) to-assoc)
             (:label v))))
     {} nodes-map))
@@ -168,13 +175,26 @@
     49 "#4283d1"))
 
 (defn nodes-list
-  [level [node nodes-hierarchy]]
+  [level nodes-map [node nodes-hierarchy]]
   (cons {:text node
-         :node-type (if (= "=" (first node)) :label :lix)
+         :node-type (:type (nodes-map node))
          :level level
          :color (text->color node)
          :opened? false}
-        (mapcat #(nodes-list (inc level) %) nodes-hierarchy)))
+        (mapcat #(nodes-list (inc level) nodes-map %) nodes-hierarchy)))
+
+(defn nodes-map->fold-list
+  [nodes-map]
+  (->> nodes-map
+    (nodes-hierarchy)
+    (#(do (tap> "nodes-hierarchy") (tap> %) %))
+    (mapcat #(nodes-list 0 nodes-map %))
+    (#(do (tap> "jp1") (tap> %) %))))
+(re-frame/reg-sub
+  ::fold-list
+  :<- [::nodes-map]
+  nodes-map->fold-list)
+
 
 ;; TODO: review this, it's probably going to be a sub merging the info user
 ;;provides (like closing and opening) with the ast calculated from the graph-text
@@ -182,13 +202,10 @@
   [graph-ast]
   (->> graph-ast
     (filter #(= "foldable" (first %)))
+    (#(do (tap> "jp2") (tap> %) %))
     (mapv extract-nodes-from-foldable-rule)
     (merge-nodes)
-    ;; (#(do (tap> "nodes-map") (tap> %) %))
-    (nodes-hierarchy)
-    ;; (#(do (tap> "nodes-hierarchy") (tap> %) %))
-    (mapcat #(nodes-list 0 %))))
-    ;; (#(do (tap> "jp1") (tap> %) %))))
+    (#(do (tap> "nodes-map") (tap> %) %))))
 (re-frame/reg-sub
   ::nodes-map
   :<- [::graph-ast]
@@ -278,7 +295,7 @@
    (str (if opened? "=v " "=> ")
         text)])
 
-(defn simple-node [{:keys [level opened?]} text]
+(defn lix-node [{:keys [level opened?]} text]
   [:p.hover-gray
    {:style {:paddingLeft (+ 16 (* 12 level))}}
    (str (cond (nil? opened?) ""
@@ -288,9 +305,9 @@
 
 (defn nodes-list-view []
   [:div
-    (for [{:keys [text node-type level color opened?]} (<sub [::nodes-map])
-          :let [node-type-comp ({:label label-node :lix simple-node} node-type)]]
-      ^{:key text}
+    (for [{:keys [text node-type level color opened?]} (<sub [::fold-list])
+          :let [node-type-comp ({:label label-node :lix lix-node} node-type)]]
+      ;; ^{:key text} ;; Somehow I'm using this key wrongly, if it's uncomment, the items repeat depending on the change.
       [node-type-comp
        {:level level :color color :opened? opened?}
        text])])
