@@ -1,25 +1,12 @@
 (ns looset-graph.app
   (:require
-    ;; ["/looset_graph/antlr/loosetGraphLexer" :as loosetGraphLexer]
+    [clojure.string]
     [looset-graph.graph-parser :as graph-parser]
     [looset-graph.util :as util]
     [re-frame.core :as re-frame]
     [reagent.dom]))
 
-(defn draw-graph-no-memo [id dot-string options]
-  (fn []
-    (let [parsed-data (-> js/vis (.parseDOTNetwork dot-string))
-          ;; _ (set! ^js(.-widthConstraint (get (.-nodes parsed-data) 0)) 30)
-          ;; _ (set! ^js(.-heightConstraint (get (.-nodes parsed-data) 0)) 30)
-          ;; _ (set! ^js(.-font (get (.-nodes parsed-data) 0)) #js{:size 40}) ;; Possibility to differentiate different abstraction levels
-          container (-> js/document (.getElementById id))
-          data #js {:nodes (.-nodes parsed-data) :edges (.-edges parsed-data)}]
-      (js/console.log "parsedDot" parsed-data)
-      (-> js/vis .-Network (new container data options)))))
-
-;; (js/console.log "jp6" (clj->js (assoc-in #js{:n [{}]} [:n 0 :a] 1)))
-
-(def draw-graph (memoize draw-graph-no-memo))
+;; ---- Util ----
 
 (when ^boolean js/goog.DEBUG ;; Code removed in production
   (js/console.log "Debugger mode!"))
@@ -35,7 +22,8 @@
 ;;   (get-in app-state [:domain :dot-graph] ""))
 ;; (re-frame/reg-sub ::dot-graph dot-graph)
 
-(defn- edge->dot-graph-line
+;; TODO: Am I going to use it?
+(defn edge->dot-graph-line
   [edge]
   (let [node-from-id (get-in edge [1 1 1 1])
         ;; node-from-type (get-in edge [1 1 0])
@@ -289,7 +277,18 @@
 
 ;; ---- Views ----
 
-(def quattrocento-font "Quattrocento, serif")
+(defn draw-graph-no-memo [id dot-string options]
+  (fn []
+    (let [parsed-data (-> js/vis (.parseDOTNetwork dot-string))
+          ;; _ (set! ^js(.-widthConstraint (get (.-nodes parsed-data) 0)) 30)
+          ;; _ (set! ^js(.-heightConstraint (get (.-nodes parsed-data) 0)) 30)
+          ;; _ (set! ^js(.-font (get (.-nodes parsed-data) 0)) #js{:size 40}) ;; Possibility to differentiate different abstraction levels
+          container (-> js/document (.getElementById id))
+          data #js {:nodes (.-nodes parsed-data) :edges (.-edges parsed-data)}]
+      (js/console.log "parsedDot" parsed-data)
+      (-> js/vis .-Network (new container data options)))))
+
+(def draw-graph (memoize draw-graph-no-memo))
 
 (defn graph-component []
   [(util/with-mount-fn
@@ -343,7 +342,7 @@
             :paddingLeft (+ 16 (* 12 level))}}
    text])
 
-(defn label-node [{:keys [node-id level color opened?]} text]
+(defn label-node [{:keys [node-id level color opened?]}]
   [node
    {:node-id node-id
     :level level
@@ -381,6 +380,8 @@
             :font-size code-font-size}
     :onChange #(>evt [::set-graph-text (-> % .-target .-value)])
     :value (<sub [::graph-text])}])
+
+(def quattrocento-font "Quattrocento, serif")
 
 (defn global-style []
   [:style
