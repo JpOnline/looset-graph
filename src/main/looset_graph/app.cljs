@@ -103,17 +103,13 @@
                       (if-let [parent (:parent cur)]
                         (conj (path (nodes-map parent)) parent)
                         [])))
-              to-assoc (get-in r (path k v) {})]
-          ;; (tap> (str "k "k" v "v))
-          ;; (tap> (str "to-assoc "to-assoc))
-          ;; (tap> (str "(path k v) "(path k v)))
-          (reduce
-            #(do
-               ;; (tap> "Jp3")
-               ;; (tap> (path %2 (nodes-map %2)))
-               (assoc-in %1 (conj (path %2 (nodes-map %2)) k) to-assoc))
-            (assoc-in r (path k v) to-assoc)
-            (:label v))))
+              to-assoc (get-in r (path k v) {})
+              with-node-assoced (assoc-in r (path k v) to-assoc)
+              with-its-labels-assoced (reduce
+                                        #(assoc-in %1 (conj (path %2 (nodes-map %2)) k) to-assoc)
+                                        with-node-assoced
+                                        (:label v))]
+          with-its-labels-assoced))
     {} nodes-map))
 
 (defn text->color [text]
