@@ -194,7 +194,7 @@
 (defn nodes-list
   [level nodes-map opened-nodes [node node-children]]
   (let [opened? (when (seq node-children)
-                    (:opened (opened-nodes node) false))]
+                    (:opened? (opened-nodes node) false))]
     (cons {:text node
            :node-type (:type (nodes-map node))
            :level level
@@ -447,8 +447,8 @@
             :graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label2:\n  node5\n\nnode3:\n  node4\n  node5\n\nnode1 -> node2\nnode4->node1\nnodeA->nodeB"}
    :ui {:panels {:resizing-panels false
                  :left-panel-size "65vw"}
-        :opened-nodes {"label1" {:opened true}
-                       "node7" {:opened true "node8" {:opened true "node9" {:opened false}}}}}})
+        :opened-nodes {"label1" {:opened? true}
+                       "node7" {:opened? true "node8" {:opened? true "node9" {:opened? false}}}}}})
 
 
 (defn gzip [cs-mode b-array]
