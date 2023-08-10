@@ -60,7 +60,7 @@
   [fold-list]
   (->> fold-list
     (remove :opened?)
-    (map :text)
+    (map :node-id)
     (clojure.string/join ";")
     (#(str "dinetwork {"%"}"))
     (#(do (tap> "a2") (tap> %) %))))
@@ -208,7 +208,7 @@
   [level nodes-map opened-nodes [node node-children]]
   (let [opened? (when (seq node-children)
                     (:opened? (opened-nodes node) false))]
-    (cons {:text node
+    (cons {:node-id node
            :node-type (:type (nodes-map node))
            :level level
            :color (text->color node)
@@ -334,36 +334,38 @@
       [:path {:d "M6.956 1.745C7.021.81 7.908.087 8.864.325l.261.066c.463.116.874.456 1.012.965.22.816.533 2.511.062 4.51a9.84 9.84 0 0 1 .443-.051c.713-.065 1.669-.072 2.516.21.518.173.994.681 1.2 1.273.184.532.16 1.162-.234 1.733.058.119.103.242.138.363.077.27.113.567.113.856 0 .289-.036.586-.113.856-.039.135-.09.273-.16.404.169.387.107.819-.003 1.148a3.163 3.163 0 0 1-.488.901c.054.152.076.312.076.465 0 .305-.089.625-.253.912C13.1 15.522 12.437 16 11.5 16H8c-.605 0-1.07-.081-1.466-.218a4.82 4.82 0 0 1-.97-.484l-.048-.03c-.504-.307-.999-.609-2.068-.722C2.682 14.464 2 13.846 2 13V9c0-.85.685-1.432 1.357-1.615.849-.232 1.574-.787 2.132-1.41.56-.627.914-1.28 1.039-1.639.199-.575.356-1.539.428-2.59z"}]]]]])
 
 (defn node
-  [{{:keys [color]} :style level :level} text]
+  [{{:keys [color]} :style
+    :keys [level node-id]}
+   text]
   [:p.hover-gray
-   {:onClick #(>evt [::toggle-open-close ["label1"] #_node-path])
+   {:onClick #(>evt [::toggle-open-close [node-id] #_node-path]) ;; TODO: Track node-path from ::fold-list
     :style {:color (or color "inherit")
             :paddingLeft (+ 16 (* 12 level))}}
    text])
 
-(defn label-node [{:keys [level color opened?]} text]
+(defn label-node [{:keys [node-id level color opened?]} text]
   [node
-   {:level level
+   {:node-id node-id
+    :level level
     :style {:color color}}
    (str (if opened? "=v " "=> ")
-        text)])
+        node-id)])
 
-(defn lix-node [{:keys [level opened?]} text]
+(defn lix-node [{:keys [node-id level opened?]}]
   [node
-   {:level level}
+   {:node-id node-id
+    :level level}
    (str (cond (nil? opened?) ""
               (true? opened?) "v "
               :else "> ")
-        text)])
+        node-id)])
 
 (defn nodes-list-view []
   [:div
-    (for [{:keys [text node-type level color opened?]} (<sub [::fold-list])
-          :let [node-type-comp ({:label label-node :lix lix-node} node-type)]]
+    (for [node-item (<sub [::fold-list])
+          :let [node-type-comp ({:label label-node :lix lix-node} (:node-type node-item))]]
       ;; ^{:key text} ;; Somehow I'm using this key wrongly, if it's uncomment, the items repeat depending on the change.
-      [node-type-comp
-       {:level level :color color :opened? opened?}
-       text])])
+      [node-type-comp node-item])])
 
 (def code-font-family "dejavu sans mono, monospace")
 (def code-font-size "small")
