@@ -171,24 +171,33 @@
     49 "#4283d1"))
 
 (defn nodes-list
-  [level nodes-map [node nodes-hierarchy]]
-  (cons {:text node
-         :node-type (:type (nodes-map node))
-         :level level
-         :color (text->color node)
-         :opened? false}
-        (mapcat #(nodes-list (inc level) nodes-map %) nodes-hierarchy)))
+  [level nodes-map opened-nodes [node node-children]]
+  (let [opened? (when (seq node-children)
+                    (:opened (opened-nodes node) false))]
+    (cons {:text node
+           :node-type (:type (nodes-map node))
+           :level level
+           :color (text->color node)
+           :opened? opened?}
+          (when opened?
+            (mapcat #(nodes-list (inc level) nodes-map (opened-nodes node) %) node-children)))))
+
+(defn opened-nodes
+  [app-state]
+  (get-in app-state [:ui :opened-nodes] {}))
+(re-frame/reg-sub ::opened-nodes opened-nodes)
 
 (defn nodes-map->fold-list
-  [nodes-map]
+  [[nodes-map opened-nodes]]
   (->> nodes-map
     (nodes-hierarchy)
     (#(do (tap> "nodes-hierarchy") (tap> %) %))
-    (mapcat #(nodes-list 0 nodes-map %))
+    (mapcat #(nodes-list 0 nodes-map opened-nodes %))
     (#(do (tap> "jp1") (tap> %) %))))
 (re-frame/reg-sub
   ::fold-list
   :<- [::nodes-map]
+  :<- [::opened-nodes]
   nodes-map->fold-list)
 
 
@@ -415,7 +424,9 @@
   {:domain {:dot-graph "dinetwork {\"superlongnamethatwontfitboll1\" -> superlongnamethatwontfitboll1 -> 2; 2 -> 3; 2 -- 4; 2 -> superlongnamethatwontfitboll1 }"
             :graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label2:\n  node5\n\nnode3:\n  node4\n  node5\n\nnode1 -> node2\nnode4->node1\nnodeA->nodeB"}
    :ui {:panels {:resizing-panels false
-                 :left-panel-size "65vw"}}})
+                 :left-panel-size "65vw"}
+        :opened-nodes {"label1" {:opened true}
+                       "node7" {:opened true "node8" {:opened true "node9" {:opened false}}}}}})
 
 
 (defn gzip [cs-mode b-array]
