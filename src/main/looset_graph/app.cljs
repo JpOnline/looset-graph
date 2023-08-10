@@ -30,10 +30,31 @@
 
 ;; ---- Subs ----
 
-(defn dot-graph
-  [app-state]
-  (get-in app-state [:domain :dot-graph] ""))
-(re-frame/reg-sub ::dot-graph dot-graph)
+;; (defn dot-graph
+;;   [app-state]
+;;   (get-in app-state [:domain :dot-graph] ""))
+;; (re-frame/reg-sub ::dot-graph dot-graph)
+
+(defn edge->dot-graph-line
+  [edge]
+  (let [node-from-id (get-in edge [1 1 1 1])
+        ;; node-from-type (get-in edge [1 1 0])
+        ;; node-to-type   (get-in edge [2 1 0])
+        node-to-id   (get-in edge [2 1 1 1])]
+    (str "\""node-from-id"\" -> \""node-to-id"\";")))
+
+(defn  graph-ast->dot-graph
+  [graph-ast]
+  (->> graph-ast
+    (filter #(= "edge" (first %)))
+    (mapv edge->dot-graph-line)
+    (apply str)
+    (#(str "dinetwork {"%"}"))
+    (#(do (tap> "a2") (tap> %) %))))
+(re-frame/reg-sub
+  ::dot-graph
+  :<- [::graph-ast]
+  graph-ast->dot-graph)
 
 (defn left-panel-size
   [app-state]
@@ -191,9 +212,9 @@
   [[nodes-map opened-nodes]]
   (->> nodes-map
     (nodes-hierarchy)
-    (#(do (tap> "nodes-hierarchy") (tap> %) %))
-    (mapcat #(nodes-list 0 nodes-map opened-nodes %))
-    (#(do (tap> "jp1") (tap> %) %))))
+    ;; (#(do (tap> "nodes-hierarchy") (tap> %) %))
+    (mapcat #(nodes-list 0 nodes-map opened-nodes %))))
+    ;; (#(do (tap> "jp1") (tap> %) %))))
 (re-frame/reg-sub
   ::fold-list
   :<- [::nodes-map]
@@ -206,11 +227,12 @@
 (defn graph-ast->nodes-map
   [graph-ast]
   (->> graph-ast
+    (#(do (tap> "a1") (tap> %) %))
     (filter #(= "foldable" (first %)))
-    (#(do (tap> "jp2") (tap> %) %))
+    ;; (#(do (tap> "jp2") (tap> %) %))
     (mapv extract-nodes-from-foldable-rule)
-    (merge-nodes)
-    (#(do (tap> "nodes-map") (tap> %) %))))
+    (merge-nodes)))
+    ;; (#(do (tap> "nodes-map") (tap> %) %))))
 (re-frame/reg-sub
   ::nodes-map
   :<- [::graph-ast]
