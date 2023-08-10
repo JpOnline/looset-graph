@@ -269,6 +269,11 @@
      ;; :set-url-state (get-in new-app-state [:ui :validation :valid-cardume-text])}))
 (re-frame/reg-event-fx ::set-graph-text set-graph-text)
 
+(defn toggle-open-close
+  [app-state [_event path]]
+  (update-in app-state (concat [:ui :opened-nodes] path [:opened?]) not))
+(re-frame/reg-event-db ::toggle-open-close toggle-open-close)
+
 ;; ---- Views ----
 
 (def quattrocento-font "Quattrocento, serif")
@@ -318,7 +323,8 @@
 (defn node
   [{{:keys [color]} :style level :level} text]
   [:p.hover-gray
-   {:style {:color (or color "inherit")
+   {:onClick #(>evt [::toggle-open-close ["node6"] #_node-path])
+    :style {:color (or color "inherit")
             :paddingLeft (+ 16 (* 12 level))}}
    text])
 
