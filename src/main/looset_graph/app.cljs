@@ -47,17 +47,47 @@
 ;;   :<- [::graph-ast]
 ;;   graph-ast->dot-graph)
 
+(defn find-visible
+  ([visibles nodes-map node] (find-visible #{} #{} #{} visibles nodes-map node))
+  ([result to-visit visited visibles nodes-map node]
+   (let [new-visited (conj visited node)
+         parent-node (:parent (nodes-map node))
+         node-labels (:label (nodes-map node))
+         new-to-visit (-> to-visit
+                        (conj parent-node)
+                        (clojure.set/union node-labels)
+                        (clojure.set/difference visited))
+         new-result (if (visibles node)
+                      (conj result node)
+                      result)]
+     (if (seq new-to-visit)
+       (find-visible new-result new-to-visit new-visited visibles nodes-map (first to-visit))
+       new-result))))
+
 (defn dot-graph
-  [fold-list]
-  (->> fold-list
-    (remove :opened?)
-    (map :node-id)
-    (clojure.string/join ";")
-    (#(str "dinetwork {"%"}"))
-    (#(do (tap> "a2") (tap> %) %))))
+  [[fold-list nodes-map]]
+  (let [visibles (->> fold-list
+                   (remove :opened?)
+                   (map :node-id)
+                   (set))
+        get-from-set #(find-visible visibles nodes-map %)
+        get-to-set #(->> %
+                      (:edges-to)
+                      (map val) ;; TODO: get the text in the relationship/edge.
+                      (apply concat)
+                      (mapcat (partial find-visible visibles nodes-map)))]
+    (->> nodes-map
+      (mapcat (fn [[k v]]
+                (for [from (get-from-set k)
+                      to (get-to-set v)
+                      :when (not= from to)]
+                  (str from" -> "to))))
+      (clojure.string/join ";")
+      (#(str "dinetwork {"%"}")))))
 (re-frame/reg-sub
   ::dot-graph
   :<- [::fold-list]
+  :<- [::nodes-map]
   dot-graph)
 
 (defn left-panel-size
@@ -236,7 +266,7 @@
     (nodes-hierarchy nodes-map)
     (#(do (tap> "nodes-hierarchy") (tap> %) %))
     (mapcat #(nodes-list 0 nodes-map opened-nodes %))
-    (#(do (tap> "jp1") (tap> %) %))))
+    (#(do (tap> "nodes-list") (tap> %) %))))
 (re-frame/reg-sub
   ::fold-list
   :<- [::nodes-map]
