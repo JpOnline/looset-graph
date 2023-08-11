@@ -68,8 +68,10 @@
   [[fold-list nodes-map]]
   (let [visibles (->> fold-list
                    (remove :opened?)
+                   (remove :hidden?)
                    (map :node-id)
                    (set))
+        visibles-str (clojure.string/join ";" visibles)
         get-from-set #(find-visible visibles nodes-map %)
         get-to-set #(->> %
                       (:edges-to)
@@ -83,7 +85,7 @@
                       :when (not= from to)]
                   (str from" -> "to))))
       (clojure.string/join ";")
-      (#(str "dinetwork {"%"}")))))
+      (#(str "dinetwork {"visibles-str"; "%"}")))))
 (re-frame/reg-sub
   ::dot-graph
   :<- [::fold-list]
@@ -238,21 +240,23 @@
     49 "#4283d1"))
 
 (defn nodes-list
-  [level nodes-map opened-nodes [node node-children]]
+  [level nodes-map nodes-ui [node node-children]]
   (let [opened? (when (seq node-children)
-                    (:opened? (opened-nodes node) false))]
+                    (:opened? (nodes-ui node) false))]
     (cons {:node-id node
            :node-type (:type (nodes-map node))
            :level level
            :color (text->color node)
-           :opened? opened?}
+           :opened? opened?
+           :hidden? (:hidden? (nodes-ui node))}
           (when opened?
-            (mapcat #(nodes-list (inc level) nodes-map (opened-nodes node) %) node-children)))))
+            (mapcat #(nodes-list (inc level) nodes-map (nodes-ui node) %) node-children)))))
 
-(defn opened-nodes
+(defn nodes-ui
   [app-state]
-  (get-in app-state [:ui :opened-nodes] {}))
-(re-frame/reg-sub ::opened-nodes opened-nodes)
+  (tap> {:c2 (get-in app-state [:ui :nodes-visibility] {})})
+  (get-in app-state [:ui :nodes-visibility] {}))
+(re-frame/reg-sub ::nodes-ui nodes-ui)
 
 ;; TODO: Also sort by the order that it was mentioned
 (defn sort-nodes
@@ -260,17 +264,20 @@
   (sort-by #(-> % val :type) nodes-map))
 
 (defn nodes-map->fold-list
-  [[nodes-map opened-nodes]]
+  [[nodes-map nodes-ui]]
+  (def my-nodes-ui nodes-ui)
+  (tap> "c1")
+  (tap> nodes-ui)
   (->> nodes-map
     (sort-nodes)
     (nodes-hierarchy nodes-map)
     (#(do (tap> "nodes-hierarchy") (tap> %) %))
-    (mapcat #(nodes-list 0 nodes-map opened-nodes %))
+    (mapcat #(nodes-list 0 nodes-map nodes-ui %))
     (#(do (tap> "nodes-list") (tap> %) %))))
 (re-frame/reg-sub
   ::fold-list
   :<- [::nodes-map]
-  :<- [::opened-nodes]
+  :<- [::nodes-ui]
   nodes-map->fold-list)
 
 
@@ -328,8 +335,13 @@
 
 (defn toggle-open-close
   [app-state [_event path]]
-  (update-in app-state (concat [:ui :opened-nodes] path [:opened?]) not))
+  (update-in app-state (concat [:ui :nodes-visibility] path [:opened?]) not))
 (re-frame/reg-event-db ::toggle-open-close toggle-open-close)
+
+(defn toggle-hidden
+  [app-state [_event path]]
+  (update-in app-state (concat [:ui :nodes-visibility] path [:hidden?]) not))
+(re-frame/reg-event-db ::toggle-hidden toggle-hidden)
 
 ;; ---- Views ----
 
@@ -390,25 +402,32 @@
 
 (defn node
   [{{:keys [color]} :style
-    :keys [level node-id]}
+    :keys [level node-id hidden?]}
    text]
-  [:p.hover-gray
-   {:onClick #(>evt [::toggle-open-close [node-id] #_node-path]) ;; TODO: Track node-path from ::fold-list
-    :style {:color (or color "inherit")
-            :paddingLeft (+ 16 (* 12 level))}}
-   text])
+  [:div.node-item
+   {:style {:paddingLeft (+ 16 (* 12 level))}}
+   [:span.hover-gray
+    {:onClick #(>evt [::toggle-hidden [node-id] #_node-path]) ;; TODO: Track node-path from ::fold-list
+     :style {:paddingRight 5}}
+    (if hidden? "🔲" "⬛")] 
+   [:div.hover-gray
+    {:onClick #(>evt [::toggle-open-close [node-id] #_node-path]) ;; TODO: Track node-path from ::fold-list
+     :style {:color (or color "inherit")}}
+    text]])
 
-(defn label-node [{:keys [node-id level color opened?]}]
+(defn label-node [{:keys [node-id level color opened? hidden?]}]
   [node
    {:node-id node-id
     :level level
+    :hidden? hidden?
     :style {:color color}}
    (str (if opened? "=v " "=> ")
         node-id)])
 
-(defn lix-node [{:keys [node-id level opened?]}]
+(defn lix-node [{:keys [node-id level opened? hidden?]}]
   [node
    {:node-id node-id
+    :hidden? hidden?
     :level level}
    (str (cond (nil? opened?) ""
               (true? opened?) "v "
@@ -490,6 +509,11 @@
    .button-1:focus {
      background-color: #7c7c7c;
    }
+
+   .node-item {
+     display: flex;
+     flex-direction: row;
+   }
    ")])
 
 (defn main []
@@ -532,9 +556,9 @@
             :graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label2:\n  node5\n\nnode3:\n  node4\n  node5\n\nnode1 -> node2\nnode4->node1\nnodeA->nodeB"}
    :ui {:panels {:resizing-panels false
                  :left-panel-size "65vw"}
-        #_#_
-        :opened-nodes {"label1" {:opened? true}
-                       "node7" {:opened? true "node8" {:opened? true "node9" {:opened? false}}}}}})
+        :nodes-visibility {"label1" {:opened? true :hidden? true}
+                           "nodeB" {:hidden? true}
+                           "node7" {:opened? true "node8" {:opened? true "node9" {:opened? false}}}}}})
 
 
 (defn gzip [cs-mode b-array]
