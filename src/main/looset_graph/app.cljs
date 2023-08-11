@@ -1,5 +1,6 @@
 (ns looset-graph.app
   (:require
+    [clojure.set]
     [clojure.string]
     [looset-graph.graph-parser :as graph-parser]
     [looset-graph.util :as util]
@@ -22,14 +23,16 @@
 ;;   (get-in app-state [:domain :dot-graph] ""))
 ;; (re-frame/reg-sub ::dot-graph dot-graph)
 
-;; TODO: Am I going to use it?
-(defn edge->dot-graph-line
+(def type-str->type #(if (= "labelID" %) :label :lix))
+
+(defn extract-nodes-from-edge-rule
   [edge]
   (let [node-from-id (get-in edge [1 1 1 1])
-        ;; node-from-type (get-in edge [1 1 0])
-        ;; node-to-type   (get-in edge [2 1 0])
+        node-from-type (type-str->type (get-in edge [1 1 0]))
+        node-to-type   (type-str->type (get-in edge [2 1 0]))
         node-to-id   (get-in edge [2 1 1 1])]
-    (str "\""node-from-id"\" -> \""node-to-id"\";")))
+    [{node-from-id {:type node-from-type :edges-to {:nameless #{node-to-id}}}}
+     {node-to-id {:type node-to-type :edges-from {:nameless #{node-from-id}}}}]))
 
 ;; (defn  graph-ast->dot-graph
 ;;   [graph-ast]
@@ -76,7 +79,6 @@
   [foldable]
   (let [foldable-id-name (get-in foldable [1 1 1 1])
         foldable-type-str (get-in foldable [1 1 0])
-        type-str->type #(if (= "labelID" %) :label :lix)
         foldable-type (type-str->type foldable-type-str)
         label-or-parent (if (= :label foldable-type)
                           {:label #{foldable-id-name}}
@@ -90,16 +92,29 @@
         foldable-id-node {foldable-id-name {:type foldable-type :foldable true}}]
     (apply merge foldable-id-node inner-nodes)))
 
+(defn deep-merge-with
+  "Code extracted from https://clojuredocs.org/clojure.core/merge-with#example-5b80843ae4b00ac801ed9e74
+  Like merge-with, but merges maps recursively, applying the given fn
+  only when there's a non-map at a particular level.
+  (deep-merge-with + {:a {:b {:c 1 :d {:x 1 :y 2}} :e 3} :f 4}
+                     {:a {:b {:c 2 :d {:z 9} :z 3} :e 100}})
+  -> {:a {:b {:z 3, :c 3, :d {:z 9, :x 1, :y 2}}, :e 103}, :f 4}"
+  [f & maps]
+  (apply
+    (fn m [& maps]
+      (if (every? map? maps)
+        (apply merge-with m maps)
+        (apply f maps)))
+    maps))
+
 (defn merge-nodes
   "union for the set of labels and merge the rest"
   [nodes]
-  (apply merge-with
-    #(merge-with
-       (fn [res latter]
-         (if (set? res)
-           (clojure.set/union res latter)
-           latter))
-       %1 %2)
+  (apply deep-merge-with
+         (fn [res latter]
+           (if (set? res)
+             (clojure.set/union res latter)
+             latter))
    nodes))
 
 ;; This could be optimized as I don't need to process nodes that are closed (maybe change how the graph is defined)
@@ -213,9 +228,9 @@
   [[nodes-map opened-nodes]]
   (->> nodes-map
     (nodes-hierarchy)
-    ;; (#(do (tap> "nodes-hierarchy") (tap> %) %))
-    (mapcat #(nodes-list 0 nodes-map opened-nodes %))))
-    ;; (#(do (tap> "jp1") (tap> %) %))))
+    (#(do (tap> "nodes-hierarchy") (tap> %) %))
+    (mapcat #(nodes-list 0 nodes-map opened-nodes %))
+    (#(do (tap> "jp1") (tap> %) %))))
 (re-frame/reg-sub
   ::fold-list
   :<- [::nodes-map]
@@ -227,13 +242,18 @@
 ;;provides (like closing and opening) with the ast calculated from the graph-text
 (defn graph-ast->nodes-map
   [graph-ast]
-  (->> graph-ast
-    (#(do (tap> "a1") (tap> %) %))
-    (filter #(= "foldable" (first %)))
-    ;; (#(do (tap> "jp2") (tap> %) %))
-    (mapv extract-nodes-from-foldable-rule)
-    (merge-nodes)))
-    ;; (#(do (tap> "nodes-map") (tap> %) %))))
+  (let [nodes-from-edges (->> graph-ast
+                           (filter #(= "edge" (first %)))
+                           (mapcat extract-nodes-from-edge-rule))]
+    (->> graph-ast
+      (#(do (tap> "a1") (tap> %) %))
+      (filter #(= "foldable" (first %)))
+      ;; (#(do (tap> "jp2") (tap> %) %))
+      (mapv extract-nodes-from-foldable-rule)
+      (concat nodes-from-edges)
+      (#(do (def t1 %1) %))
+      (merge-nodes)
+      (#(do (tap> "nodes-map") (tap> %) %)))))
 (re-frame/reg-sub
   ::nodes-map
   :<- [::graph-ast]
