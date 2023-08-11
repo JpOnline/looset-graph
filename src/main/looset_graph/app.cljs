@@ -131,7 +131,7 @@
 ;;  -=vlabel5
 ;;   -=>label6
 (defn nodes-hierarchy
-  [nodes-map]
+  [nodes-map sorted-nodes]
   (reduce
     (fn [r [k v]]
         (let [path (fn path
@@ -147,7 +147,7 @@
                                         with-node-assoced
                                         (:label v))]
           with-its-labels-assoced))
-    {} nodes-map))
+    {} sorted-nodes))
 
 (defn text->color [text]
   (case (mod (hash text) 50)
@@ -224,10 +224,16 @@
   (get-in app-state [:ui :opened-nodes] {}))
 (re-frame/reg-sub ::opened-nodes opened-nodes)
 
+;; TODO: Also sort by the order that it was mentioned
+(defn sort-nodes
+  [nodes-map]
+  (sort-by #(-> % val :type) nodes-map))
+
 (defn nodes-map->fold-list
   [[nodes-map opened-nodes]]
   (->> nodes-map
-    (nodes-hierarchy)
+    (sort-nodes)
+    (nodes-hierarchy nodes-map)
     (#(do (tap> "nodes-hierarchy") (tap> %) %))
     (mapcat #(nodes-list 0 nodes-map opened-nodes %))
     (#(do (tap> "jp1") (tap> %) %))))
