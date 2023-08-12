@@ -260,9 +260,10 @@
 (re-frame/reg-sub ::nodes-ui nodes-ui)
 
 ;; TODO: Also sort by the order that it was mentioned
+;; TODO: Also sort inner structure
 (defn sort-nodes
-  [nodes-map]
-  (sort-by #(-> % val :type) nodes-map))
+  [nodes-map nodes-hierarchy]
+  (sort-by (fn [[k _v]] (-> k nodes-map :type)) nodes-hierarchy))
 
 (defn nodes-map->fold-list
   [[nodes-map nodes-ui]]
@@ -270,11 +271,11 @@
   (tap> "c1")
   (tap> nodes-ui)
   (->> nodes-map
-    (sort-nodes)
     (nodes-hierarchy nodes-map)
-    (#(do (tap> "nodes-hierarchy") (tap> %) %))
+    (sort-nodes nodes-map)
+    (#(do (tap> {:nodes-hierarchy %}) %))
     (mapcat #(nodes-list [] nodes-map nodes-ui %))
-    (#(do (tap> "nodes-list") (tap> %) %))))
+    (#(do (tap> {:nodes-list %}) %))))
 (re-frame/reg-sub
   ::fold-list
   :<- [::nodes-map]
