@@ -240,24 +240,28 @@
     49 "#4283d1"))
 
 (defn nodes-list
-  [path nodes-map nodes-ui [node node-children]]
+  [path nodes-map fold-ui [node node-children]]
   (let [opened? (when (seq node-children)
-                    (:opened? (nodes-ui node) false))]
+                    (:opened? (fold-ui node) false))]
     (cons {:node-id node
            :node-type (:type (nodes-map node))
            :path (conj path node)
            :level (count path)
            :color (text->color node)
            :opened? opened?
-           :hidden? (:hidden? (nodes-ui node))}
+           :hidden? (:hidden? (nodes-map node))}
           (when opened?
-            (mapcat #(nodes-list (conj path node) nodes-map (nodes-ui node) %) node-children)))))
+            (mapcat #(nodes-list (conj path node) nodes-map (fold-ui node) %) node-children)))))
 
 (defn nodes-ui
   [app-state]
-  (tap> {:c2 (get-in app-state [:ui :nodes-visibility] {})})
-  (get-in app-state [:ui :nodes-visibility] {}))
+  (get-in app-state [:ui :nodes] {}))
 (re-frame/reg-sub ::nodes-ui nodes-ui)
+
+(defn fold-ui
+  [app-state]
+  (get-in app-state [:ui :fold] {}))
+(re-frame/reg-sub ::fold-ui fold-ui)
 
 ;; TODO: Also sort by the order that it was mentioned
 ;; TODO: Also sort inner structure
@@ -266,22 +270,18 @@
   (sort-by (fn [[k _v]] (-> k nodes-map :type)) nodes-hierarchy))
 
 (defn nodes-map->fold-list
-  [[nodes-map nodes-ui]]
-  (def my-nodes-ui nodes-ui)
-  (tap> "c1")
-  (tap> nodes-ui)
+  [[nodes-map fold-ui]]
   (->> nodes-map
     (nodes-hierarchy nodes-map)
     (sort-nodes nodes-map)
     (#(do (tap> {:nodes-hierarchy %}) %))
-    (mapcat #(nodes-list [] nodes-map nodes-ui %))
+    (mapcat #(nodes-list [] nodes-map fold-ui %))
     (#(do (tap> {:nodes-list %}) %))))
 (re-frame/reg-sub
   ::fold-list
   :<- [::nodes-map]
-  :<- [::nodes-ui]
+  :<- [::fold-ui]
   nodes-map->fold-list)
-
 
 ;; TODO: review this, it's probably going to be a sub merging the info user
 ;;provides (like closing and opening) with the ast calculated from the graph-text
@@ -300,9 +300,21 @@
       (merge-nodes)
       (#(do (tap> "nodes-map") (tap> %) %)))))
 (re-frame/reg-sub
-  ::nodes-map
+  ::nodes-map*
   :<- [::graph-ast]
   graph-ast->nodes-map)
+
+(defn nodes-map
+  [[nodes-ui nodes-map*]]
+  (def m-nodes-ui nodes-ui)
+  (def m-nodes-map* nodes-map*)
+  (tap> {:c4 (deep-merge-with merge m-nodes-ui m-nodes-map*)})
+  (deep-merge-with merge nodes-ui nodes-map*))
+(re-frame/reg-sub
+  ::nodes-map
+  :<- [::nodes-ui]
+  :<- [::nodes-map*]
+  nodes-map)
 
 ;; ---- Events ----
 
@@ -337,12 +349,13 @@
 
 (defn toggle-open-close
   [app-state [_event path]]
-  (update-in app-state (concat [:ui :nodes-visibility] path [:opened?]) not))
+  (update-in app-state (concat [:ui :fold] path [:opened?]) not))
 (re-frame/reg-event-db ::toggle-open-close toggle-open-close)
 
 (defn toggle-hidden
-  [app-state [_event path]]
-  (update-in app-state (concat [:ui :nodes-visibility] path [:hidden?]) not))
+  [app-state [_event node-id]]
+  (tap> {:c3 (get-in app-state [:ui :nodes])})
+  (update-in app-state [:ui :nodes node-id :hidden?] not))
 (re-frame/reg-event-db ::toggle-hidden toggle-hidden)
 
 ;; ---- Views ----
@@ -404,12 +417,12 @@
 
 (defn node-view
   [{{:keys [color]} :style
-    {:keys [level hidden? path]} :node}
+    {:keys [level hidden? path node-id]} :node}
    text]
   [:div.node-item
    {:style {:paddingLeft (+ 16 (* 12 level))}}
    [:span.hover-gray
-    {:onClick #(>evt [::toggle-hidden path])
+    {:onClick #(>evt [::toggle-hidden node-id])
      :style {:paddingRight 5}}
     (if hidden? "🔲" "⬛")]
    [:div
@@ -555,10 +568,10 @@
             :graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label2:\n  node5\n\nnode3:\n  node4\n  node5\n\nnode1 -> node2\nnode4->node1\nnodeA->nodeB"}
    :ui {:panels {:resizing-panels false
                  :left-panel-size "65vw"}
-        :nodes-visibility {"label1" {:opened? true :hidden? true}
-                           "nodeB" {:hidden? true}
-                           "node7" {:opened? true "node8" {:opened? true "node9" {:opened? false}}}}}})
-
+        :nodes {"label1" {:hidden? true}}
+        :fold {"label1" {:opened? true}
+               "nodeB" {:hidden? true}
+               "node7" {:opened? true "node8" {:opened? true "node9" {:opened? false}}}}}})
 
 (defn gzip [cs-mode b-array]
   (let [cs (-> "gzip" cs-mode.)
@@ -594,11 +607,7 @@
 
 (re-frame/reg-event-db ::set-app-state
   (fn [_ [_ _application-state]]
-    (-> initial-state
-      (assoc-in [:ui :dot-graph-text] "x")
-      ;; TODO: review this, it's probably going to be a sub merging the info user
-      ;;provides (like closing and opening) with the ast calculated from the graph-text
-      (assoc-in [:ui :nodes] (graph-ast->nodes-map (graph-parser/graph-ast (get-in initial-state [:domain :graph-text] "")))))))
+    initial-state))
 
 (defn init-state []
   (re-frame/dispatch-sync [::set-app-state]))
