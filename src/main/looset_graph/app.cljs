@@ -64,33 +64,34 @@
        (find-visible new-result new-to-visit new-visited visibles nodes-map (first to-visit))
        new-result))))
 
-(defn dot-graph
+(defn vis-data
   [[fold-list nodes-map]]
   (let [visibles (->> fold-list
                    (remove :opened?)
                    (remove :hidden?)
                    (map :node-id)
                    (set))
-        visibles-str (clojure.string/join ";" visibles)
+        get-x-pos #(-> % nodes-map :position (get "x"))
+        get-y-pos #(-> % nodes-map :position (get "y"))
         get-from-set #(find-visible visibles nodes-map %)
         get-to-set #(->> %
                       (:edges-to)
                       (map val) ;; TODO: get the text in the relationship/edge.
                       (apply concat)
                       (mapcat (partial find-visible visibles nodes-map)))]
-    (->> nodes-map
-      (mapcat (fn [[k v]]
-                (for [from (get-from-set k)
-                      to (get-to-set v)
-                      :when (not= from to)]
-                  (str from" -> "to))))
-      (clojure.string/join ";")
-      (#(str "dinetwork {"visibles-str"; "%"}")))))
+    (clj->js {:nodes (map #(into {:id % :label % :x (get-x-pos %) :y (get-y-pos %)})
+                          visibles)
+              :edges (mapcat (fn [[k v]]
+                               (for [from (get-from-set k)
+                                     to (get-to-set v)
+                                     :when (not= from to)]
+                                 {:from from :to to :arrows {:to {:enabled true :type "arrow"}}}))
+                             nodes-map)})))
 (re-frame/reg-sub
-  ::dot-graph
+  ::vis-data
   :<- [::fold-list]
   :<- [::nodes-map]
-  dot-graph)
+  vis-data)
 
 (defn left-panel-size
   [app-state]
@@ -296,7 +297,6 @@
       ;; (#(do (tap> "jp2") (tap> %) %))
       (mapv extract-nodes-from-foldable-rule)
       (concat nodes-from-edges)
-      (#(do (def t1 %1) %))
       (merge-nodes)
       (#(do (tap> "nodes-map") (tap> %) %)))))
 (re-frame/reg-sub
@@ -306,9 +306,6 @@
 
 (defn nodes-map
   [[nodes-ui nodes-map*]]
-  (def m-nodes-ui nodes-ui)
-  (def m-nodes-map* nodes-map*)
-  (tap> {:c4 (deep-merge-with merge m-nodes-ui m-nodes-map*)})
   (deep-merge-with merge nodes-ui nodes-map*))
 (re-frame/reg-sub
   ::nodes-map
@@ -324,8 +321,7 @@
 (re-frame/reg-event-db ::resizing-panels resizing-panels)
 
 (defn mouse-moved
-  [app-state [_event x y]]
-  ;; (js/console.log x y)
+  [app-state [_event x _y]]
   (let [resizing-panels? (get-in app-state [:ui :panels :resizing-panels])]
     (cond-> app-state
       resizing-panels?
@@ -334,7 +330,6 @@
 
 (defn mouse-up
   [app-state]
-  (js/console.log "mouse-up")
   (-> app-state
     (resizing-panels [::mouse-up false])
     (assoc-in [:ui :diagram :zooming?] false)))
@@ -352,6 +347,15 @@
   (update-in app-state (concat [:ui :fold] path [:opened?]) not))
 (re-frame/reg-event-db ::toggle-open-close toggle-open-close)
 
+(defn set-vis-nodes-positions
+  [app-state [_event nodes-positions*]]
+  (let [nodes-positions (reduce-kv (fn [m k v]
+                                     (assoc m k {:position v}))
+                                   {}
+                                   (js->clj nodes-positions*))]
+    (update-in app-state [:ui :nodes] merge nodes-positions)))
+(re-frame/reg-event-db ::set-vis-nodes-positions set-vis-nodes-positions)
+
 (defn toggle-hidden
   [app-state [_event node-id]]
   (tap> {:c3 (get-in app-state [:ui :nodes])})
@@ -360,16 +364,12 @@
 
 ;; ---- Views ----
 
-(defn draw-graph-no-memo [id dot-string options]
+(defn draw-graph-no-memo [id data options]
   (fn []
-    (let [parsed-data (-> js/vis (.parseDOTNetwork dot-string))
-          ;; _ (set! ^js(.-widthConstraint (get (.-nodes parsed-data) 0)) 30)
-          ;; _ (set! ^js(.-heightConstraint (get (.-nodes parsed-data) 0)) 30)
-          ;; _ (set! ^js(.-font (get (.-nodes parsed-data) 0)) #js{:size 40}) ;; Possibility to differentiate different abstraction levels
-          container (-> js/document (.getElementById id))
-          data #js {:nodes (.-nodes parsed-data) :edges (.-edges parsed-data)}]
-      (js/console.log "parsedDot" parsed-data)
-      (-> js/vis .-Network (new container data options)))))
+    (let [container (-> js/document (.getElementById id))
+          network (-> js/vis .-Network (new container data options))]
+      (.on network "dragEnd" #(>evt [::set-vis-nodes-positions ^Object (.getPositions network)]) )
+      network)))
 
 (def draw-graph (memoize draw-graph-no-memo))
 
@@ -380,8 +380,8 @@
        :style #js {:height "100%" :width "100%" #_#_:flexGrow 5}
        :component-did-mount (draw-graph
                               "looset-graph"
-                              (<sub [::dot-graph])
-                              #js{})}
+                              (<sub [::vis-data])
+                              #js {})}
       [:p "Loading.."]])])
 
 (defn panel-splitter []
