@@ -79,7 +79,8 @@
                       (map val) ;; TODO: get the text in the relationship/edge.
                       (apply concat)
                       (mapcat (partial find-visible visibles nodes-map)))]
-    (clj->js {:nodes (map #(into {:id % :label % :x (get-x-pos %) :y (get-y-pos %)})
+    (clj->js {:nodes (map #(into {:id % :label % :shape "box" :color {:background "white" :border "gray"}
+                                  :x (get-x-pos %) :y (get-y-pos %)})
                           visibles)
               :edges (mapcat (fn [[k v]]
                                (for [from (get-from-set k)
