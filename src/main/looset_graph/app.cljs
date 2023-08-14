@@ -313,6 +313,15 @@
   :<- [::nodes-map*]
   nodes-map)
 
+(defn foldable?
+  [nodes-map [_ node]]
+  (tap> {:c7 nodes-map})
+  (-> node nodes-map :foldable))
+(re-frame/reg-sub
+  ::foldable-node?
+  :<- [::nodes-map]
+  foldable?)
+
 ;; ---- Events ----
 
 (defn resizing-panels
@@ -427,7 +436,7 @@
     (if hidden? "🔲" "⬛")]
    [:div
     {:onClick #(>evt [::toggle-open-close path])
-     :class "hover-gray"
+     :class (when (<sub [::foldable-node? node-id]) "hover-gray")
      :style {:color (or color "inherit")}}
     text]])
 
