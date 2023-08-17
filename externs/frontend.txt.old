@@ -1,0 +1,27 @@
+# # global:antlr4
+# # global:lexer
+# # global:parser
+# ATNDeserializer
+deserialize
+# getTypedRuleContext
+# CompressionStream
+# DecompressionStream
+# Response
+# TextDecoder
+# protectEntryPoint
+# adaptivePredict
+# LA
+# reportError
+# recover
+# getTypedRuleContexts
+# error
+# default
+# InputStream
+# CommonTokenStream
+# # buildParseTrees
+# # loosetGraph
+# enterOuterAlt
+# _ctx
+
+global:checkVersion
+global:readInt

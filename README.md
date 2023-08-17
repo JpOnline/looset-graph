@@ -21,6 +21,7 @@ To fix errors in the generated javascript code run the following commands
 find . -type f -exec sed -i 's/antlr4\.tree\./antlr4\./g' {} +
 find . -type f -exec sed -i 's/antlr4\.atn\./antlr4\./g' {} +
 find . -type f -exec sed -i 's/antlr4\.dfa\./antlr4\./g' {} +
+find . -type f -exec sed -i 's/antlr4\.error\./antlr4\./g' {} +
 ```
 
 To delete non relevant files

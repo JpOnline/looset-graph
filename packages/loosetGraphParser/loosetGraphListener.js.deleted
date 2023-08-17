@@ -3,7 +3,7 @@
 import antlr4 from 'antlr4';
 
 // This class defines a complete listener for a parse tree produced by loosetGraphParser.
-export default class loosetGraphListener extends antlr4.ParseTreeListener {
+export default class loosetGraphListener extends antlr4.tree.ParseTreeListener {
 
 	// Enter a parse tree produced by loosetGraphParser#loosetGraph.
 	enterLoosetGraph(ctx) {

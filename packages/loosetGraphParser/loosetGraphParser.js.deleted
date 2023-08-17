@@ -97,7 +97,7 @@ export default class loosetGraphParser extends antlr4.Parser {
 
 	        }
 	    } catch (re) {
-	    	if(re instanceof antlr4.error.RecognitionException) {
+	    	if(re instanceof antlr4.RecognitionException) {
 		        localctx.exception = re;
 		        this._errHandler.reportError(this, re);
 		        this._errHandler.recover(this, re);
@@ -133,7 +133,7 @@ export default class loosetGraphParser extends antlr4.Parser {
 	        }
 
 	    } catch (re) {
-	    	if(re instanceof antlr4.error.RecognitionException) {
+	    	if(re instanceof antlr4.RecognitionException) {
 		        localctx.exception = re;
 		        this._errHandler.reportError(this, re);
 		        this._errHandler.recover(this, re);
@@ -165,12 +165,12 @@ export default class loosetGraphParser extends antlr4.Parser {
 	            this.lixID();
 	            break;
 	        default:
-	            throw new antlr4.error.NoViableAltException(this);
+	            throw new antlr4.NoViableAltException(this);
 	        }
 	        this.state = 45;
 	        this.match(loosetGraphParser.T__0);
 	    } catch (re) {
-	    	if(re instanceof antlr4.error.RecognitionException) {
+	    	if(re instanceof antlr4.RecognitionException) {
 		        localctx.exception = re;
 		        this._errHandler.reportError(this, re);
 		        this._errHandler.recover(this, re);
@@ -197,7 +197,7 @@ export default class loosetGraphParser extends antlr4.Parser {
 	        this.state = 49;
 	        this.node();
 	    } catch (re) {
-	    	if(re instanceof antlr4.error.RecognitionException) {
+	    	if(re instanceof antlr4.RecognitionException) {
 		        localctx.exception = re;
 		        this._errHandler.reportError(this, re);
 		        this._errHandler.recover(this, re);
@@ -230,10 +230,10 @@ export default class loosetGraphParser extends antlr4.Parser {
 	            this.labelID();
 	            break;
 	        default:
-	            throw new antlr4.error.NoViableAltException(this);
+	            throw new antlr4.NoViableAltException(this);
 	        }
 	    } catch (re) {
-	    	if(re instanceof antlr4.error.RecognitionException) {
+	    	if(re instanceof antlr4.RecognitionException) {
 		        localctx.exception = re;
 		        this._errHandler.reportError(this, re);
 		        this._errHandler.recover(this, re);
@@ -258,7 +258,7 @@ export default class loosetGraphParser extends antlr4.Parser {
 	        this.state = 56;
 	        this.match(loosetGraphParser.ID);
 	    } catch (re) {
-	    	if(re instanceof antlr4.error.RecognitionException) {
+	    	if(re instanceof antlr4.RecognitionException) {
 		        localctx.exception = re;
 		        this._errHandler.reportError(this, re);
 		        this._errHandler.recover(this, re);
@@ -281,7 +281,7 @@ export default class loosetGraphParser extends antlr4.Parser {
 	        this.state = 58;
 	        this.match(loosetGraphParser.ID);
 	    } catch (re) {
-	    	if(re instanceof antlr4.error.RecognitionException) {
+	    	if(re instanceof antlr4.RecognitionException) {
 		        localctx.exception = re;
 		        this._errHandler.reportError(this, re);
 		        this._errHandler.recover(this, re);
