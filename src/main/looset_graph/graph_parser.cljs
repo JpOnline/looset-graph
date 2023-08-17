@@ -1,8 +1,8 @@
 (ns looset-graph.graph-parser
   (:require
     ["antlr4" :as antlr4]
-    ["/looset_graph/antlr/loosetGraphLexer" :as lexer]
-    ["/looset_graph/antlr/loosetGraphParser" :as parser]))
+    ["loosetGraphLexer" :as lexer]
+    ["loosetGraphParser" :as parser]))
 
 (defn- parser-rule-meta
   [^ParserRuleContext this]
@@ -46,10 +46,10 @@
 
 (defn graph-ast [graph-text]
   (let [chrs (new (.-InputStream antlr4) graph-text)
-        lxr (new (.-default lexer) chrs)
+        lxr (new (.-default ^js lexer) chrs)
         tokens (new (.-CommonTokenStream antlr4) lxr)
-        prsr (new (.-default parser) tokens)
+        prsr (new (.-default ^js parser) tokens)
         _ (set! (.-buildParseTrees prsr) true)
         tree ^js/LoosetGraphContext (.loosetGraph prsr)
         to-hide #{"->" ":" "=>"}]
-    (clj->js (ast tree (mapv keyword (.-ruleNames prsr)) (mapv keyword (.-symbolicNames prsr)) #{} to-hide))))
+    (clj->js (ast tree (mapv keyword ^js(.-ruleNames prsr)) (mapv keyword (.-symbolicNames prsr)) #{} to-hide))))

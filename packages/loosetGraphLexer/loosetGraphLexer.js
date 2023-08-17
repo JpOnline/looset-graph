@@ -15,9 +15,9 @@ const serializedATN = [4,0,5,31,6,-1,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,
 0,0,0,29,30,6,4,0,0,30,10,1,0,0,0,3,0,22,27,1,6,0,0];
 
 
-const atn = new antlr4.ATNDeserializer().deserialize(serializedATN);
+const atn = new antlr4.atn.ATNDeserializer().deserialize(serializedATN);
 
-const decisionsToDFA = atn.decisionToState.map( (ds, index) => new antlr4.DFA(ds, index) );
+const decisionsToDFA = atn.decisionToState.map( (ds, index) => new antlr4.dfa.DFA(ds, index) );
 
 export default class loosetGraphLexer extends antlr4.Lexer {
 
@@ -30,7 +30,7 @@ export default class loosetGraphLexer extends antlr4.Lexer {
 
     constructor(input) {
         super(input)
-        this._interp = new antlr4.LexerATNSimulator(this, atn, decisionsToDFA, new antlr4.PredictionContextCache());
+        this._interp = new antlr4.atn.LexerATNSimulator(this, atn, decisionsToDFA, new antlr4.atn.PredictionContextCache());
     }
 }
 

@@ -1,7 +1,6 @@
 // Generated from loosetGraph.g4 by ANTLR 4.13.0
 // jshint ignore: start
 import antlr4 from 'antlr4';
-import loosetGraphListener from './loosetGraphListener.js';
 const serializedATN = [4,1,5,61,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,
 2,5,7,5,2,6,7,6,1,0,5,0,16,8,0,10,0,12,0,19,9,0,1,0,5,0,22,8,0,10,0,12,0,
 25,9,0,1,0,5,0,28,8,0,10,0,12,0,31,9,0,3,0,33,8,0,1,1,1,1,5,1,37,8,1,10,
@@ -21,11 +20,11 @@ const serializedATN = [4,1,5,61,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,
 5,4,0,0,59,13,1,0,0,0,7,17,23,29,32,38,43,53];
 
 
-const atn = new antlr4.ATNDeserializer().deserialize(serializedATN);
+const atn = new antlr4.atn.ATNDeserializer().deserialize(serializedATN);
 
-const decisionsToDFA = atn.decisionToState.map( (ds, index) => new antlr4.DFA(ds, index) );
+const decisionsToDFA = atn.decisionToState.map( (ds, index) => new antlr4.dfa.DFA(ds, index) );
 
-const sharedContextCache = new antlr4.PredictionContextCache();
+const sharedContextCache = new antlr4.atn.PredictionContextCache();
 
 export default class loosetGraphParser extends antlr4.Parser {
 
@@ -37,7 +36,7 @@ export default class loosetGraphParser extends antlr4.Parser {
 
     constructor(input) {
         super(input);
-        this._interp = new antlr4.ParserATNSimulator(this, atn, decisionsToDFA, sharedContextCache);
+        this._interp = new antlr4.atn.ParserATNSimulator(this, atn, decisionsToDFA, sharedContextCache);
         this.ruleNames = loosetGraphParser.ruleNames;
         this.literalNames = loosetGraphParser.literalNames;
         this.symbolicNames = loosetGraphParser.symbolicNames;
@@ -73,7 +72,7 @@ export default class loosetGraphParser extends antlr4.Parser {
 	            this.state = 23;
 	            this._errHandler.sync(this);
 	            var _alt = this._interp.adaptivePredict(this._input,1,this._ctx)
-	            while(_alt!=2 && _alt!=antlr4.ATN.INVALID_ALT_NUMBER) {
+	            while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
 	                if(_alt===1) {
 	                    this.state = 20;
 	                    this.foldable(); 
@@ -122,7 +121,7 @@ export default class loosetGraphParser extends antlr4.Parser {
 	        this.state = 38;
 	        this._errHandler.sync(this);
 	        var _alt = this._interp.adaptivePredict(this._input,4,this._ctx)
-	        while(_alt!=2 && _alt!=antlr4.ATN.INVALID_ALT_NUMBER) {
+	        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
 	            if(_alt===1) {
 	                this.state = 35;
 	                this.node(); 
@@ -348,18 +347,6 @@ class LoosetGraphContext extends antlr4.ParserRuleContext {
 	    }
 	};
 
-	enterRule(listener) {
-	    if(listener instanceof loosetGraphListener ) {
-	        listener.enterLoosetGraph(this);
-		}
-	}
-
-	exitRule(listener) {
-	    if(listener instanceof loosetGraphListener ) {
-	        listener.exitLoosetGraph(this);
-		}
-	}
-
 
 }
 
@@ -394,18 +381,6 @@ class FoldableContext extends antlr4.ParserRuleContext {
 	    }
 	};
 
-	enterRule(listener) {
-	    if(listener instanceof loosetGraphListener ) {
-	        listener.enterFoldable(this);
-		}
-	}
-
-	exitRule(listener) {
-	    if(listener instanceof loosetGraphListener ) {
-	        listener.exitFoldable(this);
-		}
-	}
-
 
 }
 
@@ -432,18 +407,6 @@ class FoldableIDContext extends antlr4.ParserRuleContext {
 	lixID() {
 	    return this.getTypedRuleContext(LixIDContext,0);
 	};
-
-	enterRule(listener) {
-	    if(listener instanceof loosetGraphListener ) {
-	        listener.enterFoldableID(this);
-		}
-	}
-
-	exitRule(listener) {
-	    if(listener instanceof loosetGraphListener ) {
-	        listener.exitFoldableID(this);
-		}
-	}
 
 
 }
@@ -475,18 +438,6 @@ class EdgeContext extends antlr4.ParserRuleContext {
 	    }
 	};
 
-	enterRule(listener) {
-	    if(listener instanceof loosetGraphListener ) {
-	        listener.enterEdge(this);
-		}
-	}
-
-	exitRule(listener) {
-	    if(listener instanceof loosetGraphListener ) {
-	        listener.exitEdge(this);
-		}
-	}
-
 
 }
 
@@ -514,18 +465,6 @@ class NodeContext extends antlr4.ParserRuleContext {
 	    return this.getTypedRuleContext(LabelIDContext,0);
 	};
 
-	enterRule(listener) {
-	    if(listener instanceof loosetGraphListener ) {
-	        listener.enterNode(this);
-		}
-	}
-
-	exitRule(listener) {
-	    if(listener instanceof loosetGraphListener ) {
-	        listener.exitNode(this);
-		}
-	}
-
 
 }
 
@@ -549,18 +488,6 @@ class LabelIDContext extends antlr4.ParserRuleContext {
 	    return this.getToken(loosetGraphParser.ID, 0);
 	};
 
-	enterRule(listener) {
-	    if(listener instanceof loosetGraphListener ) {
-	        listener.enterLabelID(this);
-		}
-	}
-
-	exitRule(listener) {
-	    if(listener instanceof loosetGraphListener ) {
-	        listener.exitLabelID(this);
-		}
-	}
-
 
 }
 
@@ -583,18 +510,6 @@ class LixIDContext extends antlr4.ParserRuleContext {
 	ID() {
 	    return this.getToken(loosetGraphParser.ID, 0);
 	};
-
-	enterRule(listener) {
-	    if(listener instanceof loosetGraphListener ) {
-	        listener.enterLixID(this);
-		}
-	}
-
-	exitRule(listener) {
-	    if(listener instanceof loosetGraphListener ) {
-	        listener.exitLixID(this);
-		}
-	}
 
 
 }
