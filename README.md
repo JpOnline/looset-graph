@@ -4,6 +4,8 @@ Foldable graphs, a way to abstract ideas and concepts. Try it in [Looset Graph](
 
 Also take a look at other similar tools to improve code visualization in [Looset Tools](https://jponline.github.io/looset-landing/).
 
+And [Looset Cardume](https://jponline.github.io/looset-cardume), a way to fold Mermaid diagrams.
+
 ## Running
 Use `shadow-cljs release frontend` to generate releasable js.
 
