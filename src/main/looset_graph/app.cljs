@@ -104,10 +104,10 @@
   (get-in app-state [:domain :graph-text] ""))
 (re-frame/reg-sub ::graph-text graph-text)
 
-(re-frame/reg-sub
-  ::graph-ast
-  :<- [::graph-text]
-  graph-parser/graph-ast)
+(defn graph-ast
+  [app-state]
+  (get-in app-state [:ui :validation :valid-graph-ast]))
+(re-frame/reg-sub ::graph-ast graph-ast)
 
 (defn extract-nodes-from-foldable-rule
   [foldable]
@@ -323,6 +323,11 @@
   :<- [::nodes-map]
   foldable?)
 
+(defn valid-graph?
+  [app-state]
+  (get-in app-state [:ui :validation :valid-graph?] false))
+(re-frame/reg-sub ::valid-graph? valid-graph?)
+
 ;; ---- Events ----
 
 (defn resizing-panels
@@ -346,11 +351,16 @@
 (re-frame/reg-event-db ::mouse-up mouse-up)
 
 (defn set-graph-text
-  [{app-state :db} [_event v]]
-  (let [new-app-state (assoc-in app-state [:domain :graph-text] v)]
-    {:db new-app-state}))
-     ;; :set-url-state (get-in new-app-state [:ui :validation :valid-cardume-text])}))
-(re-frame/reg-event-fx ::set-graph-text set-graph-text)
+  [app-state [_event v]]
+  (try (-> app-state
+         (assoc-in [:domain :graph-text] v)
+         (assoc-in [:ui :validation :valid-graph-ast] (graph-parser/graph-ast v))
+         (assoc-in [:ui :validation :valid-graph?] true))
+       (catch :default _
+         (-> app-state
+           (assoc-in [:domain :graph-text] v)
+           (assoc-in [:ui :validation :valid-graph?] false)))))
+(re-frame/reg-event-db ::set-graph-text set-graph-text)
 
 (defn toggle-open-close
   [app-state [_event path]]
@@ -387,7 +397,8 @@
   [(util/with-mount-fn
      [:div
       {:id "looset-graph"
-       :style #js {:height "100%" :width "100%" #_#_:flexGrow 5}
+       :style #js {:height "100%" :width "100%"
+                   :opacity (if (<sub [::valid-graph?]) "100%" "40%")}
        :component-did-mount (draw-graph
                               "looset-graph"
                               (<sub [::vis-data])
@@ -458,10 +469,11 @@
 
 (defn nodes-list-view []
   [:div
-    (for [node-item (<sub [::fold-list])
-          :let [node-type-comp ({:label label-node :lix lix-node} (:node-type node-item))]]
-      ;; ^{:key text} ;; Somehow I'm using this key wrongly, if it's uncomment, the items repeat depending on the change.
-      [node-type-comp node-item])])
+   {:style {:opacity (if (<sub [::valid-graph?]) "100%" "40%")}}
+   (for [node-item (<sub [::fold-list])
+         :let [node-type-comp ({:label label-node :lix lix-node} (:node-type node-item))]]
+     ;; ^{:key text} ;; Somehow I'm using this key wrongly, if it's uncomment, the items repeat depending on the change.
+     [node-type-comp node-item])])
 
 (def code-font-family "dejavu sans mono, monospace")
 (def code-font-size "small")
@@ -555,7 +567,9 @@
                     :padding "10px"
                     :border-bottom "1px solid gray"}}
       "Looset Graph"]
-     [graph-component]]
+     [util/error-boundary
+      {:if-error [:h2 "erro"]}
+      [graph-component]]]
     [panel-splitter]
     [:div#right-panel
      {:style {:width (str "calc(100vw - 500"#_(<sub [::left-panel-size])")") ;; Just a testing value
@@ -567,7 +581,9 @@
                 :display "grid"
                 :flex-grow "1"
                 :padding "7px 0"}}
-       [nodes-list-view]
+       [util/error-boundary
+        {:if-error [:h2 "erro"]}
+        [nodes-list-view]]
        [debug-raw-graph-text]]
      [botton-buttons]]]])
 
@@ -616,8 +632,8 @@
     #(>evt [::mouse-up false])))
 
 (re-frame/reg-event-db ::set-app-state
-  (fn [_ [_ _application-state]]
-    initial-state))
+  (fn [_ [event _application-state]]
+    (set-graph-text initial-state [event (get-in initial-state [:domain :graph-text])])))
 
 (defn init-state []
   (re-frame/dispatch-sync [::set-app-state]))
