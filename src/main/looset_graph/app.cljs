@@ -165,7 +165,7 @@
 ;;  -=vlabel5
 ;;   -=>label6
 (defn nodes-hierarchy
-  [nodes-map sorted-nodes]
+  [nodes-map]
   (reduce
     (fn [r [k v]]
         (let [path (fn path
@@ -181,7 +181,7 @@
                                         with-node-assoced
                                         (:label v))]
           with-its-labels-assoced))
-    {} sorted-nodes))
+    {} nodes-map))
 
 (defn text->color [text]
   (case (mod (hash text) 50)
@@ -274,7 +274,7 @@
 (defn nodes-map->fold-list
   [[nodes-map fold-ui]]
   (->> nodes-map
-    (nodes-hierarchy nodes-map)
+    (nodes-hierarchy)
     (sort-nodes nodes-map)
     (#(do (tap> {:nodes-hierarchy %}) %))
     (mapcat #(nodes-list [] nodes-map fold-ui %))
@@ -293,13 +293,13 @@
                            (filter #(= "edge" (first %)))
                            (mapcat extract-nodes-from-edge-rule))]
     (->> graph-ast
-      (#(do (tap> "a1") (tap> %) %))
+      ;; (#(do (tap> "a1") (tap> %) %))
       (filter #(= "foldable" (first %)))
       ;; (#(do (tap> "jp2") (tap> %) %))
       (mapv extract-nodes-from-foldable-rule)
       (concat nodes-from-edges)
-      (merge-nodes)
-      (#(do (tap> "nodes-map") (tap> %) %)))))
+      (merge-nodes))))
+      ;; (#(do (tap> "nodes-map") (tap> %) %)))))
 (re-frame/reg-sub
   ::nodes-map*
   :<- [::graph-ast]
@@ -316,7 +316,7 @@
 
 (defn foldable?
   [nodes-map [_ node]]
-  (tap> {:c7 nodes-map})
+  ;; (tap> {:c7 nodes-map})
   (-> node nodes-map :foldable))
 (re-frame/reg-sub
   ::foldable-node?

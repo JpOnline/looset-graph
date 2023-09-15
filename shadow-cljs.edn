@@ -13,4 +13,10 @@
  :builds
  {:frontend
   {:target :browser
-   :modules {:main {:init-fn looset-graph.app/init}}}}}
+   :modules {:main {:init-fn looset-graph.app/init}}}
+
+  :test {:target :browser-test
+         :test-dir "public/test"
+         :ns-regexp "-test$"
+         :devtools {:http-port 8021
+                    :http-root "public/test"}}}}
