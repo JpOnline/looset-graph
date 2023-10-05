@@ -123,7 +123,10 @@
                                   type (type-str->type type-str)]
                               {id (merge label-or-parent {:type type})}))
         inner-nodes (map extract-node-info (drop 2 foldable))
-        foldable-id-node {foldable-id-name {:type foldable-type :foldable true}}]
+        foldable-id-node {foldable-id-name {:type foldable-type
+                                            :children (set (mapcat keys inner-nodes))
+                                            :foldable (if (seq inner-nodes) true false)
+                                            :parent :global}}]
     (apply merge foldable-id-node inner-nodes)))
 
 (defn deep-merge-with
@@ -166,22 +169,27 @@
 ;;   -=>label6
 (defn nodes-hierarchy
   [nodes-map]
-  (reduce
-    (fn [r [k v]]
-        (let [path (fn path
-                     ([cur-k cur-v] (conj (path cur-v) cur-k))
-                     ([cur]
-                      (if-let [parent (:parent cur)]
-                        (conj (path (nodes-map parent)) parent)
-                        [])))
-              to-assoc (get-in r (path k v) {})
-              with-node-assoced (assoc-in r (path k v) to-assoc)
-              with-its-labels-assoced (reduce
-                                        #(assoc-in %1 (conj (path %2 (nodes-map %2)) k) to-assoc)
-                                        with-node-assoced
-                                        (:label v))]
-          with-its-labels-assoced))
-    {} nodes-map))
+  (:global
+    (reduce
+      (fn [r [k v]]
+          (let [v (if-not (or (:parent v) (:label v))
+                    (assoc v :parent :global) ;; Add global as a parent of nodes that have edges, but are not in a label.
+                    v)
+                path (fn path
+                       ([cur-k cur-v] (conj (path cur-v) cur-k))
+                       ([cur]
+                        (if-let [parent (:parent cur)]
+                          (conj (path (nodes-map parent)) parent)
+                          [])))
+                ;; _ (tap> {:k k :path (path k v) :global? (if (and (not (:label v)) (not (:parent v))) :global (:parent v))})
+                to-assoc (get-in r (path k v) {})
+                with-node-assoced (assoc-in r (path k v) to-assoc)
+                with-its-labels-assoced (reduce
+                                          #(assoc-in %1 (conj (path %2 (nodes-map %2)) k) to-assoc)
+                                          with-node-assoced
+                                          (:label v))]
+            with-its-labels-assoced))
+      {} nodes-map)))
 
 (defn text->color [text]
   (case (mod (hash text) 50)
@@ -262,6 +270,7 @@
 
 (defn fold-ui
   [app-state]
+  (tap> {:a (get-in app-state [:ui :fold] {})})
   (get-in app-state [:ui :fold] {}))
 (re-frame/reg-sub ::fold-ui fold-ui)
 
@@ -274,11 +283,12 @@
 (defn nodes-map->fold-list
   [[nodes-map fold-ui]]
   (->> nodes-map
+    ;; (#(do (tap> {:nodes-map %}) %))
     (nodes-hierarchy)
     (sort-nodes nodes-map)
-    (#(do (tap> {:nodes-hierarchy %}) %))
-    (mapcat #(nodes-list [] nodes-map fold-ui %))
-    (#(do (tap> {:nodes-list %}) %))))
+    ;; (#(do (tap> {:nodes-hierarchy %}) %))
+    (mapcat #(nodes-list [] nodes-map fold-ui %))))
+    ;; (#(do (tap> {:nodes-list %}) %))))
 (re-frame/reg-sub
   ::fold-list
   :<- [::nodes-map]
@@ -585,7 +595,38 @@
         {:if-error [:h2 "erro"]}
         [nodes-list-view]]
        [debug-raw-graph-text]]
+     [:<>
+      [:span "Range "(<sub [::number-input])]
+      [:input {:type "range"
+               :value (<sub [::number-input])
+               :onChange #(>evt [::set-number-input (-> % .-target .-value)])}]]
+     [:<> [:span "Number"] [:input {:type "number"
+                                    :value (<sub [::number-input])
+                                    :onChange #(>evt [::set-number-input (-> % .-target .-value)])}]]
+     [:<> [:span "Toggle"] [:input {:type "checkbox"
+                                    :onChange #(>evt [::set-toggle-input (-> % .-target .-checked)])}]]
      [botton-buttons]]]])
+
+(defn set-toggle-input
+  [app-state [_event n]]
+  (js/console.log n)
+  (assoc-in app-state [:ui :toggle-input] n))
+(re-frame/reg-event-db ::set-toggle-input set-toggle-input)
+
+(defn toggle-input
+  [app-state]
+  (get-in app-state [:ui :toggle-input] false))
+(re-frame/reg-sub ::toggle-input toggle-input)
+
+(defn set-number-input
+  [app-state [_event n]]
+  (assoc-in app-state [:ui :number-input] n))
+(re-frame/reg-event-db ::set-number-input set-number-input)
+
+(defn number-input
+  [app-state]
+  (get-in app-state [:ui :number-input] 0))
+(re-frame/reg-sub ::number-input number-input)
 
 ;; ---- Initialization ----
 
@@ -593,11 +634,7 @@
   {:domain {:dot-graph "dinetwork {\"superlongnamethatwontfitboll1\" -> superlongnamethatwontfitboll1 -> 2; 2 -> 3; 2 -- 4; 2 -> superlongnamethatwontfitboll1 }"
             :graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label2:\n  node5\n\nnode3:\n  node4\n  node5\n\nnode1 -> node2\nnode4->node1\nnodeA->nodeB"}
    :ui {:panels {:resizing-panels false
-                 :left-panel-size "65vw"}
-        :nodes {"label1" {:hidden? true}}
-        :fold {"label1" {:opened? true}
-               "nodeB" {:hidden? true}
-               "node7" {:opened? true "node8" {:opened? true "node9" {:opened? false}}}}}})
+                 :left-panel-size "65vw"}}})
 
 (defn gzip [cs-mode b-array]
   (let [cs (-> "gzip" cs-mode.)
