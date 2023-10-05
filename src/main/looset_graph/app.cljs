@@ -5,6 +5,7 @@
     [looset-graph.graph-parser :as graph-parser]
     [looset-graph.util :as util]
     [re-frame.core :as re-frame]
+    [reagent.core :as reagent]
     [reagent.dom]))
 
 ;; ---- Util ----
@@ -64,24 +65,48 @@
        (find-visible new-result new-to-visit new-visited visibles nodes-map (first to-visit))
        new-result))))
 
+(defn visible-nodes
+  [fold-list]
+  (->> fold-list
+    (remove :opened?)
+    (remove :hidden?)
+    (map :node-id)
+    (set)))
+(re-frame/reg-sub
+  ::visible-nodes
+  :<- [::fold-list]
+  visible-nodes)
+
+(defn selected-nodes
+  [[hovered-node visible-nodes nodes-map]]
+  (-> nodes-map
+    (get hovered-node)
+    (:children)
+    (conj hovered-node)
+    (set)
+    (clojure.set/intersection visible-nodes)
+    (vec)
+    (clj->js)))
+(re-frame/reg-sub
+  ::selected-nodes
+  :<- [::hovered-node]
+  :<- [::visible-nodes]
+  :<- [::nodes-map]
+  selected-nodes)
+
 (defn vis-data
-  [[fold-list nodes-map]]
-  (let [visibles (->> fold-list
-                   (remove :opened?)
-                   (remove :hidden?)
-                   (map :node-id)
-                   (set))
-        get-x-pos #(-> % nodes-map :position (get "x"))
-        get-y-pos #(-> % nodes-map :position (get "y"))
-        get-from-set #(find-visible visibles nodes-map %)
+  [[visible-nodes nodes-map]]
+  (let [;; get-x-pos #(-> % nodes-map :position (get "x"))
+        ;; get-y-pos #(-> % nodes-map :position (get "y"))
+        get-from-set #(find-visible visible-nodes nodes-map %)
         get-to-set #(->> %
                       (:edges-to)
                       (map val) ;; TODO: get the text in the relationship/edge.
                       (apply concat)
-                      (mapcat (partial find-visible visibles nodes-map)))]
-    (clj->js {:nodes (map #(into {:id % :label % :shape "box" :color {:background "white" :border "gray"}
-                                  :x (get-x-pos %) :y (get-y-pos %)})
-                          visibles)
+                      (mapcat (partial find-visible visible-nodes nodes-map)))]
+    (clj->js {:nodes (map #(into {:id % :label % :shape "box" :color {:background "white" :border "gray"}})
+                                  ;; :x (get-x-pos %) :y (get-y-pos %)})
+                          visible-nodes)
               :edges (mapcat (fn [[k v]]
                                (for [from (get-from-set k)
                                      to (get-to-set v)
@@ -90,7 +115,7 @@
                              nodes-map)})))
 (re-frame/reg-sub
   ::vis-data
-  :<- [::fold-list]
+  :<- [::visible-nodes]
   :<- [::nodes-map]
   vis-data)
 
@@ -338,6 +363,11 @@
   (get-in app-state [:ui :validation :valid-graph?] false))
 (re-frame/reg-sub ::valid-graph? valid-graph?)
 
+(defn hovered-node
+  [app-state]
+  (get-in app-state [:ui :hovered-node] nil))
+(re-frame/reg-sub ::hovered-node hovered-node)
+
 ;; ---- Events ----
 
 (defn resizing-panels
@@ -388,32 +418,65 @@
 
 (defn toggle-hidden
   [app-state [_event node-id]]
-  (tap> {:c3 (get-in app-state [:ui :nodes])})
+  ;; (tap> {:c3 (get-in app-state [:ui :nodes])})
   (update-in app-state [:ui :nodes node-id :hidden?] not))
 (re-frame/reg-event-db ::toggle-hidden toggle-hidden)
 
+(defn node-hovered
+  [app-state [_event node-id]]
+  ;; (tap> {:node-hovered node-id})
+  (assoc-in app-state [:ui :hovered-node] node-id))
+(re-frame/reg-event-db ::node-hovered node-hovered)
+
 ;; ---- Views ----
 
-(defn draw-graph-no-memo [id data options]
-  (fn []
-    (let [container (-> js/document (.getElementById id))
-          network (-> js/vis .-Network (new container data options))]
-      (.on network "dragEnd" #(>evt [::set-vis-nodes-positions ^Object (.getPositions network)]) )
-      network)))
+;; (defn draw-graph-no-memo [id data options]
+;;   (fn []
+;;     (let [container (-> js/document (.getElementById id))
+;;           network (-> js/vis .-Network (new container data options))]
+;;       ;; (.on network "dragEnd" #(>evt [::set-vis-nodes-positions ^Object (.getPositions network)]) )
+;;       (def network network)
+;;       network)))
+;;
+;; (def draw-graph (memoize draw-graph-no-memo))
 
-(def draw-graph (memoize draw-graph-no-memo))
+(defn graph-component-inner []
+  (let [graph-component-id "looset-graph"
+        options #js {}
+        network (atom nil)
+        update-comp (fn [component]
+                      (let [{:keys [selected-nodes vis-data]} (reagent/props component)]
+                        ;; (def network network)
+                        (.setData @network vis-data)
+                        (.selectNodes @network selected-nodes)))
+        mount-comp (fn [component]
+                     (let [container (-> js/document (.getElementById graph-component-id))]
+                       (reset! network (-> js/vis .-Network (new container nil options))))
+                     (update-comp component))]
+    (reagent/create-class
+      {:reagent-render (fn []
+                         [:div
+                          {:id graph-component-id
+                           :style #js {:height "100%" :width "100%"
+                                       :opacity (if (<sub [::valid-graph?]) "100%" "40%")}}
+                          [:p "Loading.."]])
+       :component-did-mount mount-comp
+       :component-did-update update-comp})))
+                              ;; (draw-graph
+                              ;;   "looset-graph"
+                              ;;   (<sub [::vis-data])
+                              ;;   #js {:nodes #js {:borderWidth 1}
+                              ;;        :layout #js {:randomSeed 1}})}
+                              ;;                     :improvedLayout false
+                              ;;                     :hierarchical #js {:enabled true
+                              ;;                                        :nodeSpacing (int (<sub [::number-input]))
+                              ;;                                        :levelSeparation 110}}})}
 
 (defn graph-component []
-  [(util/with-mount-fn
-     [:div
-      {:id "looset-graph"
-       :style #js {:height "100%" :width "100%"
-                   :opacity (if (<sub [::valid-graph?]) "100%" "40%")}
-       :component-did-mount (draw-graph
-                              "looset-graph"
-                              (<sub [::vis-data])
-                              #js {})}
-      [:p "Loading.."]])])
+  [graph-component-inner
+   {:selected-nodes
+    (<sub [::selected-nodes])
+    :vis-data (<sub [::vis-data])}])
 
 (defn panel-splitter []
   [:div {:style {:display "flex"
@@ -451,7 +514,9 @@
     {:keys [level hidden? path node-id]} :node}
    text]
   [:div.node-item
-   {:style {:paddingLeft (+ 16 (* 12 level))}}
+   {:style {:paddingLeft (+ 16 (* 12 level))}
+    :onMouseOver #(>evt [::node-hovered node-id])}
+    ;; :onMouseOut #(js/console.log "x")}
    [:span.hover-gray
     {:onClick #(>evt [::toggle-hidden node-id])
      :style {:paddingRight 5}}
