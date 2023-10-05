@@ -515,8 +515,8 @@
    text]
   [:div.node-item
    {:style {:paddingLeft (+ 16 (* 12 level))}
-    :onMouseOver #(>evt [::node-hovered node-id])}
-    ;; :onMouseOut #(js/console.log "x")}
+    :onMouseOver #(>evt [::node-hovered node-id])
+    :onMouseOut #(>evt [::node-hovered nil])}
    [:span.hover-gray
     {:onClick #(>evt [::toggle-hidden node-id])
      :style {:paddingRight 5}}
