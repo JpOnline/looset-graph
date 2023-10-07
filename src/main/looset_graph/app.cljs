@@ -96,16 +96,16 @@
 
 (defn vis-data
   [[visible-nodes nodes-map]]
-  (let [;; get-x-pos #(-> % nodes-map :position (get "x"))
-        ;; get-y-pos #(-> % nodes-map :position (get "y"))
+  (let [get-x-pos #(-> % nodes-map :position (get "x"))
+        get-y-pos #(-> % nodes-map :position (get "y"))
         get-from-set #(find-visible visible-nodes nodes-map %)
         get-to-set #(->> %
                       (:edges-to)
                       (map val) ;; TODO: get the text in the relationship/edge.
                       (apply concat)
                       (mapcat (partial find-visible visible-nodes nodes-map)))]
-    (clj->js {:nodes (map #(into {:id % :label % :shape "box" :color {:background "white" :border "gray"}})
-                                  ;; :x (get-x-pos %) :y (get-y-pos %)})
+    (clj->js {:nodes (map #(into {:id % :label % :shape "box" :color {:background "white" :border "gray"}
+                                  :x (get-x-pos %) :y (get-y-pos %)})
                           visible-nodes)
               :edges (mapcat (fn [[k v]]
                                (for [from (get-from-set k)
@@ -412,9 +412,18 @@
   (let [nodes-positions (reduce-kv (fn [m k v]
                                      (assoc m k {:position v}))
                                    {}
-                                   (js->clj nodes-positions*))]
-    (update-in app-state [:ui :nodes] merge nodes-positions)))
+                                   (js->clj nodes-positions*))
+        dragging? (get-in app-state [:ui :graph-dragging?] false)]
+    (tap> {:set-pos nodes-positions})
+    (if dragging?
+      app-state
+      (update-in app-state [:ui :nodes] merge nodes-positions))))
 (re-frame/reg-event-db ::set-vis-nodes-positions set-vis-nodes-positions)
+
+(defn drag-changed
+  [app-state [_event dragging?]]
+  (assoc-in app-state [:ui :graph-dragging?] dragging?))
+(re-frame/reg-event-db ::drag-changed drag-changed)
 
 (defn toggle-hidden
   [app-state [_event node-id]]
@@ -442,16 +451,23 @@
 
 (defn graph-component-inner []
   (let [graph-component-id "looset-graph"
-        options #js {}
+        options #js {:physics #js {:enabled true
+                                   :minVelocity 1.5}
+                     :nodes #js {:borderWidth 1}}
         network (atom nil)
         update-comp (fn [component]
-                      (let [{:keys [selected-nodes vis-data]} (reagent/props component)]
+                      (let [{:keys [selected-nodes vis-data _options]} (reagent/props component)]
                         ;; (def network network)
                         (.setData @network vis-data)
+                        ;; ^js (.setOptions @network options)
+                        (tap> {:vis-data vis-data})
                         (.selectNodes @network selected-nodes)))
         mount-comp (fn [component]
                      (let [container (-> js/document (.getElementById graph-component-id))]
                        (reset! network (-> js/vis .-Network (new container nil options))))
+                     (.on @network "dragStart" #_(js/console.log "dragStart") #(>evt [::drag-changed true]))
+                     (.on @network "dragEnd" #_(js/console.log "dragEnd") #(>evt [::drag-changed false]))
+                     (.on @network "stabilized" #_(js/console.log "stabilized") #(>evt [::set-vis-nodes-positions ^Object (.getPositions @network)]))
                      (update-comp component))]
     (reagent/create-class
       {:reagent-render (fn []
@@ -477,6 +493,10 @@
    {:selected-nodes
     (<sub [::selected-nodes])
     :vis-data (<sub [::vis-data])}])
+    ;; :options #js {:physics #js {:enabled true
+    ;;                             :minVelocity 1.5}
+    ;;               :nodes #js {:borderWidth 1}}}])
+    ;;
 
 (defn panel-splitter []
   [:div {:style {:display "flex"
