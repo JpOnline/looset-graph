@@ -383,16 +383,10 @@
       (assoc-in [:ui :panels :left-panel-size] (str x"px")))))
 (re-frame/reg-event-db ::mouse-moved mouse-moved)
 
-(defn mouse-up
-  [app-state]
-  (-> app-state
-    (resizing-panels [::mouse-up false])
-    (assoc-in [:ui :diagram :zooming?] false)))
-(re-frame/reg-event-db ::mouse-up mouse-up)
-
 (defn set-graph-text
   [app-state [_event v]]
   (try (-> app-state
+         (update-in [:ui :nodes] merge (get-in app-state [:ui :nodes-positions] {}))
          (assoc-in [:domain :graph-text] v)
          (assoc-in [:ui :validation :valid-graph-ast] (graph-parser/graph-ast v))
          (assoc-in [:ui :validation :valid-graph?] true))
@@ -404,7 +398,9 @@
 
 (defn toggle-open-close
   [app-state [_event path]]
-  (update-in app-state (concat [:ui :fold] path [:opened?]) not))
+  (-> app-state
+    (update-in [:ui :nodes] merge (get-in app-state [:ui :nodes-positions] {}))
+    (update-in (concat [:ui :fold] path [:opened?]) not)))
 (re-frame/reg-event-db ::toggle-open-close toggle-open-close)
 
 (defn set-vis-nodes-positions
@@ -417,7 +413,7 @@
     (tap> {:set-pos nodes-positions})
     (if dragging?
       app-state
-      (update-in app-state [:ui :nodes] merge nodes-positions))))
+      (update-in app-state [:ui :nodes-positions] merge nodes-positions))))
 (re-frame/reg-event-db ::set-vis-nodes-positions set-vis-nodes-positions)
 
 (defn drag-changed
@@ -428,7 +424,9 @@
 (defn toggle-hidden
   [app-state [_event node-id]]
   ;; (tap> {:c3 (get-in app-state [:ui :nodes])})
-  (update-in app-state [:ui :nodes node-id :hidden?] not))
+  (-> app-state
+    (update-in [:ui :nodes] merge (get-in app-state [:ui :nodes-positions] {}))
+    (update-in [:ui :nodes node-id :hidden?] not)))
 (re-frame/reg-event-db ::toggle-hidden toggle-hidden)
 
 (defn node-hovered
@@ -455,10 +453,12 @@
                                    :minVelocity 1.5}
                      :nodes #js {:borderWidth 1}}
         network (atom nil)
-        update-comp (fn [component]
-                      (let [{:keys [selected-nodes vis-data _options]} (reagent/props component)]
+        update-comp (fn [component [_ prev-props]]
+                      (let [prev-vis-data (:vis-data prev-props)
+                            {:keys [selected-nodes vis-data _options]} (reagent/props component)]
                         ;; (def network network)
-                        (.setData @network vis-data)
+                        (when (not= prev-vis-data vis-data)
+                          (.setData @network vis-data))
                         ;; ^js (.setOptions @network options)
                         (tap> {:vis-data vis-data})
                         (.selectNodes @network selected-nodes)))
@@ -468,7 +468,7 @@
                      (.on @network "dragStart" #_(js/console.log "dragStart") #(>evt [::drag-changed true]))
                      (.on @network "dragEnd" #_(js/console.log "dragEnd") #(>evt [::drag-changed false]))
                      (.on @network "stabilized" #_(js/console.log "stabilized") #(>evt [::set-vis-nodes-positions ^Object (.getPositions @network)]))
-                     (update-comp component))]
+                     (update-comp component nil))]
     (reagent/create-class
       {:reagent-render (fn []
                          [:div
@@ -478,21 +478,11 @@
                           [:p "Loading.."]])
        :component-did-mount mount-comp
        :component-did-update update-comp})))
-                              ;; (draw-graph
-                              ;;   "looset-graph"
-                              ;;   (<sub [::vis-data])
-                              ;;   #js {:nodes #js {:borderWidth 1}
-                              ;;        :layout #js {:randomSeed 1}})}
-                              ;;                     :improvedLayout false
-                              ;;                     :hierarchical #js {:enabled true
-                              ;;                                        :nodeSpacing (int (<sub [::number-input]))
-                              ;;                                        :levelSeparation 110}}})}
 
 (defn graph-component []
   [graph-component-inner
-   {:selected-nodes
-    (<sub [::selected-nodes])
-    :vis-data (<sub [::vis-data])}])
+   {:selected-nodes (<sub [::selected-nodes])
+    :vis-data       (<sub [::vis-data])}])
     ;; :options #js {:physics #js {:enabled true
     ;;                             :minVelocity 1.5}
     ;;               :nodes #js {:borderWidth 1}}}])
@@ -748,11 +738,6 @@
     "mousemove"
     #(>evt [::mouse-moved (-> % .-x) (-> % .-y)])))
 
-(defn init-mouseup []
-  (js/document.body.addEventListener
-    "mouseup"
-    #(>evt [::mouse-up false])))
-
 (re-frame/reg-event-db ::set-app-state
   (fn [_ [event _application-state]]
     (set-graph-text initial-state [event (get-in initial-state [:domain :graph-text])])))
@@ -765,6 +750,18 @@
   ;;     (.then (gzip-decompress (js/atob compressed-graph))
   ;;            #(re-frame/dispatch-sync [::set-app-state "compressed-graph"]))
   ;;     (re-frame/dispatch-sync [::set-app-state default-graph]))))
+
+;; Snippets about mouse-up event
+;; (defn mouse-up
+;;   [app-state]
+;;   (-> app-state
+;;     (resizing-panels [::mouse-up false])
+;;     (assoc-in [:ui :diagram :zooming?] false)))
+;; (re-frame/reg-event-db ::mouse-up mouse-up)
+;; (defn init-mouseup []
+;;   (js/document.body.addEventListener
+;;     "mouseup"
+;;     #(>evt [::mouse-up false])))
 
 ;; Snippet on how to react on CSS change
 ;; (defn init-style-observer []
@@ -783,6 +780,6 @@
 (defn init []
   (init-state)
   (init-mousemove)
-  (init-mouseup)
   (mount-app-element))
+  ;; (init-mouseup)
   ;; (init-style-observer))
