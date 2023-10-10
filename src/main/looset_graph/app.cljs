@@ -386,7 +386,7 @@
 (defn set-graph-text
   [app-state [_event v]]
   (try (-> app-state
-         (update-in [:ui :nodes] merge (get-in app-state [:ui :nodes-positions] {}))
+         (update-in [:ui :nodes] #(merge-with merge % (get-in app-state [:ui :nodes-positions] {})))
          (assoc-in [:domain :graph-text] v)
          (assoc-in [:ui :validation :valid-graph-ast] (graph-parser/graph-ast v))
          (assoc-in [:ui :validation :valid-graph?] true))
@@ -399,7 +399,7 @@
 (defn toggle-open-close
   [app-state [_event path]]
   (-> app-state
-    (update-in [:ui :nodes] merge (get-in app-state [:ui :nodes-positions] {}))
+    (update-in [:ui :nodes] #(merge-with merge % (get-in app-state [:ui :nodes-positions] {})))
     (update-in (concat [:ui :fold] path [:opened?]) not)))
 (re-frame/reg-event-db ::toggle-open-close toggle-open-close)
 
@@ -410,7 +410,7 @@
                                    {}
                                    (js->clj nodes-positions*))
         dragging? (get-in app-state [:ui :graph-dragging?] false)]
-    (tap> {:set-pos nodes-positions})
+    ;; (tap> {:set-pos nodes-positions})
     (if dragging?
       app-state
       (update-in app-state [:ui :nodes-positions] merge nodes-positions))))
@@ -425,7 +425,7 @@
   [app-state [_event node-id]]
   ;; (tap> {:c3 (get-in app-state [:ui :nodes])})
   (-> app-state
-    (update-in [:ui :nodes] merge (get-in app-state [:ui :nodes-positions] {}))
+    (update-in [:ui :nodes] #(merge-with merge % (get-in app-state [:ui :nodes-positions] {})))
     (update-in [:ui :nodes node-id :hidden?] not)))
 (re-frame/reg-event-db ::toggle-hidden toggle-hidden)
 
