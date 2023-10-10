@@ -576,6 +576,7 @@
     :value (<sub [::graph-text])}])
 
 (def quattrocento-font "Quattrocento, serif")
+(def label-font-family "Proza Libre, sans-serif;")
 
 (defn global-style []
   [:style
@@ -632,6 +633,10 @@
    .node-item {
      display: flex;
      flex-direction: row;
+     font-family: "label-font-family";
+     font-size: large;
+     font-weight: bold;
+     padding-bottom: 13px;
    }
    ")])
 
