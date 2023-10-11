@@ -94,25 +94,104 @@
   :<- [::nodes-map]
   selected-nodes)
 
+(defn text->color [text]
+  (case (mod (hash text) 50)
+  ;; Greens
+    0 "#31711c"
+    1 "#58a73e"
+    2 "#4ca72e"
+    3 "#308b12"
+    4 "#256311"
+    5 "#204b12"
+    6 "#234518"
+    7 "#2f4d26"
+    8 "#466d3a"
+    9 "#5b9549"
+  ;; Purples
+    10 "#762974"
+    11 "#551653"
+    12 "#532051"
+    13 "#6b3269"
+    14 "#954692"
+    15 "#af46ab"
+    16 "#b336ae"
+    17 "#a524a0"
+    18 "#8b1786"
+    19 "#5f105b"
+  ;; Indigos
+    20 "#061870"
+    21 "#04135f"
+    22 "#0b1a69"
+    23 "#152681"
+    24 "#1129a5"
+    25 "#041ea7"
+    26 "#0826c3"
+    27 "#1931b1"
+    28 "#1c3097"
+    29 "#19297b"
+  ;; Yellows
+    30 "#f7c545"
+    31 "#f7c031"
+    32 "#dbaa29"
+    33 "#c59c30"
+    34 "#c39f41"
+    35 "#cbaa52"
+    36 "#f1cb65"
+    37 "#b39648"
+    38 "#9d8033"
+    39 "#bd8f13"
+  ;; Blues
+    40 "#6b90bc"
+    41 "#73a1d7"
+    42 "#5980ad"
+    43 "#587597"
+    44 "#3e6695"
+    45 "#4f84c1"
+    46 "#629bdd"
+    47 "#65a9f7"
+    48 "#37567b"
+    49 "#4283d1"))
+
+(def label-font-family "Proza Libre")
+
 (defn vis-data
   [[visible-nodes nodes-map]]
-  (let [get-x-pos #(-> % nodes-map :position (get "x"))
-        get-y-pos #(-> % nodes-map :position (get "y"))
+  (let [nodes (->> nodes-map
+                (filter #(visible-nodes (first %)))
+                (into {}))
+        ->node
+        (fn [[node-id
+              {{:strs [x y]} :position
+               :keys [type]}]]
+          {:id node-id
+           :label (if (= type :label)
+                    (str "<b>"node-id"</b>")
+                    node-id)
+           :shape "box"
+           :color {:background "white" :border "gray"}
+           :x x :y y
+           :margin 7
+           :shadow true
+           :font
+           (when (= type :label)
+             {:face label-font-family
+              :multi "html"
+              :color (text->color node-id)})})
+
         get-from-set #(find-visible visible-nodes nodes-map %)
         get-to-set #(->> %
                       (:edges-to)
                       (map val) ;; TODO: get the text in the relationship/edge.
                       (apply concat)
-                      (mapcat (partial find-visible visible-nodes nodes-map)))]
-    (clj->js {:nodes (map #(into {:id % :label % :shape "box" :color {:background "white" :border "gray"}
-                                  :x (get-x-pos %) :y (get-y-pos %)})
-                          visible-nodes)
-              :edges (mapcat (fn [[k v]]
-                               (for [from (get-from-set k)
-                                     to (get-to-set v)
-                                     :when (not= from to)]
-                                 {:from from :to to :arrows {:to {:enabled true :type "arrow"}}}))
-                             nodes-map)})))
+                      (mapcat (partial find-visible visible-nodes nodes-map)))
+        ->edge
+        (fn [[k v]]
+          (for [from (get-from-set k)
+                to (get-to-set v)
+                :when (not= from to)]
+            {:from from :to to :arrows {:to {:enabled true :type "arrow"}}}))]
+    (clj->js {:nodes (map ->node nodes)
+              :edges (mapcat ->edge nodes-map)})))
 (re-frame/reg-sub
   ::vis-data
   :<- [::visible-nodes]
@@ -215,64 +294,6 @@
                                           (:label v))]
             with-its-labels-assoced))
       {} nodes-map)))
-
-(defn text->color [text]
-  (case (mod (hash text) 50)
-  ;; Greens
-    0 "#31711c"
-    1 "#58a73e"
-    2 "#4ca72e"
-    3 "#308b12"
-    4 "#256311"
-    5 "#204b12"
-    6 "#234518"
-    7 "#2f4d26"
-    8 "#466d3a"
-    9 "#5b9549"
-  ;; Purples
-    10 "#762974"
-    11 "#551653"
-    12 "#532051"
-    13 "#6b3269"
-    14 "#954692"
-    15 "#af46ab"
-    16 "#b336ae"
-    17 "#a524a0"
-    18 "#8b1786"
-    19 "#5f105b"
-  ;; Indigos
-    20 "#061870"
-    21 "#04135f"
-    22 "#0b1a69"
-    23 "#152681"
-    24 "#1129a5"
-    25 "#041ea7"
-    26 "#0826c3"
-    27 "#1931b1"
-    28 "#1c3097"
-    29 "#19297b"
-  ;; Yellows
-    30 "#f7c545"
-    31 "#f7c031"
-    32 "#dbaa29"
-    33 "#c59c30"
-    34 "#c39f41"
-    35 "#cbaa52"
-    36 "#f1cb65"
-    37 "#b39648"
-    38 "#9d8033"
-    39 "#bd8f13"
-  ;; Blues
-    40 "#6b90bc"
-    41 "#73a1d7"
-    42 "#5980ad"
-    43 "#587597"
-    44 "#3e6695"
-    45 "#4f84c1"
-    46 "#629bdd"
-    47 "#65a9f7"
-    48 "#37567b"
-    49 "#4283d1"))
 
 (defn nodes-list
   [path nodes-map fold-ui [node node-children]]
@@ -580,7 +601,6 @@
     :value (<sub [::graph-text])}])
 
 (def quattrocento-font "Quattrocento, serif")
-(def label-font-family "Proza Libre, sans-serif;")
 
 (defn global-style []
   [:style
@@ -637,7 +657,7 @@
    .lix-style {
      display: flex;
      flex-direction: row;
-     font-family: "label-font-family";
+     font-family: "label-font-family", sans-serif;
      font-size: large;
      padding-bottom: 13px;
    }
@@ -645,7 +665,7 @@
    .label-style {
      display: flex;
      flex-direction: row;
-     font-family: "label-font-family";
+     font-family: "label-font-family", sans-serif;
      font-size: large;
      font-weight: bold;
      padding-bottom: 13px;
