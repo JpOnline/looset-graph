@@ -583,13 +583,32 @@
      :style {:color (or color "inherit")}}
     text]])
 
+(defn svg-label
+  [{:keys [color opened?]}]
+  (let [rotation-degree (if opened? "45" "0")]
+    [:svg
+     {:width "20.3125" :height "13"
+      :transform (str "rotate ("rotation-degree")")
+      :viewBox (str "20 0 15 32")}
+     [:g
+      [:rect
+       {:fill color
+        :width "26.326736" :height "27.940695"
+        :x "4"
+        :y "4"
+        :ry "3.7885695"}]
+      [:path {:fill color
+              :d "m 24,4 9.30351,0.007 13.81581,13.815798 -13.8158,14.110975 -11.32617,0.007"}]]]))
+
 (defn label-node [{:keys [node-id color opened?] :as node-item}]
   [node-view
    {:node node-item
     :class "label-style"
     :style {:color color}}
-   (str (if opened? "=v " "=> ")
-        node-id)])
+   [:<>
+     [svg-label {:opened? opened?
+                 :color color}]
+     node-id]])
 
 (defn lix-node [{:keys [node-id opened?] :as node-item}]
   [node-view
