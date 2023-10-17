@@ -554,7 +554,7 @@
   [:svg#eye.hover-gray
    (merge
      props
-     {:fill "currentColor" :viewBox "0 0 16 16" :xmlns "http://www.w3.org/2000/svg"})
+     {:fill "#4a484a" :viewBox "0 0 16 16" :xmlns "http://www.w3.org/2000/svg"})
    [:path {:fill-rule "evenodd" :d "M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"}]
    [:path {:fill-rule "evenodd" :d "M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"}]])
 
@@ -600,6 +600,15 @@
       [:path {:fill color
               :d "m 24,4 9.30351,0.007 13.81581,13.815798 -13.8158,14.110975 -11.32617,0.007"}]]]))
 
+(defn svg-arrow-triangle
+  [{:keys [opened?]}]
+  (let [rotation-degree (if opened? "0" "-90")]
+    [:svg
+     {:width "16" :height "16" :viewBox "0 0 16 16" :fill "#4a484a"
+      :transform (str "rotate ("rotation-degree")")
+      :style {:verticalAlign "middle"}}
+     [:path {:d "M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"}]]))
+
 (defn label-node [{:keys [node-id color opened?] :as node-item}]
   [node-view
    {:node node-item
@@ -614,10 +623,10 @@
   [node-view
    {:node node-item
     :class "lix-style"}
-   (str (cond (nil? opened?) ""
-              (true? opened?) "v "
-              :else "> ")
-        node-id)])
+   [:<>
+     (when-not (nil? opened?)
+       [svg-arrow-triangle {:opened? opened?}])
+     node-id]])
 
 (defn nodes-list-view []
   [:div
@@ -703,6 +712,7 @@
      font-size: large;
      padding-bottom: 10px;
      align-items: center;
+     color: #4a484a;
    }
 
    .label-style {
