@@ -363,7 +363,9 @@
 
 (defn nodes-map
   [[nodes-ui nodes-map*]]
-  (deep-merge-with merge nodes-ui nodes-map*))
+  (deep-merge-with merge
+    nodes-map*
+    (select-keys nodes-ui (keys nodes-map*))))
 (re-frame/reg-sub
   ::nodes-map
   :<- [::nodes-ui]
@@ -797,8 +799,8 @@
 ;; ---- Initialization ----
 
 (def initial-state
-  {:domain {:dot-graph "dinetwork {\"superlongnamethatwontfitboll1\" -> superlongnamethatwontfitboll1 -> 2; 2 -> 3; 2 -- 4; 2 -> superlongnamethatwontfitboll1 }"
-            :graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label2:\n  node5\n\nnode3:\n  node4\n  node5\n\nnode1 -> node2\nnode4->node1\nnodeA->nodeB"}
+  {:domain {:dot-graph "dinetwork {\"superlongnamethatwontfitboll1\" -> superlongnamethatwontfitboll1 -> 2; 2 -> 3; 2 -- 4; 2 -> superlongnamethatwontfitboll1 }"}
+            ;; :graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label2:\n  node5\n\nnode3:\n  node4\n  node5\n\nnode1 -> node2\nnode4->node1\nnodeA->nodeB"}
    :ui {:panels {:resizing-panels false
                  :left-panel-size "65vw"}}})
 
