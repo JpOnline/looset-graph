@@ -162,14 +162,21 @@
         ->node
         (fn [[node-id
               {{:strs [x y]} :position
-               :keys [type]}]]
+               :keys [type level]
+               :or {level 2}}]]
           {:id node-id
            :label (if (= type :label)
                     (str "<b>"node-id"</b>")
                     node-id)
            :shape "box"
            :color {:background "white" :border "gray"}
-           :x x :y y
+                   ;; :highlight {:border "#ff0000"}}
+           ;; :x x :y y
+           ;; :level (inc (rand-int 5))
+           (when level
+             :level)
+           (when level
+             (int level))
            :margin 7
            :shadow true
            :font
@@ -189,7 +196,8 @@
           (for [from (get-from-set k)
                 to (get-to-set v)
                 :when (not= from to)]
-            {:from from :to to :arrows {:to {:enabled true :type "arrow"}}}))]
+            {:from from :to to :arrows {:to {:enabled true :type "arrow"}}
+             :color {:highlight "#33a0ff"}}))]
     (clj->js {:nodes (map ->node nodes)
               :edges (mapcat ->edge nodes-map)})))
 (re-frame/reg-sub
@@ -472,22 +480,27 @@
 
 (defn graph-component-inner []
   (let [graph-component-id "looset-graph"
-        options #js {:physics #js {:enabled true
-                                   :minVelocity 1.5}
+        options #js {:layout #js {:hierarchical #js {:enabled true
+                                                     :sortMethod "directed"
+                                                     :shakeTowards "roots"
+                                                     :nodeSpacing 100}}
+                     :physics #js {:enabled false}
+                                   ;; :minVelocity 1.2}
                      :nodes #js {:borderWidth 1}}
         network (atom nil)
         update-comp (fn [component [_ prev-props]]
                       (let [prev-vis-data (:vis-data prev-props)
-                            {:keys [selected-nodes vis-data _options]} (reagent/props component)]
+                            {:keys [selected-nodes vis-data options]} (reagent/props component)]
                         ;; (def network network)
+                        ^js (.setOptions @network options)
+                        (tap> {:vis-data vis-data})
                         (when (not= prev-vis-data vis-data)
                           (.setData @network vis-data))
-                        ;; ^js (.setOptions @network options)
-                        (tap> {:vis-data vis-data})
+                        (js/console.log vis-data)
                         (.selectNodes @network selected-nodes)))
         mount-comp (fn [component]
                      (let [container (-> js/document (.getElementById graph-component-id))]
-                       (reset! network (-> js/vis .-Network (new container nil options))))
+                       (reset! network (-> js/vis .-Network (new container nil #_options))))
                      (.on @network "dragStart" #_(js/console.log "dragStart") #(>evt [::drag-changed true]))
                      (.on @network "dragEnd" #_(js/console.log "dragEnd") #(>evt [::drag-changed false]))
                      (.on @network "stabilized" #_(js/console.log "stabilized") #(>evt [::set-vis-nodes-positions ^Object (.getPositions @network)]))
@@ -505,7 +518,18 @@
 (defn graph-component []
   [graph-component-inner
    {:selected-nodes (<sub [::selected-nodes])
-    :vis-data       (<sub [::vis-data])}])
+    :vis-data       (<sub [::vis-data])
+    :number-input (<sub [::number-input])
+    :options #js {:layout #js {:hierarchical #js {:enabled false}}
+                                                  ;; :sortMethod "directed"
+                                                  ;; :shakeTowards "roots"
+                                                  ;; :nodeSpacing (int (<sub [::number-input]))}}
+                  :physics #js {:enabled true
+                                :hierarchicalRepulsion #js {:avoidOverlap 1
+                                                            :nodeDistance 300}}
+                  ;; :minVelocity 1.2}
+                  :nodes #js {:borderWidth 1}}}])
+
     ;; :options #js {:physics #js {:enabled true
     ;;                             :minVelocity 1.5}
     ;;               :nodes #js {:borderWidth 1}}}])
