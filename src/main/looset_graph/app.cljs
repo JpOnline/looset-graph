@@ -874,16 +874,16 @@
   ;;     (re-frame/dispatch-sync [::set-app-state default-graph]))))
 
 ;; Snippets about mouse-up event
-;; (defn mouse-up
-;;   [app-state]
-;;   (-> app-state
-;;     (resizing-panels [::mouse-up false])
-;;     (assoc-in [:ui :diagram :zooming?] false)))
-;; (re-frame/reg-event-db ::mouse-up mouse-up)
-;; (defn init-mouseup []
-;;   (js/document.body.addEventListener
-;;     "mouseup"
-;;     #(>evt [::mouse-up false])))
+(defn mouse-up
+  [app-state]
+  (-> app-state
+    (resizing-panels [::mouse-up false])
+    (assoc-in [:ui :diagram :zooming?] false)))
+(re-frame/reg-event-db ::mouse-up mouse-up)
+(defn init-mouseup []
+  (js/document.body.addEventListener
+    "mouseup"
+    #(>evt [::mouse-up false])))
 
 ;; Snippet on how to react on CSS change
 ;; (defn init-style-observer []
@@ -902,6 +902,6 @@
 (defn init []
   (init-state)
   (init-mousemove)
-  (mount-app-element))
-  ;; (init-mouseup)
+  (mount-app-element)
+  (init-mouseup))
   ;; (init-style-observer))
