@@ -4,7 +4,9 @@
     [clojure.string]
     [looset-graph.graph-parser :as graph-parser]
     [looset-graph.util :as util]
-    [re-frame.core :as re-frame]
+    [re-frame.alpha :as re-frame]
+    ;; [re-frame.alpha :as re-frame.alpha]
+    [re-frame.db :refer [app-db]]
     [reagent.core :as reagent]
     [reagent.dom]))
 
@@ -349,36 +351,35 @@
   :<- [::fold-ui]
   nodes-map->fold-list)
 
-;; TODO: review this, it's probably going to be a sub merging the info user
-;;provides (like closing and opening) with the ast calculated from the graph-text
-(defn graph-ast->nodes-map
-  [graph-ast]
-  (let [nodes-from-edges (->> graph-ast
-                           (filter #(= "edge" (first %)))
-                           (mapcat extract-nodes-from-edge-rule))]
-    (->> graph-ast
-      ;; (#(do (tap> "a1") (tap> %) %))
-      (filter #(= "foldable" (first %)))
-      ;; (#(do (tap> "jp2") (tap> %) %))
-      (mapv extract-nodes-from-foldable-rule)
-      (concat nodes-from-edges)
-      (merge-nodes))))
-      ;; (#(do (tap> "nodes-map") (tap> %) %)))))
-(re-frame/reg-sub
-  ::nodes-map*
-  :<- [::graph-ast]
-  graph-ast->nodes-map)
+(re-frame/reg-flow
+ {:id     :nodes-map*
+  :inputs {:graph-ast [:ui :validation :valid-graph-ast]}
+  :output (fn [{:keys [graph-ast]}]
+            (let [nodes-from-edges (->> graph-ast
+                                     (filter #(= "edge" (first %)))
+                                     (mapcat extract-nodes-from-edge-rule))]
+              (->> graph-ast
+                (filter #(= "foldable" (first %)))
+                (mapv extract-nodes-from-foldable-rule)
+                (concat nodes-from-edges)
+                (merge-nodes))))
+  :path   [:domain :nodes-map*]})
 
+(re-frame/reg-flow
+ {:id     :nodes-map
+  :inputs {:nodes-ui [:ui :nodes]
+           :nodes-map* (re-frame/flow<- :nodes-map*)}
+  :output (fn [{:keys [nodes-ui nodes-map*]}]
+            (deep-merge-with merge
+              nodes-map*
+              (select-keys nodes-ui (keys nodes-map*))))
+  :path   [:domain :nodes-map]})
+
+;; TODO: I can eventually replace the subs by flows.
 (defn nodes-map
-  [[nodes-ui nodes-map*]]
-  (deep-merge-with merge
-    nodes-map*
-    (select-keys nodes-ui (keys nodes-map*))))
-(re-frame/reg-sub
-  ::nodes-map
-  :<- [::nodes-ui]
-  :<- [::nodes-map*]
-  nodes-map)
+  [app-state]
+  (get-in app-state [:domain :nodes-map]))
+(re-frame/reg-sub ::nodes-map nodes-map)
 
 (defn foldable?
   [nodes-map [_ node]]
@@ -828,8 +829,8 @@
 ;; ---- Initialization ----
 
 (def initial-state
-  {:domain {:dot-graph "dinetwork {\"superlongnamethatwontfitboll1\" -> superlongnamethatwontfitboll1 -> 2; 2 -> 3; 2 -- 4; 2 -> superlongnamethatwontfitboll1 }"}
-            ;; :graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label2:\n  node5\n\nnode3:\n  node4\n  node5\n\nnode1 -> node2\nnode4->node1\nnodeA->nodeB"}
+  {:domain {:dot-graph "dinetwork {\"superlongnamethatwontfitboll1\" -> superlongnamethatwontfitboll1 -> 2; 2 -> 3; 2 -- 4; 2 -> superlongnamethatwontfitboll1 }"
+            :graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label2:\n  node5\n\nnode3:\n  node4\n  node5\n\nnode1 -> node2\nnode4->node1\nnodeA->nodeB"}
    :ui {:panels {:resizing-panels false
                  :left-panel-size "65vw"}}})
 
