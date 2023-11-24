@@ -466,6 +466,11 @@
   (assoc-in app-state [:ui :hovered-node] node-id))
 (re-frame/reg-event-db ::node-hovered node-hovered)
 
+(defn debug-event
+  [app-state [_event path value]]
+  (assoc-in app-state path value))
+(re-frame/reg-event-db ::debug-event debug-event)
+
 ;; ---- Views ----
 
 ;; (defn draw-graph-no-memo [id data options]
