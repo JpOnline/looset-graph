@@ -173,8 +173,7 @@
            :shape "box"
            :color {:background "white" :border "gray"}
                    ;; :highlight {:border "#ff0000"}}
-           ;; :x x :y y
-           ;; :level (inc (rand-int 5))
+           :x x :y y
            (when level
              :level)
            (when level
@@ -326,7 +325,6 @@
 
 (defn fold-ui
   [app-state]
-  (tap> {:a (get-in app-state [:ui :fold] {})})
   (get-in app-state [:ui :fold] {}))
 (re-frame/reg-sub ::fold-ui fold-ui)
 
@@ -435,17 +433,21 @@
     (update-in (concat [:ui :fold] path [:opened?]) not)))
 (re-frame/reg-event-db ::toggle-open-close toggle-open-close)
 
+(defn round-by [step pos]
+  (* step (js/Math.round (/ pos step))))
+
 (defn set-vis-nodes-positions
-  [app-state [_event nodes-positions*]]
-  (let [nodes-positions (reduce-kv (fn [m k v]
-                                     (assoc m k {:position v}))
-                                   {}
-                                   (js->clj nodes-positions*))
-        dragging? (get-in app-state [:ui :graph-dragging?] false)]
-    ;; (tap> {:set-pos nodes-positions})
-    (if dragging?
-      app-state
-      (update-in app-state [:ui :nodes-positions] merge nodes-positions))))
+  [app-state [_event dragging? nodes-positions*]]
+  (if dragging?
+    app-state
+    (let [nodes-positions (reduce-kv (fn [m k {:strs [x y]}]
+                                       (assoc m k {:position {"x" x "y" (round-by 100 y)}}))
+                                     {}
+                                     nodes-positions*)]
+      (tap> {:set-pos nodes-positions})
+      (-> app-state
+        (assoc-in [:ui :graph-dragging?] dragging?)
+        (update-in [:ui :nodes] #(merge-with merge % nodes-positions))))))
 (re-frame/reg-event-db ::set-vis-nodes-positions set-vis-nodes-positions)
 
 (defn drag-changed
@@ -499,7 +501,7 @@
                             {:keys [selected-nodes vis-data options]} (reagent/props component)]
                         ;; (def network network)
                         ^js (.setOptions @network options)
-                        (tap> {:vis-data vis-data})
+                        ;; (tap> {:vis-data vis-data})
                         (when (not= prev-vis-data vis-data)
                           (.setData @network vis-data))
                         (js/console.log vis-data)
@@ -508,7 +510,7 @@
                      (let [container (-> js/document (.getElementById graph-component-id))]
                        (reset! network (-> js/vis .-Network (new container nil #_options))))
                      (.on @network "dragStart" #_(js/console.log "dragStart") #(>evt [::drag-changed true]))
-                     (.on @network "dragEnd" #_(js/console.log "dragEnd") #(>evt [::drag-changed false]))
+                     (.on @network "dragEnd" #_(js/console.log "dragEnd") #(>evt [::set-vis-nodes-positions false (js->clj ^Object (.getPositions @network))]))
                      (.on @network "stabilized" #_(js/console.log "stabilized") #(>evt [::set-vis-nodes-positions ^Object (.getPositions @network)]))
                      (update-comp component nil))]
     (reagent/create-class
@@ -530,7 +532,7 @@
                                                   ;; :sortMethod "directed"
                                                   ;; :shakeTowards "roots"
                                                   ;; :nodeSpacing (int (<sub [::number-input]))}}
-                  :physics #js {:enabled true
+                  :physics #js {:enabled false
                                 :hierarchicalRepulsion #js {:avoidOverlap 1
                                                             :nodeDistance 300}}
                   ;; :minVelocity 1.2}
