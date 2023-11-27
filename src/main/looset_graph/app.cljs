@@ -438,7 +438,23 @@
 (defn round-by [step pos]
   (* step (js/Math.round (/ pos step))))
 
-(defn set-vis-nodes-positions
+(defn set-nodes-positions
+  [app-state [_event dragging? nodes-positions*]]
+  (if dragging?
+    app-state
+    (let [nodes-positions (reduce-kv (fn [m k {:strs [x y]}]
+                                       (assoc m k {:position {"x" x "y" y}}))
+                                     {}
+                                     nodes-positions*)]
+      (tap> {:set-pos nodes-positions})
+      (-> app-state
+        (assoc-in [:ui :graph-dragging?] dragging?)
+        (update-in [:ui :nodes-positions] #(merge-with merge % nodes-positions))))))
+(re-frame/reg-event-db ::set-nodes-positions set-nodes-positions)
+
+(defn set-nodes-positions-hierarchy
+  "Set the nodes positions, but differently of `set-nodes-positions`, it's
+  triggered every time the drag ends and as a side effect the zoom is reset 😕"
   [app-state [_event dragging? nodes-positions*]]
   (if dragging?
     app-state
@@ -450,7 +466,7 @@
       (-> app-state
         (assoc-in [:ui :graph-dragging?] dragging?)
         (update-in [:ui :nodes] #(merge-with merge % nodes-positions))))))
-(re-frame/reg-event-db ::set-vis-nodes-positions set-vis-nodes-positions)
+(re-frame/reg-event-db ::set-nodes-positions-hierarchy set-nodes-positions-hierarchy)
 
 (defn drag-changed
   [app-state [_event dragging?]]
@@ -490,13 +506,13 @@
 
 (defn graph-component-inner []
   (let [graph-component-id "looset-graph"
-        options #js {:layout #js {:hierarchical #js {:enabled true
-                                                     :sortMethod "directed"
-                                                     :shakeTowards "roots"
-                                                     :nodeSpacing 100}}
-                     :physics #js {:enabled false}
-                                   ;; :minVelocity 1.2}
-                     :nodes #js {:borderWidth 1}}
+        ;; options #js {:layout #js {:hierarchical #js {:enabled true
+        ;;                                              :sortMethod "directed"
+        ;;                                              :shakeTowards "roots"
+        ;;                                              :nodeSpacing 100}}
+        ;;              :physics #js {:enabled false}
+        ;;                            ;; :minVelocity 1.2}
+        ;;              :nodes #js {:borderWidth 1}}
         network (atom nil)
         update-comp (fn [component [_ prev-props]]
                       (let [prev-vis-data (:vis-data prev-props)
@@ -512,8 +528,8 @@
                      (let [container (-> js/document (.getElementById graph-component-id))]
                        (reset! network (-> js/vis .-Network (new container nil #_options))))
                      (.on @network "dragStart" #_(js/console.log "dragStart") #(>evt [::drag-changed true]))
-                     (.on @network "dragEnd" #_(js/console.log "dragEnd") #(>evt [::set-vis-nodes-positions false (js->clj ^Object (.getPositions @network))]))
-                     (.on @network "stabilized" #_(js/console.log "stabilized") #(>evt [::set-vis-nodes-positions ^Object (.getPositions @network)]))
+                     (.on @network "dragEnd" #_(js/console.log "dragEnd") #(>evt [::set-nodes-positions-hierarchy false (js->clj ^Object (.getPositions @network))]))
+                     (.on @network "stabilized" #_(js/console.log "stabilized") #(>evt [::set-nodes-positions (js->clj ^Object (.getPositions @network))])) ;; Used when physics is enabled.
                      (update-comp component nil))]
     (reagent/create-class
       {:reagent-render (fn []
