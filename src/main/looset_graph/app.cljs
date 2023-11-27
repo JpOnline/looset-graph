@@ -16,8 +16,8 @@
   (js/console.log "Debugger mode!"))
 
 ;; Redef re-frame subscribe and dispatch for brevity
-(def <sub (comp deref re-frame.core/subscribe))
-(def >evt re-frame.core/dispatch)
+(def <sub (comp deref re-frame/subscribe))
+(def >evt re-frame/dispatch)
 
 ;; ---- Subs ----
 
@@ -349,18 +349,20 @@
   :<- [::fold-ui]
   nodes-map->fold-list)
 
+(defn nodes-map*
+  [{:keys [graph-ast]}]
+  (let [nodes-from-edges (->> graph-ast
+                           (filter #(= "edge" (first %)))
+                           (mapcat extract-nodes-from-edge-rule))]
+    (->> graph-ast
+      (filter #(= "foldable" (first %)))
+      (mapv extract-nodes-from-foldable-rule)
+      (concat nodes-from-edges)
+      (merge-nodes))))
 (re-frame/reg-flow
  {:id     :nodes-map*
   :inputs {:graph-ast [:ui :validation :valid-graph-ast]}
-  :output (fn [{:keys [graph-ast]}]
-            (let [nodes-from-edges (->> graph-ast
-                                     (filter #(= "edge" (first %)))
-                                     (mapcat extract-nodes-from-edge-rule))]
-              (->> graph-ast
-                (filter #(= "foldable" (first %)))
-                (mapv extract-nodes-from-foldable-rule)
-                (concat nodes-from-edges)
-                (merge-nodes))))
+  :output nodes-map*
   :path   [:domain :nodes-map*]})
 
 (re-frame/reg-flow

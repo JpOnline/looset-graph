@@ -38,7 +38,7 @@
                nodeA->nodeB"
            (graph-parser/graph-ast)
            ;; (#(do (tap> {:ast %}) %))
-           (app/graph-ast->nodes-map)
+           (#(app/nodes-map* {:graph-ast %}))
            (#(do (tap> {:nodes-map %}) %))
            (app/nodes-hierarchy)))))
            ;; (#(do (tap> {:nodes-hierarchy-from-test %}) %))))))
@@ -57,7 +57,7 @@
               node1 -> node2;"
            (graph-parser/graph-ast)
            ;; (#(do (tap> {:ast %}) %))
-           (app/graph-ast->nodes-map)
+           (#(app/nodes-map* {:graph-ast %}))
            ;; (#(do (tap> {:nodes-map %}) %))
            (app/nodes-hierarchy)))))
            ;; (#(do (tap> {:nodes-hierarchy-from-test %}) %))))))
