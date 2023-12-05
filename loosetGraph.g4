@@ -1,25 +1,30 @@
-grammar loosetGraph;
+parser grammar loosetGraph;
+options { tokenVocab=loosetGraphLexer; }
 
 loosetGraph
   : edge*
-  | foldable* edge* ;
+  | foldable* edge*
+  | foldable* edge* nodeProps* ;
 
 foldable
   : foldableID node* ;
 
-foldableID : (labelID | lixID) ':' ;
+foldableID : (labelID | lixID) SEMI ;
 
-edge : node '->' node ;
+edge : node ARROW node ;
 
 node : lixID | labelID ;
 
-labelID : '=>' ID ;
+labelID : DOUBLE_ARROW ID ;
 
 lixID : ID ;
 
-ID : [a-zA-Z0-9]+ ;
-SPACES_RULE_TOKEN
-   : [ \t\r\n]+ -> skip
-   ;
+nodeProps : node edn ;
+
+edn : OPEN_EDN innerEdn* CLOSE_EDN
+    | OPEN_SUB_EDN innerEdn CLOSE_EDN ;
+
+innerEdn : EDN | edn
+    | OPEN_SUB_EDN innerEdn* CLOSE_EDN ;
 
 // Try it in http://lab.antlr.org/

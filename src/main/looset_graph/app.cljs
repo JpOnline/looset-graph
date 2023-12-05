@@ -7,6 +7,7 @@
     [re-frame.alpha :as re-frame]
     ;; [re-frame.alpha :as re-frame.alpha]
     [re-frame.db :refer [app-db]]
+    [cljs.reader]
     [reagent.core :as reagent]
     [reagent.dom]))
 
@@ -349,15 +350,32 @@
   :<- [::fold-ui]
   nodes-map->fold-list)
 
+(defn get-edn-string
+  ([all] (get-edn-string "" all))
+  ([acc [_ s :as all]]
+   (if (array? s)
+     (reduce get-edn-string acc (rest all))
+     (str acc s))))
+
+(defn extract-edn-props
+  [node-prop]
+  (let [node-id (get-in node-prop [1 1 1 1])
+        edn (get node-prop 2)]
+    [{node-id (cljs.reader/read-string (get-edn-string edn))}]))
+
 (defn nodes-map*
   [{:keys [graph-ast]}]
   (let [nodes-from-edges (->> graph-ast
                            (filter #(= "edge" (first %)))
-                           (mapcat extract-nodes-from-edge-rule))]
+                           (mapcat extract-nodes-from-edge-rule))
+        node-props (->> graph-ast
+                     (filter #(= "nodeProps" (first %)))
+                     (mapcat extract-edn-props))]
     (->> graph-ast
       (filter #(= "foldable" (first %)))
       (mapv extract-nodes-from-foldable-rule)
       (concat nodes-from-edges)
+      (concat node-props)
       (merge-nodes))))
 (re-frame/reg-flow
  {:id     :nodes-map*
@@ -446,7 +464,7 @@
                                        (assoc m k {:position {"x" x "y" y}}))
                                      {}
                                      nodes-positions*)]
-      (tap> {:set-pos nodes-positions})
+      ;; (tap> {:set-pos nodes-positions})
       (-> app-state
         (assoc-in [:ui :graph-dragging?] dragging?)
         (update-in [:ui :nodes-positions] #(merge-with merge % nodes-positions))))))
@@ -462,7 +480,7 @@
                                        (assoc m k {:position {"x" x "y" (round-by 100 y)}}))
                                      {}
                                      nodes-positions*)]
-      (tap> {:set-pos nodes-positions})
+      ;; (tap> {:set-pos nodes-positions})
       (-> app-state
         (assoc-in [:ui :graph-dragging?] dragging?)
         (update-in [:ui :nodes] #(merge-with merge % nodes-positions))))))
@@ -926,3 +944,23 @@
   (mount-app-element)
   (init-mouseup))
   ;; (init-style-observer))
+
+(comment
+  (cljs.pprint/pprint aa)
+  (-> aa
+    rest)
+    ;; (nth 2))
+  (defn x [acc [a b & c :as d]]
+    [a b c d])
+
+  (reduce x "" (rest aa))
+  (require 'cljs.reader)
+  (cljs.reader/read-string bb)
+  (read-string bb)
+  (get-edn-string aa)
+  (empty? (rest (rest aa)))
+  (x "" [:a :b :c :d :e])
+  #js ["edn" #js ["OPEN_EDN" "{"] #js ["innerEdn" #js ["EDN" ":name "]] #js ["innerEdn" #js ["edn" #js ["OPEN_SUB_EDN" "{"] #js ["innerEdn" #js ["EDN" ":somethingelse \"xyz\""]] #js ["CLOSE_EDN" "}"]]] #js ["innerEdn" #js ["EDN" " :c "]] #js ["innerEdn" #js ["OPEN_SUB_EDN" "{"] #js ["innerEdn" #js ["EDN" ":d "]] #js ["innerEdn" #js ["edn" #js ["OPEN_SUB_EDN" "{"] #js ["innerEdn" #js ["EDN" ":e 1"]] #js ["CLOSE_EDN" "}"]]] #js ["CLOSE_EDN" "}"]] #js ["CLOSE_EDN" "}"]]
+  #js ["edn" #js ["OPEN_EDN" "{"] #js ["innerEdn" #js ["EDN" ":name "]] #js ["innerEdn" #js ["edn" #js ["OPEN_SUB_EDN" "{"] #js ["innerEdn" #js ["EDN" "somethingelse xyz"]] #js ["CLOSE_EDN" "}"]]] #js ["innerEdn" #js ["EDN" "\"node a\" :c "]] #js ["innerEdn" #js ["OPEN_SUB_EDN" "{"] #js ["innerEdn" #js ["EDN" ":d "]] #js ["innerEdn" #js ["edn" #js ["OPEN_SUB_EDN" "{"] #js ["innerEdn" #js ["EDN" ":e 1"]] #js ["CLOSE_EDN" "}"]]] #js ["CLOSE_EDN" "}"]] #js ["CLOSE_EDN" "}"]]
+  )
+  
