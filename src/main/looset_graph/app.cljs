@@ -717,6 +717,7 @@
    {:style {:flex-grow "1"
             :margin code-margin
             :padding code-padding
+            :min-height "20vw"
             :font-family code-font-family
             :font-size code-font-size}
     :onChange #(>evt [::set-graph-text (-> % .-target .-value)])
@@ -820,6 +821,7 @@
     [panel-splitter]
     [:div#right-panel
      {:style {:width (str "calc(100vw - 500"#_(<sub [::left-panel-size])")") ;; Just a testing value
+              :overflow "auto"
               :display "flex"
               :flex-direction "column"
               :min-width "20vw"}}
