@@ -6,7 +6,6 @@
     [looset-graph.util :as util]
     [re-frame.alpha :as re-frame]
     ;; [re-frame.alpha :as re-frame.alpha]
-    [re-frame.db :refer [app-db]]
     [cljs.reader]
     [reagent.core :as reagent]
     [reagent.dom]))
@@ -14,6 +13,7 @@
 ;; ---- Util ----
 
 (when ^boolean js/goog.DEBUG ;; Code removed in production
+  ;; (day8.re-frame-10x/show-panel! true)
   (js/console.log "Debugger mode!"))
 
 ;; Redef re-frame subscribe and dispatch for brevity
@@ -165,12 +165,13 @@
         ->node
         (fn [[node-id
               {{:strs [x y]} :position
-               :keys [type level]
-               :or {level 2}}]]
+               :keys [type level name]
+               :or {level 2
+                    name node-id}}]]
           {:id node-id
            :label (if (= type :label)
-                    (str "<b>"node-id"</b>")
-                    node-id)
+                    (str "<b>"name"</b>")
+                    name)
            :shape "box"
            :color {:background "white" :border "gray"}
                    ;; :highlight {:border "#ff0000"}}
@@ -944,23 +945,3 @@
   (mount-app-element)
   (init-mouseup))
   ;; (init-style-observer))
-
-(comment
-  (cljs.pprint/pprint aa)
-  (-> aa
-    rest)
-    ;; (nth 2))
-  (defn x [acc [a b & c :as d]]
-    [a b c d])
-
-  (reduce x "" (rest aa))
-  (require 'cljs.reader)
-  (cljs.reader/read-string bb)
-  (read-string bb)
-  (get-edn-string aa)
-  (empty? (rest (rest aa)))
-  (x "" [:a :b :c :d :e])
-  #js ["edn" #js ["OPEN_EDN" "{"] #js ["innerEdn" #js ["EDN" ":name "]] #js ["innerEdn" #js ["edn" #js ["OPEN_SUB_EDN" "{"] #js ["innerEdn" #js ["EDN" ":somethingelse \"xyz\""]] #js ["CLOSE_EDN" "}"]]] #js ["innerEdn" #js ["EDN" " :c "]] #js ["innerEdn" #js ["OPEN_SUB_EDN" "{"] #js ["innerEdn" #js ["EDN" ":d "]] #js ["innerEdn" #js ["edn" #js ["OPEN_SUB_EDN" "{"] #js ["innerEdn" #js ["EDN" ":e 1"]] #js ["CLOSE_EDN" "}"]]] #js ["CLOSE_EDN" "}"]] #js ["CLOSE_EDN" "}"]]
-  #js ["edn" #js ["OPEN_EDN" "{"] #js ["innerEdn" #js ["EDN" ":name "]] #js ["innerEdn" #js ["edn" #js ["OPEN_SUB_EDN" "{"] #js ["innerEdn" #js ["EDN" "somethingelse xyz"]] #js ["CLOSE_EDN" "}"]]] #js ["innerEdn" #js ["EDN" "\"node a\" :c "]] #js ["innerEdn" #js ["OPEN_SUB_EDN" "{"] #js ["innerEdn" #js ["EDN" ":d "]] #js ["innerEdn" #js ["edn" #js ["OPEN_SUB_EDN" "{"] #js ["innerEdn" #js ["EDN" ":e 1"]] #js ["CLOSE_EDN" "}"]]] #js ["CLOSE_EDN" "}"]] #js ["CLOSE_EDN" "}"]]
-  )
-  
