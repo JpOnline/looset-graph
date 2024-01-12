@@ -6,10 +6,10 @@
   "re-frame/src"]
 
  :dependencies
- [[reagent "1.1.1"]
+ [[reagent "1.2.0"]
   ;; [re-frame "1.4.0"]
   [day8.re-frame/tracing "0.6.2"]
-  [day8.re-frame/re-frame-10x "1.8.1"]]
+  [day8.re-frame/re-frame-10x "1.9.3"]]
 
  :dev-http {8081 "public"}
  :js-options {:js-package-dirs ["node_modules" "packages"]}
@@ -17,7 +17,7 @@
  {:frontend
   {:target :browser
    :modules {:main {:init-fn looset-graph.app/init}}
-   :devtools {:preloads [day8.re-frame-10x.preload]}
+   :devtools {:preloads [day8.re-frame-10x.preload.react-18]}
    :dev {:compiler-options {:closure-defines {re-frame.trace.trace-enabled? true
                                               day8.re-frame.tracing.trace-enabled? true}}}
    :release {:build-options {:ns-aliases
