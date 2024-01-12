@@ -79,6 +79,11 @@
   ::visible-nodes
   :<- [::fold-list]
   visible-nodes)
+(re-frame/reg-flow
+  {:id :f-visible-nodes
+   :inputs {:fold-list (re-frame/flow<- :f-fold-list)}
+   :output (fn [{:keys [fold-list]}] (visible-nodes fold-list))
+   :path [:ui :f-visible-nodes]})
 
 (defn selected-nodes
   [[hovered-node visible-nodes nodes-map]]
@@ -208,6 +213,12 @@
   :<- [::visible-nodes]
   :<- [::nodes-map]
   vis-data)
+(re-frame/reg-flow
+  {:id :f-vis-data
+   :inputs {:visible-nodes (re-frame/flow<- :f-visible-nodes)
+            :nodes-map [:domain :nodes-map]}
+   :output (fn [{:keys [visible-nodes nodes-map]}] (vis-data [visible-nodes nodes-map]))
+   :path [:ui :f-vis-data]})
 
 (defn left-panel-size
   [app-state]
@@ -350,6 +361,12 @@
   :<- [::nodes-map]
   :<- [::fold-ui]
   nodes-map->fold-list)
+(re-frame/reg-flow
+  {:id :f-fold-list
+   :inputs {:nodes-map [:domain :nodes-map]
+            :fold-ui [:ui :fold]}
+   :output (fn [{:keys [nodes-map fold-ui]}] (nodes-map->fold-list [nodes-map fold-ui]))
+   :path [:ui :f-fold-list]})
 
 (defn get-edn-string
   ([all] (get-edn-string "" all))
@@ -843,8 +860,28 @@
                                     :value (<sub [::number-input])
                                     :onChange #(>evt [::set-number-input (-> % .-target .-value)])}]]
      [:<> [:span "Toggle"] [:input {:type "checkbox"
-                                    :onChange #(>evt [::set-toggle-input (-> % .-target .-checked)])}]]
+                                    :onChange #(do (>evt [::set-toggle-input (-> % .-target .-checked)])
+                                                   (>evt [::organize-hierarchy-positions]))}]]
      [botton-buttons]]]])
+
+(defn organize-hierarchy-positions
+  [app-state]
+  (def no2 (get-in app-state [:domain :nodes-map]))
+  (let [nodes (update-in app-state [:ui :nodes] #(reduce-kv (fn [m k _v]
+                                                              (assoc-in m [k :position] {"x" 0 "y" 0}))
+                                                            {}
+                                                            %))]
+    nodes))
+(re-frame/reg-event-db ::organize-hierarchy-positions organize-hierarchy-positions)
+
+(comment
+  (keys (filter (fn [[k v]] (not (get (set (keys v)) :edges-from))) no2))
+  (filter #{:edges-from} (get (set (keys (second (second no2)))) :edges-fromx)))
+;; (def no [["label1" {"x" -77, "y" 100}]
+;;          ["nodeB" {"x" 20, "y" -100}]
+;;          ["label2" {"x" 231, "y" -229}]
+;;          ["nodeA" {"x" 46, "y" 100}]
+;;          ["node3" {"x" -136, "y" -100}]])
 
 (defn set-toggle-input
   [app-state [_event n]]
