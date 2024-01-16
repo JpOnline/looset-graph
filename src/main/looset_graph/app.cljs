@@ -5,7 +5,6 @@
     [looset-graph.graph-parser :as graph-parser]
     [looset-graph.util :as util]
     [re-frame.alpha :as re-frame]
-    ;; [re-frame.alpha :as re-frame.alpha]
     [cljs.reader]
     [reagent.core :as reagent]
     [reagent.dom]))
@@ -170,9 +169,8 @@
         ->node
         (fn [[node-id
               {{:strs [x y]} :position
-               :keys [type level name]
-               :or {level 2
-                    name node-id}}]]
+               :keys [type name]
+               :or {name node-id}}]]
           {:id node-id
            :label (if (= type :label)
                     (str "<b>"name"</b>")
@@ -181,10 +179,6 @@
            :color {:background "white" :border "gray"}
                    ;; :highlight {:border "#ff0000"}}
            :x x :y y
-           (when level
-             :level)
-           (when level
-             (int level))
            :margin 7
            :shadow true
            :font
@@ -206,8 +200,8 @@
                 :when (not= from to)]
             {:from from :to to :arrows {:to {:enabled true :type "arrow"}}
              :color {:highlight "#33a0ff"}}))]
-    (clj->js {:nodes (map ->node nodes)
-              :edges (mapcat ->edge nodes-map)})))
+    {:nodes (map ->node nodes)
+     :edges (mapcat ->edge nodes-map)}))
 (re-frame/reg-sub
   ::vis-data
   :<- [::visible-nodes]
@@ -365,8 +359,8 @@
   {:id :f-fold-list
    :inputs {:nodes-map [:domain :nodes-map]
             :fold-ui [:ui :fold]}
-   :output (fn [{:keys [nodes-map fold-ui]}] (nodes-map->fold-list [nodes-map fold-ui]))
-   :path [:ui :f-fold-list]})
+   :output (fn [{:keys [nodes-map fold-ui]}] (nodes-map->fold-list [nodes-map fold-ui]))})
+   ;; :path [:ui :f-fold-list]})
 
 (defn get-edn-string
   ([all] (get-edn-string "" all))
@@ -435,6 +429,11 @@
   [app-state]
   (get-in app-state [:ui :hovered-node] nil))
 (re-frame/reg-sub ::hovered-node hovered-node)
+
+(defn vis-option-hierarchy
+  [app-state]
+  (get-in app-state [:ui :vis-options :layout :hierarchical :enabled] false))
+(re-frame/reg-sub ::vis-option-hierarchy vis-option-hierarchy)
 
 ;; ---- Events ----
 
@@ -528,6 +527,51 @@
   (assoc-in app-state path value))
 (re-frame/reg-event-db ::debug-event debug-event)
 
+(defn organize-hierarchy-positions
+  [app-state [_event v]]
+  (assoc-in app-state [:ui :vis-options :layout :hierarchical :enabled] v))
+(re-frame/reg-event-db ::organize-hierarchy-positions organize-hierarchy-positions)
+
+(defn organize-hierarchy-positions-step-2
+  [app-state [event nodes-positions]]
+  (if (vis-option-hierarchy app-state)
+    (-> app-state
+      (set-nodes-positions-hierarchy [event false nodes-positions])
+      (assoc-in [:ui :vis-options :layout :hierarchical :enabled] false))
+    app-state))
+(re-frame/reg-event-db ::organize-hierarchy-positions-step-2 organize-hierarchy-positions-step-2)
+
+(comment
+  (keys (filter (fn [[k v]] (not (get (set (keys v)) :edges-from))) no2))
+  (filter #{:edges-from} (get (set (keys (second (second no2)))) :edges-fromx))
+  (for [l [:a :b :c]
+        n [1 2 3]]
+    {:f l :t n})
+  (->> ed
+    (map :to)
+    (set)
+    (clojure.set/difference visible))
+  (clojure.set/difference #{1 2 3} #{2 3})
+  (reduce
+    (fn [acc {:keys [from]}]
+      (update acc :roots conj from))
+    {:roots #{} :has-parent #{}} ed)
+  (def ed
+    [{:arrows {:to {:enabled true, :type "arrow"}},
+      :color {:highlight "#33a0ff"},
+      :from "nodeA",
+      :to "nodeB"}
+     {:arrows {:to {:enabled true, :type "arrow"}},
+      :color {:highlight "#33a0ff"},
+      :from "node4",
+      :to "label1"}])
+
+  (require '[re-frame.db])
+  (->> @re-frame.db/app-db
+    (#(get-in % [:domain :nodes-map]))
+    (map (fn [[k {:keys [position]}]]
+           {k [(get position "x") (get position "y")]}))))
+
 ;; ---- Views ----
 
 ;; (defn draw-graph-no-memo [id data options]
@@ -557,7 +601,7 @@
                         ^js (.setOptions @network options)
                         ;; (tap> {:vis-data vis-data})
                         (when (not= prev-vis-data vis-data)
-                          (.setData @network vis-data))
+                          (.setData @network (clj->js vis-data)))
                         (js/console.log vis-data)
                         (.selectNodes @network selected-nodes)))
         mount-comp (fn [component]
@@ -566,6 +610,14 @@
                      (.on @network "dragStart" #_(js/console.log "dragStart") #(>evt [::drag-changed true]))
                      (.on @network "dragEnd" #_(js/console.log "dragEnd") #(>evt [::set-nodes-positions-hierarchy false (js->clj ^Object (.getPositions @network))]))
                      (.on @network "stabilized" #_(js/console.log "stabilized") #(>evt [::set-nodes-positions (js->clj ^Object (.getPositions @network))])) ;; Used when physics is enabled.
+                     (.on @network "afterDrawing" #_(js/console.log "configChange")
+                          ;; For some reason (specific to visjs) if I don't give this
+                          ;; extreme little time extra to organize the graph, it
+                          ;; settles with x positions much sparser, might be a hacky
+                          ;; solution and this timeout might depend on the environment,
+                          ; ;but it's working for now.
+                          #(js/setTimeout (fn [] (>evt [::organize-hierarchy-positions-step-2 (js->clj ^Object (.getPositions @network))]))
+                                          20))
                      (update-comp component nil))]
     (reagent/create-class
       {:reagent-render (fn []
@@ -582,9 +634,10 @@
    {:selected-nodes (<sub [::selected-nodes])
     :vis-data       (<sub [::vis-data])
     :number-input (<sub [::number-input])
-    :options #js {:layout #js {:hierarchical #js {:enabled false}}
-                                                  ;; :sortMethod "directed"
-                                                  ;; :shakeTowards "roots"
+    :options #js {:layout #js {:hierarchical #js {:enabled (<sub [::vis-option-hierarchy])
+                                                  :direction "UD"
+                                                  :sortMethod "directed"
+                                                  :shakeTowards "roots"}}
                                                   ;; :nodeSpacing (int (<sub [::number-input]))}}
                   :physics #js {:enabled false
                                 :hierarchicalRepulsion #js {:avoidOverlap 1
@@ -861,31 +914,11 @@
                                     :onChange #(>evt [::set-number-input (-> % .-target .-value)])}]]
      [:<> [:span "Toggle"] [:input {:type "checkbox"
                                     :onChange #(do (>evt [::set-toggle-input (-> % .-target .-checked)])
-                                                   (>evt [::organize-hierarchy-positions]))}]]
+                                                   (>evt [::organize-hierarchy-positions (-> % .-target .-checked)]))}]]
      [botton-buttons]]]])
-
-(defn organize-hierarchy-positions
-  [app-state]
-  (def no2 (get-in app-state [:domain :nodes-map]))
-  (let [nodes (update-in app-state [:ui :nodes] #(reduce-kv (fn [m k _v]
-                                                              (assoc-in m [k :position] {"x" 0 "y" 0}))
-                                                            {}
-                                                            %))]
-    nodes))
-(re-frame/reg-event-db ::organize-hierarchy-positions organize-hierarchy-positions)
-
-(comment
-  (keys (filter (fn [[k v]] (not (get (set (keys v)) :edges-from))) no2))
-  (filter #{:edges-from} (get (set (keys (second (second no2)))) :edges-fromx)))
-;; (def no [["label1" {"x" -77, "y" 100}]
-;;          ["nodeB" {"x" 20, "y" -100}]
-;;          ["label2" {"x" 231, "y" -229}]
-;;          ["nodeA" {"x" 46, "y" 100}]
-;;          ["node3" {"x" -136, "y" -100}]])
 
 (defn set-toggle-input
   [app-state [_event n]]
-  (js/console.log n)
   (assoc-in app-state [:ui :toggle-input] n))
 (re-frame/reg-event-db ::set-toggle-input set-toggle-input)
 
