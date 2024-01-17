@@ -487,6 +487,8 @@
         (update-in [:ui :nodes-positions] #(merge-with merge % nodes-positions))))))
 (re-frame/reg-event-db ::set-nodes-positions set-nodes-positions)
 
+;; TODO: To try fixying the constant zoom, use a function to set nodes positions
+;; instead of reloading the whole network.
 (defn set-nodes-positions-hierarchy
   "Set the nodes positions, but differently of `set-nodes-positions`, it's
   triggered every time the drag ends and as a side effect the zoom is reset 😕"
@@ -502,6 +504,11 @@
         (assoc-in [:ui :graph-dragging?] dragging?)
         (update-in [:ui :nodes] #(merge-with merge % nodes-positions))))))
 (re-frame/reg-event-db ::set-nodes-positions-hierarchy set-nodes-positions-hierarchy)
+
+(defn clear-nodes-positions
+  [app-state]
+  (update-in app-state [:ui :nodes] #(into {} (for [[k v] %] {k (dissoc v :position)})))) 
+(re-frame/reg-event-db ::clear-nodes-positions clear-nodes-positions)
 
 (defn drag-changed
   [app-state [_event dragging?]]
@@ -807,12 +814,14 @@
                 :align-self "center"
                 :margin "3px 0px"}}]
       [:button.button-2
-       {:title "hierarchy layout"}
+       {:title "hierarchy layout"
+        :onClick #(>evt [::organize-hierarchy-positions true])}
        [:svg
         {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
         [:path {:fill-rule "evenodd" :d "M0 1.5A1.5 1.5 0 0 1 1.5 0h13A1.5 1.5 0 0 1 16 1.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 14.5zM1.5 1a.5.5 0 0 0-.5.5v13a.5.5 0 0 0 .5.5H5V1zM10 15V1H6v14zm1 0h3.5a.5.5 0 0 0 .5-.5v-13a.5.5 0 0 0-.5-.5H11z"}]]]
       [:button.button-2
-       {:title "default layout"}
+       {:title "default layout"
+        :onClick #(>evt [::clear-nodes-positions])}
        [:svg
         {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
         [:path {:fill-rule "evenodd" :d "M5 1v8H1V1zM1 0a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V1a1 1 0 0 0-1-1zm13 2v5H9V2zM9 1a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM5 13v2H3v-2zm-2-1a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1zm12-1v2H9v-2zm-6-1a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1z"}]]]
