@@ -777,6 +777,57 @@
      ;; ^{:key text} ;; Somehow I'm using this key wrongly, if it's uncomment, the items repeat depending on the change.
      [node-type-comp node-item])])
 
+(defn left-buttons []
+  (let [icons-size "22"]
+    [:div
+     {:style {:position "relative"
+              :height "0px"
+              :z-index "10"}}
+     [:div
+      {:style {:z-index "10"
+               :display "flex"
+               :flex-direction "column"
+               :align-items "flex-start"
+               :padding "10px"
+               :inline-size "fit-content"}}
+      [:button.button-2
+       {:title "move"}
+       [:svg
+        {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
+        [:path {:fill-rule "evenodd" :d "M14.082 2.182a.5.5 0 0 1 .103.557L8.528 15.467a.5.5 0 0 1-.917-.007L5.57 10.694.803 8.652a.5.5 0 0 1-.006-.916l12.728-5.657a.5.5 0 0 1 .556.103zM2.25 8.184l3.897 1.67a.5.5 0 0 1 .262.263l1.67 3.897L12.743 3.52z"}]]]
+      [:button.button-2
+       {:title "select"}
+       [:svg
+        {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
+        [:path {:fill-rule "evenodd" :d "M14.082 2.182a.5.5 0 0 1 .103.557L8.528 15.467a.5.5 0 0 1-.917-.007L5.57 10.694.803 8.652a.5.5 0 0 1-.006-.916l12.728-5.657a.5.5 0 0 1 .556.103z"}]]]
+      [:div
+       {:style {:height "2px"
+                :width "28px"
+                :background-color "#000000a1"
+                :align-self "center"
+                :margin "3px 0px"}}]
+      [:button.button-2
+       {:title "hierarchy layout"}
+       [:svg
+        {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
+        [:path {:fill-rule "evenodd" :d "M0 1.5A1.5 1.5 0 0 1 1.5 0h13A1.5 1.5 0 0 1 16 1.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 14.5zM1.5 1a.5.5 0 0 0-.5.5v13a.5.5 0 0 0 .5.5H5V1zM10 15V1H6v14zm1 0h3.5a.5.5 0 0 0 .5-.5v-13a.5.5 0 0 0-.5-.5H11z"}]]]
+      [:button.button-2
+       {:title "default layout"}
+       [:svg
+        {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
+        [:path {:fill-rule "evenodd" :d "M5 1v8H1V1zM1 0a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V1a1 1 0 0 0-1-1zm13 2v5H9V2zM9 1a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM5 13v2H3v-2zm-2-1a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1zm12-1v2H9v-2zm-6-1a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1z"}]]]
+      [:button.button-2
+       {:title "hide all"}
+       [:svg
+        {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
+        [:path {:fill-rule "evenodd" :d "M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"}]
+        [:path {:fill-rule "evenodd" :d "M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"}]]]
+      [:button.button-2
+       {:title "collapse all"}
+       [:svg
+        {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
+        [:path {:fill-rule "evenodd" :d "M1 8a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13A.5.5 0 0 1 1 8zm7-8a.5.5 0 0 1 .5.5v3.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 1 1 .708-.708L7.5 4.293V.5A.5.5 0 0 1 8 0zm-.5 11.707-1.146 1.147a.5.5 0 0 1-.708-.708l2-2a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 11.707V15.5a.5.5 0 0 1-1 0v-3.793z"}]]]]]))
+
 (def code-font-family "dejavu sans mono, monospace")
 (def code-font-size "small")
 (def code-margin "0")
@@ -847,6 +898,23 @@
      background-color: #7c7c7c;
    }
 
+   .button-2 {
+      background-color: #0000000d;
+      backdrop-filter: blur(3px);
+      border-radius: 8px;
+      border-style: solid;
+      border-width: 2px;
+      border-color: #000000a1;
+      box-sizing: border-box;
+      cursor: pointer;
+      padding: 4px;
+      margin: 4px 0px;
+      transition: color 100ms;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+   }
+
    .lix-style {
      display: flex;
      flex-direction: row;
@@ -885,6 +953,7 @@
                     :padding "10px"
                     :border-bottom "1px solid gray"}}
       "Looset Graph"]
+     [left-buttons]
      [util/error-boundary
       {:if-error [:h2 "erro"]}
       [graph-component]]]
