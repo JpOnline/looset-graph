@@ -552,7 +552,10 @@
   [app-state [event nodes-positions]]
   (if (vis-option-hierarchy app-state)
     (-> app-state
-      (set-nodes-positions-hierarchy [event false nodes-positions])
+      (set-nodes-positions-hierarchy [event {:dagging? false
+                                             :nodes-positions* nodes-positions
+                                             :view-position (get-in app-state [:ui :vis-view :position])
+                                             :scale (get-in app-state [:ui :vis-view :scale])}])
       (assoc-in [:ui :vis-options :layout :hierarchical :enabled] false))
     app-state))
 (re-frame/reg-event-db ::organize-hierarchy-positions-step-2 organize-hierarchy-positions-step-2)
