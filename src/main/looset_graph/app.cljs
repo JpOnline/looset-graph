@@ -560,36 +560,23 @@
     app-state))
 (re-frame/reg-event-db ::organize-hierarchy-positions-step-2 organize-hierarchy-positions-step-2)
 
-(comment
-  (keys (filter (fn [[k v]] (not (get (set (keys v)) :edges-from))) no2))
-  (filter #{:edges-from} (get (set (keys (second (second no2)))) :edges-fromx))
-  (for [l [:a :b :c]
-        n [1 2 3]]
-    {:f l :t n})
-  (->> ed
-    (map :to)
-    (set)
-    (clojure.set/difference visible))
-  (clojure.set/difference #{1 2 3} #{2 3})
-  (reduce
-    (fn [acc {:keys [from]}]
-      (update acc :roots conj from))
-    {:roots #{} :has-parent #{}} ed)
-  (def ed
-    [{:arrows {:to {:enabled true, :type "arrow"}},
-      :color {:highlight "#33a0ff"},
-      :from "nodeA",
-      :to "nodeB"}
-     {:arrows {:to {:enabled true, :type "arrow"}},
-      :color {:highlight "#33a0ff"},
-      :from "node4",
-      :to "label1"}])
+(defn hide-all
+  [app-state]
+  (let [all-hidden (-> app-state
+                     (get-in [:domain :nodes-map] {})
+                     (keys)
+                     (->> (map (fn [node-id] {node-id {:hidden? true}})))
+                     (->> (into {})))]
+    (assoc-in app-state [:ui :nodes] all-hidden)))
+(re-frame/reg-event-db ::hide-all hide-all)
 
+(comment
   (require '[re-frame.db])
   (->> @re-frame.db/app-db
     (#(get-in % [:domain :nodes-map]))
     (map (fn [[k {:keys [position]}]]
-           {k [(get position "x") (get position "y")]}))))
+           {k [(get position "x") (get position "y")]}))
+    (into {})))
 
 ;; ---- Views ----
 
@@ -847,7 +834,8 @@
         {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
         [:path {:fill-rule "evenodd" :d "M5 1v8H1V1zM1 0a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V1a1 1 0 0 0-1-1zm13 2v5H9V2zM9 1a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM5 13v2H3v-2zm-2-1a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1zm12-1v2H9v-2zm-6-1a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1z"}]]]
       [:button.button-2
-       {:title "hide all"}
+       {:title "hide all"
+        :onClick #(>evt [::hide-all])}
        [:svg
         {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
         [:path {:fill-rule "evenodd" :d "M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"}]
