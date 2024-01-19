@@ -435,6 +435,11 @@
   (get-in app-state [:ui :vis-options :layout :hierarchical :enabled] false))
 (re-frame/reg-sub ::vis-option-hierarchy vis-option-hierarchy)
 
+(defn vis-view
+  [app-state]
+  (get-in app-state [:ui :vis-view] nil))
+(re-frame/reg-sub ::vis-view vis-view)
+
 ;; ---- Events ----
 
 (defn resizing-panels
@@ -487,12 +492,15 @@
         (update-in [:ui :nodes-positions] #(merge-with merge % nodes-positions))))))
 (re-frame/reg-event-db ::set-nodes-positions set-nodes-positions)
 
-;; TODO: To try fixying the constant zoom, use a function to set nodes positions
-;; instead of reloading the whole network.
+(defn set-vis-view
+  [app-state [_event {:keys [view-position scale]}]]
+  (assoc-in app-state [:ui :vis-view] {:position view-position :scale scale}))
+(re-frame/reg-event-db ::set-vis-view set-vis-view)
+
 (defn set-nodes-positions-hierarchy
   "Set the nodes positions, but differently of `set-nodes-positions`, it's
   triggered every time the drag ends and as a side effect the zoom is reset 😕"
-  [app-state [_event dragging? nodes-positions*]]
+  [app-state [event {:keys [dragging? nodes-positions* _view-position _scale] :as args}]]
   (if dragging?
     app-state
     (let [nodes-positions (reduce-kv (fn [m k {:strs [x y]}]
@@ -502,12 +510,13 @@
       ;; (tap> {:set-pos nodes-positions})
       (-> app-state
         (assoc-in [:ui :graph-dragging?] dragging?)
-        (update-in [:ui :nodes] #(merge-with merge % nodes-positions))))))
+        (update-in [:ui :nodes] #(merge-with merge % nodes-positions))
+        (set-vis-view [event args])))))
 (re-frame/reg-event-db ::set-nodes-positions-hierarchy set-nodes-positions-hierarchy)
 
 (defn clear-nodes-positions
   [app-state]
-  (update-in app-state [:ui :nodes] #(into {} (for [[k v] %] {k (dissoc v :position)})))) 
+  (update-in app-state [:ui :nodes] #(into {} (for [[k v] %] {k (dissoc v :position)}))))
 (re-frame/reg-event-db ::clear-nodes-positions clear-nodes-positions)
 
 (defn drag-changed
@@ -603,19 +612,27 @@
         network (atom nil)
         update-comp (fn [component [_ prev-props]]
                       (let [prev-vis-data (:vis-data prev-props)
-                            {:keys [selected-nodes vis-data options]} (reagent/props component)]
+                            {:keys [selected-nodes vis-data options view]} (reagent/props component)]
                         ;; (def network network)
                         ^js (.setOptions @network options)
                         ;; (tap> {:vis-data vis-data})
                         (when (not= prev-vis-data vis-data)
                           (.setData @network (clj->js vis-data)))
-                        (js/console.log vis-data)
+                        (when view
+                          (.moveTo @network #js {:position (:position view)
+                                                 :scale (:scale view)}))
+                        ;; (js/console.log vis-data)
                         (.selectNodes @network selected-nodes)))
         mount-comp (fn [component]
                      (let [container (-> js/document (.getElementById graph-component-id))]
                        (reset! network (-> js/vis .-Network (new container nil #_options))))
                      (.on @network "dragStart" #_(js/console.log "dragStart") #(>evt [::drag-changed true]))
-                     (.on @network "dragEnd" #_(js/console.log "dragEnd") #(>evt [::set-nodes-positions-hierarchy false (js->clj ^Object (.getPositions @network))]))
+                     (.on @network "dragEnd" #(>evt [::set-nodes-positions-hierarchy {:dragging? false
+                                                                                      :nodes-positions* (js->clj ^Object (.getPositions @network))
+                                                                                      :view-position ^Object (.getViewPosition @network)
+                                                                                      :scale ^Object (.getScale @network)}]))
+                     (.on @network "zoom" #(>evt [::set-vis-view {:view-position ^Object (.getViewPosition @network)
+                                                                  :scale ^Object (.getScale @network)}]))
                      (.on @network "stabilized" #_(js/console.log "stabilized") #(>evt [::set-nodes-positions (js->clj ^Object (.getPositions @network))])) ;; Used when physics is enabled.
                      (.on @network "afterDrawing" #_(js/console.log "configChange")
                           ;; For some reason (specific to visjs) if I don't give this
@@ -641,6 +658,7 @@
    {:selected-nodes (<sub [::selected-nodes])
     :vis-data       (<sub [::vis-data])
     :number-input (<sub [::number-input])
+    :view (<sub [::vis-view])
     :options #js {:layout #js {:hierarchical #js {:enabled (<sub [::vis-option-hierarchy])
                                                   :direction "UD"
                                                   :sortMethod "directed"
