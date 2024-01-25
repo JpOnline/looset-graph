@@ -570,6 +570,16 @@
     (assoc-in app-state [:ui :nodes] all-hidden)))
 (re-frame/reg-event-db ::hide-all hide-all)
 
+(defn collapse-all
+  [app-state]
+  (let [all-close (-> app-state
+                    (get-in [:domain :nodes-map] {})
+                    (keys)
+                    (->> (map (fn [node-id] {node-id {:opened? false}})))
+                    (->> (into {})))]
+    (assoc-in app-state [:ui :fold] all-close)))
+(re-frame/reg-event-db ::collapse-all collapse-all)
+
 (comment
   (require '[re-frame.db])
   (->> @re-frame.db/app-db
@@ -841,7 +851,8 @@
         [:path {:fill-rule "evenodd" :d "M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"}]
         [:path {:fill-rule "evenodd" :d "M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"}]]]
       [:button.button-2
-       {:title "collapse all"}
+       {:title "collapse all"
+        :onClick #(>evt [::collapse-all])}
        [:svg
         {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
         [:path {:fill-rule "evenodd" :d "M1 8a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13A.5.5 0 0 1 1 8zm7-8a.5.5 0 0 1 .5.5v3.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 1 1 .708-.708L7.5 4.293V.5A.5.5 0 0 1 8 0zm-.5 11.707-1.146 1.147a.5.5 0 0 1-.708-.708l2-2a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 11.707V15.5a.5.5 0 0 1-1 0v-3.793z"}]]]]]))
