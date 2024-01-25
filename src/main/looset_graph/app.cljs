@@ -440,6 +440,11 @@
   (get-in app-state [:ui :vis-view] nil))
 (re-frame/reg-sub ::vis-view vis-view)
 
+(defn mouse-select-mode-sub
+  [app-state]
+  (get-in app-state [:ui :mouse-select-mode] false))
+(re-frame/reg-sub ::mouse-select-mode mouse-select-mode-sub)
+
 ;; ---- Events ----
 
 (defn resizing-panels
@@ -579,6 +584,11 @@
                     (->> (into {})))]
     (assoc-in app-state [:ui :fold] all-close)))
 (re-frame/reg-event-db ::collapse-all collapse-all)
+
+(defn mouse-select-mode-evt
+  [app-state [_event state]]
+  (assoc-in app-state [:ui :mouse-select-mode] state))
+(re-frame/reg-event-db ::mouse-select-mode mouse-select-mode-evt)
 
 (comment
   (require '[re-frame.db])
@@ -802,6 +812,8 @@
      ;; ^{:key text} ;; Somehow I'm using this key wrongly, if it's uncomment, the items repeat depending on the change.
      [node-type-comp node-item])])
 
+(def black-cursor-svg-path "M14.082 2.182a.5.5 0 0 1 .103.557L8.528 15.467a.5.5 0 0 1-.917-.007L5.57 10.694.803 8.652a.5.5 0 0 1-.006-.916l12.728-5.657a.5.5 0 0 1 .556.103z")
+
 (defn left-buttons []
   (let [icons-size "22"]
     [:div
@@ -816,15 +828,17 @@
                :padding "10px"
                :inline-size "fit-content"}}
       [:button.button-2
-       {:title "move"}
+       {:title "move"
+        :onClick #(>evt [::mouse-select-mode false])}
        [:svg
         {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
         [:path {:fill-rule "evenodd" :d "M14.082 2.182a.5.5 0 0 1 .103.557L8.528 15.467a.5.5 0 0 1-.917-.007L5.57 10.694.803 8.652a.5.5 0 0 1-.006-.916l12.728-5.657a.5.5 0 0 1 .556.103zM2.25 8.184l3.897 1.67a.5.5 0 0 1 .262.263l1.67 3.897L12.743 3.52z"}]]]
       [:button.button-2
-       {:title "select"}
+       {:title "select"
+        :onClick #(>evt [::mouse-select-mode true])}
        [:svg
         {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
-        [:path {:fill-rule "evenodd" :d "M14.082 2.182a.5.5 0 0 1 .103.557L8.528 15.467a.5.5 0 0 1-.917-.007L5.57 10.694.803 8.652a.5.5 0 0 1-.006-.916l12.728-5.657a.5.5 0 0 1 .556.103z"}]]]
+        [:path {:fill-rule "evenodd" :d black-cursor-svg-path}]]]
       [:div
        {:style {:height "2px"
                 :width "28px"
@@ -927,6 +941,10 @@
      background-color: #7c7c7c;
    }
 
+   .button-2:active {
+     background-color: #00000020;
+   }
+
    .button-2 {
       background-color: #0000000d;
       backdrop-filter: blur(3px);
@@ -963,6 +981,10 @@
      padding-bottom: 10px;
      align-items: center;
    }
+
+   .select-mode-cursor {
+     cursor: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 16 16'%3E%3Cpath d='"black-cursor-svg-path"'/%3E%3C/svg%3E\" ) 19 0,crosshair;
+   }
    ")])
 
 (defn main []
@@ -973,7 +995,9 @@
              :user-select "none"
              :max-height "100vh"}}
     [:div#left-panel
-     {:style {:width (<sub [::left-panel-size])
+     {:class (when (<sub [::mouse-select-mode])
+               "select-mode-cursor")
+      :style {:width (<sub [::left-panel-size])
               :min-width "20vw"
               :display "flex"
               :flex-direction "column"}}
