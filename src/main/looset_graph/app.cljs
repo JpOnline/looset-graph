@@ -86,13 +86,13 @@
 
 (defn selected-nodes
   [[hovered-node visible-nodes nodes-map]]
-  (-> nodes-map
-    (get hovered-node)
-    (:children)
-    (conj hovered-node)
-    (set)
-    (clojure.set/intersection visible-nodes)
-    (vec)
+  (->> nodes-map
+    (filter #(contains? hovered-node (first %)))
+    (map second)
+    (reduce #(clojure.set/union (:children %2) %1) #{})
+    (clojure.set/union hovered-node)
+    (#(do (tap> {:selected %}) %))
+    (#(clojure.set/intersection % visible-nodes))
     (clj->js)))
 (re-frame/reg-sub
   ::selected-nodes
@@ -427,7 +427,7 @@
 
 (defn hovered-node
   [app-state]
-  (get-in app-state [:ui :hovered-node] nil))
+  (get-in app-state [:ui :hovered-node] #{}))
 (re-frame/reg-sub ::hovered-node hovered-node)
 
 (defn vis-option-hierarchy
@@ -538,9 +538,9 @@
 (re-frame/reg-event-db ::toggle-hidden toggle-hidden)
 
 (defn node-hovered
-  [app-state [_event node-id]]
+  [app-state [_event nodes-ids]]
   ;; (tap> {:node-hovered node-id})
-  (assoc-in app-state [:ui :hovered-node] node-id))
+  (assoc-in app-state [:ui :hovered-node] nodes-ids))
 (re-frame/reg-event-db ::node-hovered node-hovered)
 
 (defn debug-event
@@ -592,6 +592,14 @@
 
 (comment
   (require '[re-frame.db])
+  (clojure.set/union #{1 2} #{3 4})
+  (->> @re-frame.db/app-db
+    (#(get-in % [:domain :nodes-map]))
+    (filter #(#{"FilhosDeMinervinaEElpidio"} (first %)))
+    (map second)
+    (mapcat :children)
+    (concat #{"FilhosDeMinervinaEElpidio"}))
+    ;; (first))
   (->> @re-frame.db/app-db
     (#(get-in % [:domain :nodes-map]))
     (map (fn [[k {:keys [position]}]]
@@ -742,8 +750,8 @@
   [:div
    {:style {:paddingLeft (+ 5 (* 12 level))}
     :class class
-    :onMouseOver #(>evt [::node-hovered node-id])
-    :onMouseOut #(>evt [::node-hovered nil])}
+    :onMouseOver #(>evt [::node-hovered #{node-id}])
+    :onMouseOut #(>evt [::node-hovered #{}])}
    (if hidden?
      [svg-eye
       {:onClick #(>evt [::toggle-hidden node-id])
