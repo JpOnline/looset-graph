@@ -726,7 +726,7 @@
 
 (defn svg-eye
   [props]
-  [:svg#eye.hover-gray
+  [:svg#eye.hover-gray-svg
    (merge
      props
      {:fill "currentColor" :viewBox "0 0 16 16" :xmlns "http://www.w3.org/2000/svg"})
@@ -735,7 +735,7 @@
 
 (defn svg-filled-eye
   [props]
-  [:svg#eye.hover-gray
+  [:svg#eye.hover-gray-svg
    (merge
      props
      {:fill "#4a484a" :viewBox "0 0 16 16" :xmlns "http://www.w3.org/2000/svg"})
@@ -763,7 +763,10 @@
        :width "27" :height "27"}])
    [:div
     {:onClick #(>evt [::toggle-open-close path])
-     :class (when (<sub [::foldable-node? node-id]) "hover-gray")
+     :class (cond
+              (<sub [::mouse-select-mode]) "hover-gray select-mode-cursor"
+              (<sub [::foldable-node? node-id]) "hover-gray"
+              :else "")
      :style {:color (or color "inherit")}}
     text]])
 
@@ -913,8 +916,13 @@
         height: 5px;
     }
 
+   .hover-gray-svg:hover {
+     filter: drop-shadow(0px 2px 6px #0008);
+     cursor: pointer;
+   }
+
    .hover-gray:hover {
-     background-color: lightgray;
+     text-shadow: -5px 3px 7px;
      cursor: pointer;
    }
 
@@ -991,7 +999,7 @@
    }
 
    .select-mode-cursor {
-     cursor: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 16 16'%3E%3Cpath d='"black-cursor-svg-path"'/%3E%3C/svg%3E\" ) 19 0,crosshair;
+     cursor: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 16 16'%3E%3Cpath d='"black-cursor-svg-path"'/%3E%3C/svg%3E\" ) 19 0,crosshair !important;
    }
    ")])
 
