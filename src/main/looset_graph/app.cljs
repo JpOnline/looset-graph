@@ -1,6 +1,6 @@
 (ns looset-graph.app
   (:require
-    [clojure.set]
+    [clojure.set :as set]
     [clojure.string]
     [looset-graph.graph-parser :as graph-parser]
     [looset-graph.util :as util]
@@ -12,7 +12,7 @@
 ;; ---- Util ----
 
 (when ^boolean js/goog.DEBUG ;; Code removed in production
-  ;; (day8.re-frame-10x/show-panel! true)
+  ;; (day8.re-frame-10x/show-panel! true) ;; Or just press ctrl-shift-x to toggle pannel
   (js/console.log "Debugger mode!"))
 
 ;; Redef re-frame subscribe and dispatch for brevity
@@ -85,21 +85,30 @@
    :path [:ui :f-visible-nodes]})
 
 (defn selected-nodes
-  [[hovered-node visible-nodes nodes-map]]
-  (->> nodes-map
-    (filter #(contains? hovered-node (first %)))
-    (map second)
-    (reduce #(clojure.set/union (:children %2) %1) #{})
-    (clojure.set/union hovered-node)
-    (#(do (tap> {:selected %}) %))
-    (#(clojure.set/intersection % visible-nodes))
-    (clj->js)))
+  [[hovered-node clicked-nodes visible-nodes nodes-map]]
+  (if (empty? hovered-node)
+    (clojure.set/intersection clicked-nodes visible-nodes)
+    (->> nodes-map
+      (filter #(contains? hovered-node (first %)))
+      (map second)
+      (reduce #(clojure.set/union (:children %2) %1) #{})
+      (clojure.set/union hovered-node)
+      (#(clojure.set/intersection % visible-nodes)))))
 (re-frame/reg-sub
   ::selected-nodes
   :<- [::hovered-node]
+  :<- [::clicked-nodes]
   :<- [::visible-nodes]
   :<- [::nodes-map]
   selected-nodes)
+
+(defn selected-node?
+  [selected-nodes [_ node]]
+  (contains? selected-nodes node))
+(re-frame/reg-sub
+  ::selected-node?
+  :<- [::selected-nodes]
+  selected-node?)
 
 (defn text->color [text]
   (case (mod (hash text) 50)
@@ -445,6 +454,11 @@
   (get-in app-state [:ui :mouse-select-mode] false))
 (re-frame/reg-sub ::mouse-select-mode mouse-select-mode-sub)
 
+(defn clicked-nodes
+  [app-state]
+  (get-in app-state [:ui :clicked-nodes] #{}))
+(re-frame/reg-sub ::clicked-nodes clicked-nodes)
+
 ;; ---- Events ----
 
 (defn resizing-panels
@@ -590,6 +604,14 @@
   (assoc-in app-state [:ui :mouse-select-mode] state))
 (re-frame/reg-event-db ::mouse-select-mode mouse-select-mode-evt)
 
+(defn network-clicked
+  [app-state [_event click-event]]
+  (let [toggly-add #(set/difference (set/union %1 %2) (set/intersection %1 %2))]
+    (if (get-in app-state [:ui :mouse-select-mode] false)
+      (update-in app-state [:ui :clicked-nodes] #(toggly-add (set %) (set ^js(.-nodes click-event))))
+      (assoc-in app-state [:ui :clicked-nodes] (set ^js(.-nodes click-event))))))
+(re-frame/reg-event-db ::network-clicked network-clicked)
+
 (comment
   (require '[re-frame.db])
   (clojure.set/union #{1 2} #{3 4})
@@ -618,6 +640,8 @@
 ;;
 ;; (def draw-graph (memoize draw-graph-no-memo))
 
+(defonce network (atom nil))
+
 (defn graph-component-inner []
   (let [graph-component-id "looset-graph"
         ;; options #js {:layout #js {:hierarchical #js {:enabled true
@@ -627,7 +651,6 @@
         ;;              :physics #js {:enabled false}
         ;;                            ;; :minVelocity 1.2}
         ;;              :nodes #js {:borderWidth 1}}
-        network (atom nil)
         update-comp (fn [component [_ prev-props]]
                       (let [prev-vis-data (:vis-data prev-props)
                             {:keys [selected-nodes vis-data options view]} (reagent/props component)]
@@ -639,7 +662,6 @@
                         (when view
                           (.moveTo @network #js {:position (:position view)
                                                  :scale (:scale view)}))
-                        ;; (js/console.log vis-data)
                         (.selectNodes @network selected-nodes)))
         mount-comp (fn [component]
                      (let [container (-> js/document (.getElementById graph-component-id))]
@@ -660,6 +682,9 @@
                           ; ;but it's working for now.
                           #(js/setTimeout (fn [] (>evt [::organize-hierarchy-positions-step-2 (js->clj ^Object (.getPositions @network))]))
                                           20))
+                     (.on @network "click" #(do ^js (.-nodes %)
+                                                (>evt [::network-clicked %])))
+                                                ;; (.selectNodes @network #js["node1" "node5"])))
                      (update-comp component nil))]
     (reagent/create-class
       {:reagent-render (fn []
@@ -673,7 +698,7 @@
 
 (defn graph-component []
   [graph-component-inner
-   {:selected-nodes (<sub [::selected-nodes])
+   {:selected-nodes (clj->js (<sub [::selected-nodes]))
     :vis-data       (<sub [::vis-data])
     :number-input (<sub [::number-input])
     :view (<sub [::vis-view])
@@ -763,10 +788,11 @@
        :width "27" :height "27"}])
    [:div
     {:onClick #(>evt [::toggle-open-close path])
-     :class (cond
-              (<sub [::mouse-select-mode]) "hover-gray select-mode-cursor"
-              (<sub [::foldable-node? node-id]) "hover-gray"
-              :else "")
+     :class (str (when (<sub [::selected-node? node-id]) "selected-shadow ")
+                 (cond
+                   (<sub [::mouse-select-mode]) "hover-gray select-mode-cursor"
+                   (<sub [::foldable-node? node-id]) "hover-gray"
+                   :else ""))
      :style {:color (or color "inherit")}}
     text]])
 
@@ -924,6 +950,10 @@
    .hover-gray:hover {
      text-shadow: -5px 3px 7px;
      cursor: pointer;
+   }
+
+   .selected-shadow {
+     text-shadow: -5px 3px 7px #59d0e8;
    }
 
    .button-1 {
