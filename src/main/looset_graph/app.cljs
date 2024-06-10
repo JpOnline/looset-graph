@@ -449,10 +449,12 @@
   (get-in app-state [:ui :vis-view] nil))
 (re-frame/reg-sub ::vis-view vis-view)
 
-(defn mouse-select-mode-sub
-  [app-state]
-  (get-in app-state [:ui :mouse-select-mode] false))
-(re-frame/reg-sub ::mouse-select-mode mouse-select-mode-sub)
+;; (defn mouse-select-mode-sub
+;;   [app-state]
+;;   (get-in app-state [:ui :mouse-select-mode] false))
+(re-frame/reg-sub
+  ::mouse-select-mode
+  :-> #(get-in % [:ui :mouse-select-mode] false))
 
 (defn clicked-nodes
   [app-state]
