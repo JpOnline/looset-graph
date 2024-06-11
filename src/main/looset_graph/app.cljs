@@ -21,6 +21,8 @@
 
 ;; ---- Subs ----
 
+;; TODO: Replace all reg-subs for reg-flow.
+
 ;; (defn dot-graph
 ;;   [app-state]
 ;;   (get-in app-state [:domain :dot-graph] ""))
@@ -85,22 +87,39 @@
    :path [:ui :f-visible-nodes]})
 
 (defn selected-nodes
-  [[hovered-node clicked-nodes visible-nodes nodes-map]]
+  [[hovered-node clicked-nodes nodes-map]]
   (if (empty? hovered-node)
-    (clojure.set/intersection clicked-nodes visible-nodes)
+    clicked-nodes
     (->> nodes-map
       (filter #(contains? hovered-node (first %)))
       (map second)
       (reduce #(clojure.set/union (:children %2) %1) #{})
-      (clojure.set/union hovered-node)
-      (#(clojure.set/intersection % visible-nodes)))))
+      (clojure.set/union hovered-node))))
 (re-frame/reg-sub
   ::selected-nodes
   :<- [::hovered-node]
   :<- [::clicked-nodes]
-  :<- [::visible-nodes]
   :<- [::nodes-map]
   selected-nodes)
+(re-frame/reg-flow
+  {:id :f-selected-nodes
+   :inputs {:hovs [:ui :hovered-node]
+            :clks [:ui :clicked-nodes]
+            :nmap [:domain :nodes-map]}
+   :output (fn [{:keys [hovs clks nmap]}]
+             (selected-nodes [(or hovs #{})
+                              (or clks #{})
+                              nmap]))
+   :path [:ui :f-selected-nodes]})
+
+(defn selected-nodes-visible
+  [[selected-nodes visible-nodes]]
+  (clojure.set/intersection selected-nodes visible-nodes))
+(re-frame/reg-sub
+  ::selected-nodes-visible
+  :<- [::selected-nodes]
+  :<- [::visible-nodes]
+  selected-nodes-visible)
 
 (defn selected-node?
   [selected-nodes [_ node]]
@@ -452,6 +471,7 @@
 ;; (defn mouse-select-mode-sub
 ;;   [app-state]
 ;;   (get-in app-state [:ui :mouse-select-mode] false))
+;; (re-frame/reg-sub ::mouse-select-mode mouse-select-mode-sub)
 (re-frame/reg-sub
   ::mouse-select-mode
   :-> #(get-in % [:ui :mouse-select-mode] false))
@@ -460,6 +480,43 @@
   [app-state]
   (get-in app-state [:ui :clicked-nodes] #{}))
 (re-frame/reg-sub ::clicked-nodes clicked-nodes)
+
+(defn foldable-closed-nodes
+  [[fold-list]]
+  (->> fold-list
+    (filter #(-> % second :opened? false?))
+    (map first)))
+(re-frame/reg-sub
+  ::foldable-closed-nodes
+  :<- [::fold-list]
+  foldable-closed-nodes)
+
+(defn hidden-nodes
+  [nodes-ui]
+  (some->> nodes-ui
+    (filter #(:hidden? (second %)))
+    (map first)))
+(re-frame/reg-sub
+  ::hidden-nodes
+  :<- [::nodes-ui]
+  hidden-nodes)
+
+(defn show-selected-button?
+  [[selected-nodes hidden-nodes]]
+  (tap> {:hidden hidden-nodes})
+  (tap> {:selected selected-nodes})
+  (and hidden-nodes
+       (> (count selected-nodes) 1)
+       (seq (clojure.set/intersection
+              (set selected-nodes)
+              (set hidden-nodes)))))
+(re-frame/reg-sub
+  ::show-selected-button?
+  :<- [::selected-nodes]
+  :<- [::hidden-nodes]
+  show-selected-button?)
+
+;; DO NOT create new reg-subs, use reg-flow instead!
 
 ;; ---- Events ----
 
@@ -591,6 +648,15 @@
     (assoc-in app-state [:ui :nodes] all-hidden)))
 (re-frame/reg-event-db ::hide-all hide-all)
 
+(defn show-selected
+  [app-state]
+  (let [selected-nodes (-> app-state :ui :f-selected-nodes)
+        unhidden (-> selected-nodes
+                   (->> (map (fn [node-id] {node-id {:hidden? false}})))
+                   (->> (into {})))]
+    (update-in app-state [:ui :nodes] merge unhidden)))
+(re-frame/reg-event-db ::show-selected show-selected)
+
 (defn collapse-all
   [app-state]
   (let [all-close (-> app-state
@@ -700,7 +766,7 @@
 
 (defn graph-component []
   [graph-component-inner
-   {:selected-nodes (clj->js (<sub [::selected-nodes]))
+   {:selected-nodes (clj->js (<sub [::selected-nodes-visible]))
     :vis-data       (<sub [::vis-data])
     :number-input (<sub [::number-input])
     :view (<sub [::vis-view])
@@ -896,13 +962,21 @@
        [:svg
         {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
         [:path {:fill-rule "evenodd" :d "M5 1v8H1V1zM1 0a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V1a1 1 0 0 0-1-1zm13 2v5H9V2zM9 1a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM5 13v2H3v-2zm-2-1a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1zm12-1v2H9v-2zm-6-1a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1z"}]]]
-      [:button.button-2
-       {:title "hide all"
-        :onClick #(>evt [::hide-all])}
-       [:svg
-        {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
-        [:path {:fill-rule "evenodd" :d "M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"}]
-        [:path {:fill-rule "evenodd" :d "M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"}]]]
+      (if (<sub [::show-selected-button?])
+        [:button.button-2
+         {:title "show selected"
+          :onClick #(>evt [::show-selected])}
+         [:svg
+           {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
+           [:path {:fill-rule "evenodd" :d "M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"}]
+           [:path {:fill-rule "evenodd" :d "M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"}]]]
+        [:button.button-2
+         {:title "hide all"
+          :onClick #(>evt [::hide-all])}
+         [:svg
+          {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
+          [:path {:fill-rule "evenodd" :d "M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"}]
+          [:path {:fill-rule "evenodd" :d "M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"}]]])
       [:button.button-2
        {:title "collapse all"
         :onClick #(>evt [::collapse-all])}
@@ -1074,6 +1148,10 @@
         {:if-error [:h2 "erro"]}
         [nodes-list-view]]
        [debug-raw-graph-text]]
+       ;; [:div
+       ;;  (<sub [::selected-nodes])]
+       ;; [:div
+       ;;  @(re-frame/sub :flow {:id :f-selected-nodes})]]
      [:<>
       [:span "Range "(<sub [::number-input])]
       [:input {:type "range"
