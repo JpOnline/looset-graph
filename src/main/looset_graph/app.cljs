@@ -19,6 +19,15 @@
 (def <sub (comp deref re-frame/subscribe))
 (def >evt re-frame/dispatch)
 
+(defn with-defaults
+  "Meant to be used with `reg-flow` :output. Define default values
+  for values in the map and sends the values as a vector."
+  [f defaults-vec]
+  (fn [m]
+    (f (map (fn [[k default]]
+              (or (get m k) default))
+            (partition 2 defaults-vec)))))
+
 ;; ---- Subs ----
 
 ;; TODO: Replace all reg-subs for reg-flow.
@@ -238,7 +247,7 @@
 (re-frame/reg-flow
   {:id :f-vis-data
    :inputs {:visible-nodes (re-frame/flow<- :f-visible-nodes)
-            :nodes-map [:domain :nodes-map]}
+            :nodes-map (re-frame/flow<- :nodes-map)}
    :output (fn [{:keys [visible-nodes nodes-map]}] (vis-data [visible-nodes nodes-map]))
    :path [:ui :f-vis-data]})
 
@@ -385,9 +394,9 @@
   nodes-map->fold-list)
 (re-frame/reg-flow
   {:id :f-fold-list
-   :inputs {:nodes-map [:domain :nodes-map]
+   :inputs {:nodes-map (re-frame/flow<- :nodes-map)
             :fold-ui [:ui :fold]}
-   :output (fn [{:keys [nodes-map fold-ui]}] (nodes-map->fold-list [nodes-map fold-ui]))})
+   :output (with-defaults nodes-map->fold-list [:nodes-map {} :fold-ui {}])})
    ;; :path [:ui :f-fold-list]})
 
 (defn get-edn-string
@@ -481,16 +490,6 @@
   (get-in app-state [:ui :clicked-nodes] #{}))
 (re-frame/reg-sub ::clicked-nodes clicked-nodes)
 
-(defn foldable-closed-nodes
-  [[fold-list]]
-  (->> fold-list
-    (filter #(-> % second :opened? false?))
-    (map first)))
-(re-frame/reg-sub
-  ::foldable-closed-nodes
-  :<- [::fold-list]
-  foldable-closed-nodes)
-
 (defn hidden-nodes
   [nodes-ui]
   (some->> nodes-ui
@@ -501,7 +500,7 @@
   :<- [::nodes-ui]
   hidden-nodes)
 
-(defn show-selected-button?
+(defn show-unhide-button?
   [[selected-nodes hidden-nodes]]
   (tap> {:hidden hidden-nodes})
   (tap> {:selected selected-nodes})
@@ -511,10 +510,25 @@
               (set selected-nodes)
               (set hidden-nodes)))))
 (re-frame/reg-sub
-  ::show-selected-button?
+  ::show-unhide-button?
   :<- [::selected-nodes]
   :<- [::hidden-nodes]
-  show-selected-button?)
+  show-unhide-button?)
+
+(defn show-expand-button?
+  [{:keys [selected-nodes fold-list]}]
+  (->> fold-list
+    (filter #(-> % :opened? false?))
+    (map :node-id)
+    (set)
+    (clojure.set/intersection (set selected-nodes))
+    (seq)))
+(re-frame/reg-flow
+  {:id :f-show-expand-button?
+   :inputs {:selected-nodes (re-frame/flow<- :f-selected-nodes)
+            :fold-list (re-frame/flow<- :f-fold-list)}
+   :output show-expand-button?
+   :path [:ui :f-show-expand-button?]})
 
 ;; DO NOT create new reg-subs, use reg-flow instead!
 
@@ -767,7 +781,7 @@
 (defn graph-component []
   [graph-component-inner
    {:selected-nodes (clj->js (<sub [::selected-nodes-visible]))
-    :vis-data       (<sub [::vis-data])
+    :vis-data       @(re-frame/sub :flow {:id :f-vis-data})
     :number-input (<sub [::number-input])
     :view (<sub [::vis-view])
     :options #js {:layout #js {:hierarchical #js {:enabled (<sub [::vis-option-hierarchy])
@@ -962,7 +976,7 @@
        [:svg
         {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
         [:path {:fill-rule "evenodd" :d "M5 1v8H1V1zM1 0a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V1a1 1 0 0 0-1-1zm13 2v5H9V2zM9 1a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM5 13v2H3v-2zm-2-1a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1zm12-1v2H9v-2zm-6-1a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1z"}]]]
-      (if (<sub [::show-selected-button?])
+      (if (<sub [::show-unhide-button?])
         [:button.button-2
          {:title "show selected"
           :onClick #(>evt [::show-selected])}
@@ -977,12 +991,14 @@
           {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
           [:path {:fill-rule "evenodd" :d "M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"}]
           [:path {:fill-rule "evenodd" :d "M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"}]]])
-      [:button.button-2
-       {:title "collapse all"
-        :onClick #(>evt [::collapse-all])}
-       [:svg
-        {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
-        [:path {:fill-rule "evenodd" :d "M1 8a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13A.5.5 0 0 1 1 8zm7-8a.5.5 0 0 1 .5.5v3.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 1 1 .708-.708L7.5 4.293V.5A.5.5 0 0 1 8 0zm-.5 11.707-1.146 1.147a.5.5 0 0 1-.708-.708l2-2a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 11.707V15.5a.5.5 0 0 1-1 0v-3.793z"}]]]]]))
+      (if @(re-frame/sub :flow {:id :f-show-expand-button?})
+        [:div "x"]
+        [:button.button-2
+         {:title "collapse all"
+          :onClick #(>evt [::collapse-all])}
+         [:svg
+          {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
+          [:path {:fill-rule "evenodd" :d "M1 8a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13A.5.5 0 0 1 1 8zm7-8a.5.5 0 0 1 .5.5v3.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 1 1 .708-.708L7.5 4.293V.5A.5.5 0 0 1 8 0zm-.5 11.707-1.146 1.147a.5.5 0 0 1-.708-.708l2-2a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 11.707V15.5a.5.5 0 0 1-1 0v-3.793z"}]]])]]))
 
 (def code-font-family "dejavu sans mono, monospace")
 (def code-font-size "small")
@@ -1149,9 +1165,9 @@
         [nodes-list-view]]
        [debug-raw-graph-text]]
        ;; [:div
-       ;;  (<sub [::selected-nodes])]
+       ;;  (<sub [::fold-list])]
        ;; [:div
-       ;;  @(re-frame/sub :flow {:id :f-selected-nodes})]]
+       ;;  @(re-frame/sub :flow {:id :f-fold-list})]]
      [:<>
       [:span "Range "(<sub [::number-input])]
       [:input {:type "range"
