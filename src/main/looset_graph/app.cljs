@@ -565,7 +565,14 @@
   (-> app-state
     (update-in [:ui :nodes] #(merge-with merge % (get-in app-state [:ui :nodes-positions] {})))
     (update-in (concat [:ui :fold] path [:opened?]) not)))
-(re-frame/reg-event-db ::toggle-open-close toggle-open-close)
+
+(defn nodes-list-item-clicked
+  [app-state [event path]]
+  (let [toggly-add #(set/difference (set/union %1 %2) (set/intersection %1 %2))]
+    (if (get-in app-state [:ui :mouse-select-mode] false)
+      (update-in app-state [:ui :clicked-nodes] #(toggly-add (set %) #{(last path)}))
+      (toggle-open-close app-state [event path]))))
+(re-frame/reg-event-db ::nodes-list-item-clicked nodes-list-item-clicked)
 
 (defn round-by [step pos]
   (* step (js/Math.round (/ pos step))))
@@ -878,7 +885,7 @@
        :style {:paddingRight 6}
        :width "27" :height "27"}])
    [:div
-    {:onClick #(>evt [::toggle-open-close path])
+    {:onClick #(>evt [::nodes-list-item-clicked path])
      :class (str (when (<sub [::selected-node? node-id]) "selected-shadow ")
                  (cond
                    (<sub [::mouse-select-mode]) "hover-gray select-mode-cursor"
