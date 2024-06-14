@@ -412,7 +412,7 @@
         edn (get node-prop 2)]
     [{node-id (cljs.reader/read-string (get-edn-string edn))}]))
 
-(defn nodes-map*
+(defn no-memo-nodes-map*
   [{:keys [graph-ast]}]
   (let [nodes-from-edges (->> graph-ast
                            (filter #(= "edge" (first %)))
@@ -426,6 +426,7 @@
       (concat nodes-from-edges)
       (concat node-props)
       (merge-nodes))))
+(def nodes-map* (memoize no-memo-nodes-map*))
 (re-frame/reg-flow
  {:id     :nodes-map*
   :inputs {:graph-ast [:ui :validation :valid-graph-ast]}
@@ -502,8 +503,6 @@
 
 (defn show-unhide-button?
   [[selected-nodes hidden-nodes]]
-  (tap> {:hidden hidden-nodes})
-  (tap> {:selected selected-nodes})
   (and hidden-nodes
        (> (count selected-nodes) 1)
        (seq (clojure.set/intersection
@@ -547,12 +546,15 @@
       (assoc-in [:ui :panels :left-panel-size] (str x"px")))))
 (re-frame/reg-event-db ::mouse-moved mouse-moved)
 
+(def memo-graph-ast (memoize graph-parser/graph-ast))
+
 (defn set-graph-text
   [app-state [_event v]]
-  (try (-> app-state
+  (try (-> v (memo-graph-ast) (#(into {:graph-ast %})) (nodes-map*))
+       (-> app-state
          (update-in [:ui :nodes] #(merge-with merge % (get-in app-state [:ui :nodes-positions] {})))
          (assoc-in [:domain :graph-text] v)
-         (assoc-in [:ui :validation :valid-graph-ast] (graph-parser/graph-ast v))
+         (assoc-in [:ui :validation :valid-graph-ast] (memo-graph-ast v))
          (assoc-in [:ui :validation :valid-graph?] true))
        (catch :default _
          (-> app-state
