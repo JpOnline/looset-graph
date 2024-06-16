@@ -449,6 +449,20 @@
   (get-in app-state [:domain :nodes-map]))
 (re-frame/reg-sub ::nodes-map nodes-map)
 
+;; This one might be better as a reg-sub than a flow.
+(defn nodes-map-name
+  [nodes-map [_ node-id]]
+  (try
+    (tap> {:node-id node-id
+           :name (:name (nodes-map node-id))})
+    (:name (nodes-map node-id))
+    (catch :default _
+      nil)))
+(re-frame/reg-sub
+  ::nodes-map-name
+  :<- [::nodes-map]
+  nodes-map-name)
+
 (defn foldable?
   [nodes-map [_ node]]
   ;; (tap> {:c7 nodes-map})
@@ -872,29 +886,33 @@
     {:keys [color]} :style
     {:keys [level hidden? path node-id]} :node}
    text]
-  [:div
-   {:style {:paddingLeft (+ 5 (* 12 level))}
-    :class class
-    :onMouseOver #(>evt [::node-hovered #{node-id}])
-    :onMouseOut #(>evt [::node-hovered #{}])}
-   (if hidden?
-     [svg-eye
-      {:onClick #(>evt [::toggle-hidden node-id])
-       :style {:paddingRight 6}
-       :width "27" :height "27"}]
-     [svg-filled-eye
-      {:onClick #(>evt [::toggle-hidden node-id])
-       :style {:paddingRight 6}
-       :width "27" :height "27"}])
-   [:div
-    {:onClick #(>evt [::nodes-list-item-clicked path])
-     :class (str (when (<sub [::selected-node? node-id]) "selected-shadow ")
-                 (cond
-                   (<sub [::mouse-select-mode]) "hover-gray select-mode-cursor"
-                   (<sub [::foldable-node? node-id]) "hover-gray"
-                   :else ""))
-     :style {:color (or color "inherit")}}
-    text]])
+  (let [node-name (<sub [::nodes-map-name node-id])
+        selected-node? (<sub [::selected-node? node-id])
+        mouse-select-mode (<sub [::mouse-select-mode])
+        foldable-node? (<sub [::foldable-node? node-id])]
+    [:div
+     {:style {:paddingLeft (+ 5 (* 12 level))}
+      :class class
+      :onMouseOver #(>evt [::node-hovered #{node-id}])
+      :onMouseOut #(>evt [::node-hovered #{}])}
+     (if hidden?
+       [svg-eye
+        {:onClick #(>evt [::toggle-hidden node-id])
+         :style {:paddingRight 6}
+         :width "27" :height "27"}]
+       [svg-filled-eye
+        {:onClick #(>evt [::toggle-hidden node-id])
+         :style {:paddingRight 6}
+         :width "27" :height "27"}])
+     [:div
+      {:onClick #(>evt [::nodes-list-item-clicked path])
+       :class (str (when selected-node? "selected-shadow ")
+                   (cond
+                     mouse-select-mode "hover-gray select-mode-cursor"
+                     foldable-node? "hover-gray"
+                     :else ""))
+       :style {:color (or color "inherit")}}
+      (or node-name text)]]))
 
 (defn svg-label
   [{:keys [color opened?]}]
