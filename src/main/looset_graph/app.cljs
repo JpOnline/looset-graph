@@ -438,7 +438,11 @@
   :inputs {:nodes-ui [:ui :nodes]
            :nodes-map* (re-frame/flow<- :nodes-map*)}
   :output (fn [{:keys [nodes-ui nodes-map*]}]
-            (deep-merge-with merge
+            (deep-merge-with
+              (fn [res v]
+                (if (map? res)
+                  (merge res v)
+                  v))
               nodes-map*
               (select-keys nodes-ui (keys nodes-map*))))
   :path   [:domain :nodes-map]})
@@ -543,6 +547,33 @@
    :output show-expand-button?
    :path [:ui :f-show-expand-button?]})
 
+(defn nodes-map->graph-text
+  [[nodes-map]]
+  (reduce
+    (fn [[children edges props] [node-k* node-v]]
+      (let [rename-if-label #(if (= :label (:type (get nodes-map % {}))) (str "=>"%) %)
+            node-k (rename-if-label node-k*)
+            node-children (seq (map rename-if-label (:children node-v)))
+            edges-to (->> node-v :edges-to vals (map vec) flatten (map rename-if-label) seq)
+            custom-props (dissoc node-v :type :edges-to :edges-from :label :children :foldable :parent)
+            _ (assert (= custom-props (select-keys node-v [:name :position]))
+                      "Some new node property was addes, so should it be included in the text model or not?")]
+        [(if node-children
+           (apply str (flatten (concat [children node-k ":\n"] (map #(str "  "%"\n") node-children) ["\n"])))
+           children)
+         (if edges-to
+           (apply str (flatten (concat [edges " "] (map #(str node-k" -> "%"\n") edges-to))))
+           edges)
+         (if (seq custom-props)
+           (str props node-k" "custom-props"\n")
+           props)]))
+    ["" "" ""] nodes-map))
+(re-frame/reg-flow
+  {:id :ui-graph-text
+   :inputs {:nodes-map (re-frame/flow<- :nodes-map)}
+   :output (with-defaults nodes-map->graph-text [:nodes-map {}])
+   :path [:ui :graph-text]})
+
 ;; DO NOT create new reg-subs, use reg-flow instead!
 
 ;; ---- Events ----
@@ -562,6 +593,10 @@
 
 (def memo-graph-ast (memoize graph-parser/graph-ast))
 
+;; TODO
+;; The [:ui :nodes-position] is set when using the event ::set-nodes-positions,
+;; but I left it there as an alternative behavior and I still need to decide if
+;; it's worth keeping it.
 (defn set-graph-text
   [app-state [_event v]]
   (try (-> v (memo-graph-ast) (#(into {:graph-ast %})) (nodes-map*))
@@ -625,13 +660,13 @@
       ;; (tap> {:set-pos nodes-positions})
       (-> app-state
         (assoc-in [:ui :graph-dragging?] dragging?)
-        (update-in [:ui :nodes] #(merge-with merge % nodes-positions))
+        (update-in [:domain :nodes-map] #(merge-with merge % nodes-positions))
         (set-vis-view [event args])))))
 (re-frame/reg-event-db ::set-nodes-positions-hierarchy set-nodes-positions-hierarchy)
 
 (defn clear-nodes-positions
   [app-state]
-  (update-in app-state [:ui :nodes] #(into {} (for [[k v] %] {k (dissoc v :position)}))))
+  (update-in app-state [:domain :nodes-map] #(into {} (for [[k v] %] {k (dissoc v :position)}))))
 (re-frame/reg-event-db ::clear-nodes-positions clear-nodes-positions)
 
 (defn drag-changed
