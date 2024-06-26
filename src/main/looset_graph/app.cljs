@@ -1,11 +1,12 @@
 (ns looset-graph.app
   (:require
+    [cljs.reader]
     [clojure.set :as set]
     [clojure.string]
     [looset-graph.graph-parser :as graph-parser]
     [looset-graph.util :as util]
     [re-frame.alpha :as re-frame]
-    [cljs.reader]
+    [re-frame.std-interceptors]
     [reagent.core :as reagent]
     [reagent.dom]))
 
@@ -547,27 +548,31 @@
    :output show-expand-button?
    :path [:ui :f-show-expand-button?]})
 
+(defn nodes-map->graph-text-reduce-step
+  [nodes-map]
+  (fn [[children edges props] [node-k* node-v]]
+    (let [rename-if-label #(if (= :label (:type (get nodes-map % {}))) (str "=>"%) %)
+          node-k (rename-if-label node-k*)
+          node-children (seq (map rename-if-label (:children node-v)))
+          edges-to (->> node-v :edges-to vals (map vec) flatten (map rename-if-label) seq)
+          custom-props (dissoc node-v :type :edges-to :edges-from :label :children :foldable :parent)
+          _ (assert (= custom-props (select-keys node-v [:name :position]))
+                    "Some new node property was addes, so should it be included in the text model or not?")]
+      [(if node-children
+         (apply str (flatten (concat [children node-k ":\n"] (map #(str "  "%"\n") node-children) ["\n"])))
+         children)
+       (if edges-to
+         (apply str (flatten (concat [edges] (map #(str node-k" -> "%"\n") edges-to))))
+         edges)
+       (if (seq custom-props)
+         (str props node-k" "custom-props"\n")
+         props)])))
 (defn nodes-map->graph-text
   [[nodes-map]]
-  (reduce
-    (fn [[children edges props] [node-k* node-v]]
-      (let [rename-if-label #(if (= :label (:type (get nodes-map % {}))) (str "=>"%) %)
-            node-k (rename-if-label node-k*)
-            node-children (seq (map rename-if-label (:children node-v)))
-            edges-to (->> node-v :edges-to vals (map vec) flatten (map rename-if-label) seq)
-            custom-props (dissoc node-v :type :edges-to :edges-from :label :children :foldable :parent)
-            _ (assert (= custom-props (select-keys node-v [:name :position]))
-                      "Some new node property was addes, so should it be included in the text model or not?")]
-        [(if node-children
-           (apply str (flatten (concat [children node-k ":\n"] (map #(str "  "%"\n") node-children) ["\n"])))
-           children)
-         (if edges-to
-           (apply str (flatten (concat [edges " "] (map #(str node-k" -> "%"\n") edges-to))))
-           edges)
-         (if (seq custom-props)
-           (str props node-k" "custom-props"\n")
-           props)]))
-    ["" "" ""] nodes-map))
+  (->> nodes-map
+    (reduce (nodes-map->graph-text-reduce-step nodes-map) ["" "" ""])
+    ((fn [[children edges props]]
+       (str children edges"\n"props)))))
 (re-frame/reg-flow
   {:id :ui-graph-text
    :inputs {:nodes-map (re-frame/flow<- :nodes-map)}
@@ -593,6 +598,16 @@
 
 (def memo-graph-ast (memoize graph-parser/graph-ast))
 
+;; (def my-interceptor-2
+;;   (re-frame/->interceptor
+;;     :id :my-interceptor-2
+;;     :after (fn [context]
+;;               (js/console.log (:stack context))
+;;               (js/console.log (:queue context))
+;;               (js/console.log (:ui (:db (:coeffects context))))
+;;               (js/console.log (:ui (:db (:effects context))))
+;;               context)))
+
 ;; TODO
 ;; The [:ui :nodes-position] is set when using the event ::set-nodes-positions,
 ;; but I left it there as an alternative behavior and I still need to decide if
@@ -609,7 +624,10 @@
          (-> app-state
            (assoc-in [:domain :graph-text] v)
            (assoc-in [:ui :validation :valid-graph?] false)))))
-(re-frame/reg-event-db ::set-graph-text set-graph-text)
+(re-frame/reg-event-db
+  ::set-graph-text
+  ;; [my-interceptor-2]
+  set-graph-text)
 
 (defn toggle-open-close
   [app-state [_event path]]
@@ -1280,8 +1298,7 @@
 ;; ---- Initialization ----
 
 (def initial-state
-  {:domain {:dot-graph "dinetwork {\"superlongnamethatwontfitboll1\" -> superlongnamethatwontfitboll1 -> 2; 2 -> 3; 2 -- 4; 2 -> superlongnamethatwontfitboll1 }"
-            :graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label2:\n  node5\n\nnode3:\n  node4\n  node5\n\nnode1 -> node2\nnode4->node1\nnodeA->nodeB"}
+  {:domain {:graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label2:\n  node5\n\nnode3:\n  node4\n  node5\n\nnode1 -> node2\nnode4->node1\nnodeA->nodeB"}
    :ui {:panels {:resizing-panels false
                  :left-panel-size "65vw"}}})
 
@@ -1307,23 +1324,35 @@
     (gzip js/DecompressionStream $)
     (.then $ #(.decode (js/TextDecoder.) %))))
 
+(def set-url-state-interceptor
+  (re-frame.std-interceptors/on-changes
+    (fn [graph-text]
+      (.then (gzip-compress graph-text)
+             #(let [loc js/window.location]
+                (js/window.history.replaceState
+                  nil nil
+                  (str loc.origin loc.pathname"?graph="
+                       (js/encodeURIComponent (js/btoa %)))))))
+    nil [:ui :graph-text]))
+(re-frame/reg-global-interceptor set-url-state-interceptor)
+
 (defn init-mousemove []
   (js/document.body.addEventListener
     "mousemove"
     #(>evt [::mouse-moved (-> % .-x) (-> % .-y)])))
 
 (re-frame/reg-event-db ::set-app-state
-  (fn [_ [event _application-state]]
-    (set-graph-text initial-state [event (get-in initial-state [:domain :graph-text])])))
+  (fn [_ [event graph-text]]
+    (set-graph-text initial-state [event graph-text])))
 
 (defn init-state []
-  (re-frame/dispatch-sync [::set-app-state]))
-  ;; (let [compressed-graph (.get (js/URLSearchParams. js/window.location.search) "g")
-  ;;       default-graph (get-in initial-state [:domain :graph-text])]
-  ;;   (if compressed-graph
-  ;;     (.then (gzip-decompress (js/atob compressed-graph))
-  ;;            #(re-frame/dispatch-sync [::set-app-state "compressed-graph"]))
-  ;;     (re-frame/dispatch-sync [::set-app-state default-graph]))))
+  ;; (re-frame/dispatch-sync [::set-app-state (get-in initial-state [:domain :graph-text])]))
+  (let [compressed-graph (.get (js/URLSearchParams. js/window.location.search) "graph")
+        default-graph (get-in initial-state [:domain :graph-text])]
+    (if compressed-graph
+      (.then (gzip-decompress (js/atob compressed-graph))
+             #(re-frame/dispatch-sync [::set-app-state %]))
+      (re-frame/dispatch-sync [::set-app-state default-graph]))))
 
 ;; Snippets about mouse-up event
 (defn mouse-up
