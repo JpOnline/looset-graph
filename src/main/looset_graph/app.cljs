@@ -579,6 +579,14 @@
    :output (with-defaults nodes-map->graph-text [:nodes-map {}])
    :path [:ui :graph-text]})
 
+;; This would be an example of a layer 2 reg-flow instead of reg-sub
+;; Does it make sense to use it like this instead of a subscription? 🤷
+(re-frame/reg-flow
+  {:id :f-editing-graph-text
+   :inputs {:editing-graph-text [:ui :editing-graph-text]}
+   :output (with-defaults first [:editing-graph-text false])
+   :path [:ui :editing-graph-text]})
+
 ;; DO NOT create new reg-subs, use reg-flow instead!
 
 ;; ---- Events ----
@@ -598,16 +606,6 @@
 
 (def memo-graph-ast (memoize graph-parser/graph-ast))
 
-;; (def my-interceptor-2
-;;   (re-frame/->interceptor
-;;     :id :my-interceptor-2
-;;     :after (fn [context]
-;;               (js/console.log (:stack context))
-;;               (js/console.log (:queue context))
-;;               (js/console.log (:ui (:db (:coeffects context))))
-;;               (js/console.log (:ui (:db (:effects context))))
-;;               context)))
-
 ;; TODO
 ;; The [:ui :nodes-position] is set when using the event ::set-nodes-positions,
 ;; but I left it there as an alternative behavior and I still need to decide if
@@ -624,10 +622,7 @@
          (-> app-state
            (assoc-in [:domain :graph-text] v)
            (assoc-in [:ui :validation :valid-graph?] false)))))
-(re-frame/reg-event-db
-  ::set-graph-text
-  ;; [my-interceptor-2]
-  set-graph-text)
+(re-frame/reg-event-db ::set-graph-text set-graph-text)
 
 (defn toggle-open-close
   [app-state [_event path]]
@@ -779,6 +774,11 @@
       (assoc-in app-state [:ui :clicked-nodes] (set ^js(.-nodes click-event))))))
 (re-frame/reg-event-db ::network-clicked network-clicked)
 
+(defn toggle-edit-graph-text-area
+  [app-state]
+  (update-in app-state [:ui :editing-graph-text] not))
+(re-frame/reg-event-db ::toggle-edit-graph-text-area toggle-edit-graph-text-area)
+
 (comment
   (require '[re-frame.db])
   (clojure.set/union #{1 2} #{3 4})
@@ -901,11 +901,12 @@
             :padding "10px"}}
    ;; TODO Setup a new forms
    [:button.button-1
-    {:title "Collapse All"
-     :onClick #(>evt [::toggle-all "closed"])}
+    {:title "edit graph"
+     :onClick #(>evt [::toggle-edit-graph-text-area])}
     [:svg
      {:width "30" :height "30" :fill "currentColor" :viewBox "0 0 16 16" :xmlns "http://www.w3.org/2000/svg"}
-     [:path {:fill-rule "evenodd" :d "M1 8a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13A.5.5 0 0 1 1 8zm7-8a.5.5 0 0 1 .5.5v3.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 1 1 .708-.708L7.5 4.293V.5A.5.5 0 0 1 8 0zm-.5 11.707-1.146 1.147a.5.5 0 0 1-.708-.708l2-2a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 11.707V15.5a.5.5 0 0 1-1 0v-3.793z"}]]]
+     [:path {:fill-rule "evenodd" :d "M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"}]
+     [:path {:fill-rule "evenodd" :d "M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"}]]]
    [:a {:target "_blank" :href "" #_"https://docs.google.com/forms/d/e/1FAIpQLSd4DFTcDCl7NwjWziRn2CdoNwdiAedPCZFV0eaGA4QP1K-6iQ/viewform?usp=sf_link"}
     [:button.button-1
      {:title "Feedback"}
@@ -1099,7 +1100,7 @@
 (def code-margin "0")
 (def code-padding "0 10px")
 
-(defn debug-raw-graph-text []
+(defn edit-raw-graph-text []
   [:textarea
    {:style {:flex-grow "1"
             :margin code-margin
@@ -1109,6 +1110,20 @@
             :font-size code-font-size}
     :onChange #(>evt [::set-graph-text (-> % .-target .-value)])
     :value (<sub [::graph-text])}])
+
+(defn debug-quick-val-set []
+  [:<>
+    [:<>
+     [:span "Range "(<sub [::number-input])]
+     [:input {:type "range"
+              :value (<sub [::number-input])
+              :onChange #(>evt [::set-number-input (-> % .-target .-value)])}]]
+    [:<> [:span "Number"] [:input {:type "number"
+                                   :value (<sub [::number-input])
+                                   :onChange #(>evt [::set-number-input (-> % .-target .-value)])}]]
+    [:<> [:span "Toggle"] [:input {:type "checkbox"
+                                   :onChange #(do (>evt [::set-toggle-input (-> % .-target .-checked)])
+                                                  (>evt [::organize-hierarchy-positions (-> % .-target .-checked)]))}]]])
 
 (def quattrocento-font "Quattrocento, serif")
 
@@ -1244,7 +1259,7 @@
       [graph-component]]]
     [panel-splitter]
     [:div#right-panel
-     {:style {:width (str "calc(100vw - 500"#_(<sub [::left-panel-size])")") ;; Just a testing value
+     {:style {:width (str "calc(100vw - "(<sub [::left-panel-size])")")
               :overflow "auto"
               :display "flex"
               :flex-direction "column"
@@ -1257,23 +1272,15 @@
        [util/error-boundary
         {:if-error [:h2 "erro"]}
         [nodes-list-view]]
-       [debug-raw-graph-text]]
-       ;; [:div
-       ;;  (<sub [::fold-list])]
-       ;; [:div
-       ;;  @(re-frame/sub :flow {:id :f-fold-list})]]
-     [:<>
-      [:span "Range "(<sub [::number-input])]
-      [:input {:type "range"
-               :value (<sub [::number-input])
-               :onChange #(>evt [::set-number-input (-> % .-target .-value)])}]]
-     [:<> [:span "Number"] [:input {:type "number"
-                                    :value (<sub [::number-input])
-                                    :onChange #(>evt [::set-number-input (-> % .-target .-value)])}]]
-     [:<> [:span "Toggle"] [:input {:type "checkbox"
-                                    :onChange #(do (>evt [::set-toggle-input (-> % .-target .-checked)])
-                                                   (>evt [::organize-hierarchy-positions (-> % .-target .-checked)]))}]]
+       (when @(re-frame/sub :flow {:id :f-editing-graph-text})
+         [edit-raw-graph-text])]
      [botton-buttons]]]])
+     ;; [:div
+     ;;  (<sub [::fold-list])]
+     ;; [:div
+     ;;  (str @(re-frame/sub :flow {:id :f-editing-graph-text}))]]]])
+     ;; ;; This is for testing values in a fast way, can be plugged in different components.
+     ;; [debug-quick-val-set]]]])
 
 (defn set-toggle-input
   [app-state [_event n]]
