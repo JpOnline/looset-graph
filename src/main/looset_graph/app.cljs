@@ -1,6 +1,7 @@
 (ns looset-graph.app
   (:require
     [cljs.reader]
+    [clojure.data]
     [clojure.set :as set]
     [clojure.string]
     [looset-graph.graph-parser :as graph-parser]
@@ -28,6 +29,20 @@
     (f (map (fn [[k default]]
               (or (get m k) default))
             (partition 2 defaults-vec)))))
+
+(def event-to-analytics
+  (re-frame/->interceptor
+    :id :event-to-analytics
+    :after (fn [context]
+             (let [[evt value] (:event (:coeffects context))
+                   evt-name (if (keyword? evt) (name evt) (str evt))
+                   map->str (fn [m k v] (assoc m k (if (map? v) (str v) v)))
+                   evt-value (if (map? value)
+                               (clj->js (reduce-kv map->str {} value))
+                               #js{"value" value})]
+               (js/gtag "event" evt-name evt-value)
+               ;; (js/console.log evt-name evt-value)
+               context))))
 
 ;; ---- Subs ----
 
@@ -572,9 +587,10 @@
           node-k (rename-if-label node-k*)
           node-children (seq (map rename-if-label (:children node-v)))
           edges-to (->> node-v :edges-to vals (map vec) flatten (map rename-if-label) seq)
-          custom-props (dissoc node-v :type :edges-to :edges-from :label :children :foldable :parent)
-          _ (assert (= custom-props (select-keys node-v [:name :position]))
-                    "Some new node property was addes, so should it be included in the text model or not?")]
+          custom-props (dissoc node-v :type :edges-to :edges-from :label :children :foldable :parent :hidden?)
+          custom-props* (select-keys node-v [:name :position])
+          _ (assert (= custom-props custom-props*)
+                    (str "Some new node property was added, so should it be included in the text model or not?\nThe difference was "(clojure.data/diff custom-props custom-props*)))]
       [(if node-children
          (apply str (flatten (concat [children node-k ":\n"] (map #(str "  "%"\n") node-children) ["\n"])))
          children)
@@ -639,7 +655,7 @@
          (-> app-state
            (assoc-in [:domain :graph-text] v)
            (assoc-in [:ui :validation :valid-graph?] false)))))
-(re-frame/reg-event-db ::set-graph-text set-graph-text)
+(re-frame/reg-event-db ::set-graph-text [event-to-analytics] set-graph-text)
 
 (defn toggle-open-close
   [app-state [_event path]]
@@ -653,7 +669,10 @@
     (if (get-in app-state [:ui :mouse-select-mode] false)
       (update-in app-state [:ui :clicked-nodes] #(toggly-add (set %) #{(last path)}))
       (toggle-open-close app-state [event path]))))
-(re-frame/reg-event-db ::nodes-list-item-clicked nodes-list-item-clicked)
+(re-frame/reg-event-db
+  ::nodes-list-item-clicked
+  [event-to-analytics]
+  nodes-list-item-clicked)
 
 (defn round-by [step pos]
   (* step (js/Math.round (/ pos step))))
@@ -670,7 +689,7 @@
       (-> app-state
         (assoc-in [:ui :graph-dragging?] dragging?)
         (update-in [:ui :nodes-positions] #(merge-with merge % nodes-positions))))))
-(re-frame/reg-event-db ::set-nodes-positions set-nodes-positions)
+(re-frame/reg-event-db ::set-nodes-positions [event-to-analytics] set-nodes-positions)
 
 (defn set-vis-view
   [app-state [_event {:keys [view-position scale]}]]
@@ -692,17 +711,17 @@
         (assoc-in [:ui :graph-dragging?] dragging?)
         (update-in [:domain :nodes-map] #(merge-with merge % nodes-positions))
         (set-vis-view [event args])))))
-(re-frame/reg-event-db ::set-nodes-positions-hierarchy set-nodes-positions-hierarchy)
+(re-frame/reg-event-db ::set-nodes-positions-hierarchy [event-to-analytics] set-nodes-positions-hierarchy)
 
 (defn clear-nodes-positions
   [app-state]
   (update-in app-state [:domain :nodes-map] #(into {} (for [[k v] %] {k (dissoc v :position)}))))
-(re-frame/reg-event-db ::clear-nodes-positions clear-nodes-positions)
+(re-frame/reg-event-db ::clear-nodes-positions [event-to-analytics] clear-nodes-positions)
 
 (defn drag-changed
   [app-state [_event dragging?]]
   (assoc-in app-state [:ui :graph-dragging?] dragging?))
-(re-frame/reg-event-db ::drag-changed drag-changed)
+(re-frame/reg-event-db ::drag-changed [event-to-analytics] drag-changed)
 
 (defn toggle-hidden
   [app-state [_event node-id]]
@@ -710,7 +729,7 @@
   (-> app-state
     (update-in [:ui :nodes] #(merge-with merge % (get-in app-state [:ui :nodes-positions] {})))
     (update-in [:ui :nodes node-id :hidden?] not)))
-(re-frame/reg-event-db ::toggle-hidden toggle-hidden)
+(re-frame/reg-event-db ::toggle-hidden [event-to-analytics] toggle-hidden)
 
 (defn node-hovered
   [app-state [_event nodes-ids]]
@@ -726,7 +745,7 @@
 (defn organize-hierarchy-positions
   [app-state [_event v]]
   (assoc-in app-state [:ui :vis-options :layout :hierarchical :enabled] v))
-(re-frame/reg-event-db ::organize-hierarchy-positions organize-hierarchy-positions)
+(re-frame/reg-event-db ::organize-hierarchy-positions [event-to-analytics] organize-hierarchy-positions)
 
 (defn organize-hierarchy-positions-step-2
   [app-state [event nodes-positions]]
@@ -748,7 +767,7 @@
                      (->> (map (fn [node-id] {node-id {:hidden? true}})))
                      (->> (into {})))]
     (assoc-in app-state [:ui :nodes] all-hidden)))
-(re-frame/reg-event-db ::hide-all hide-all)
+(re-frame/reg-event-db ::hide-all [event-to-analytics] hide-all)
 
 (defn show-selected
   [app-state]
@@ -757,7 +776,7 @@
                    (map (fn [node-id] {node-id {:hidden? false}}))
                    (into {}))]
     (update-in app-state [:ui :nodes] merge unhidden)))
-(re-frame/reg-event-db ::show-selected show-selected)
+(re-frame/reg-event-db ::show-selected [event-to-analytics] show-selected)
 
 (defn collapse-all
   [app-state]
@@ -767,7 +786,7 @@
                     (->> (map (fn [node-id] {node-id {:opened? false}})))
                     (->> (into {})))]
     (assoc-in app-state [:ui :fold] all-close)))
-(re-frame/reg-event-db ::collapse-all collapse-all)
+(re-frame/reg-event-db ::collapse-all [event-to-analytics] collapse-all)
 
 (defn expand-selected
   [app-state]
@@ -776,12 +795,12 @@
                  (map (fn [node-id] {node-id {:opened? true}}))
                  (into {}))]
     (update-in app-state [:ui :fold] merge opened)))
-(re-frame/reg-event-db ::expand-selected expand-selected)
+(re-frame/reg-event-db ::expand-selected [event-to-analytics] expand-selected)
 
 (defn mouse-select-mode-evt
   [app-state [_event state]]
   (assoc-in app-state [:ui :mouse-select-mode] state))
-(re-frame/reg-event-db ::mouse-select-mode mouse-select-mode-evt)
+(re-frame/reg-event-db ::mouse-select-mode [event-to-analytics] mouse-select-mode-evt)
 
 (defn network-clicked
   [app-state [_event click-event]]
@@ -789,12 +808,12 @@
     (if (get-in app-state [:ui :mouse-select-mode] false)
       (update-in app-state [:ui :clicked-nodes] #(toggly-add (set %) (set ^js(.-nodes click-event))))
       (assoc-in app-state [:ui :clicked-nodes] (set ^js(.-nodes click-event))))))
-(re-frame/reg-event-db ::network-clicked network-clicked)
+(re-frame/reg-event-db ::network-clicked [event-to-analytics] network-clicked)
 
 (defn toggle-edit-graph-text-area
   [app-state]
   (update-in app-state [:ui :editing-graph-text] not))
-(re-frame/reg-event-db ::toggle-edit-graph-text-area toggle-edit-graph-text-area)
+(re-frame/reg-event-db ::toggle-edit-graph-text-area [event-to-analytics] toggle-edit-graph-text-area)
 
 (comment
   (require '[re-frame.db])
@@ -1368,7 +1387,9 @@
     "mousemove"
     #(>evt [::mouse-moved (-> % .-x) (-> % .-y)])))
 
-(re-frame/reg-event-db ::set-app-state
+(re-frame/reg-event-db
+  ::set-app-state
+  [event-to-analytics]
   (fn [_ [event graph-text]]
     (set-graph-text initial-state [event graph-text])))
 
