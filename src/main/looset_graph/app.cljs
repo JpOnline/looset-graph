@@ -759,15 +759,16 @@
     app-state))
 (re-frame/reg-event-db ::organize-hierarchy-positions-step-2 organize-hierarchy-positions-step-2)
 
-(defn hide-all
+(defn hide-all-or-selected
   [app-state]
-  (let [all-hidden (-> app-state
-                     (get-in [:domain :nodes-map] {})
-                     (keys)
-                     (->> (map (fn [node-id] {node-id {:hidden? true}})))
-                     (->> (into {})))]
-    (assoc-in app-state [:ui :nodes] all-hidden)))
-(re-frame/reg-event-db ::hide-all [event-to-analytics] hide-all)
+  (let [selected-nodes (-> app-state :ui :f-selected-nodes)
+        all-nodes (-> app-state (get-in [:domain :nodes-map] {}) (keys))
+        nodes-to-unhide (if (seq selected-nodes) selected-nodes all-nodes)
+        hidden (->> nodes-to-unhide
+                 (map (fn [node-id] {node-id {:hidden? true}}))
+                 (into {}))]
+    (update-in app-state [:ui :nodes] merge hidden)))
+(re-frame/reg-event-db ::hide-all-or-selected [event-to-analytics] hide-all-or-selected)
 
 (defn show-selected
   [app-state]
@@ -778,15 +779,16 @@
     (update-in app-state [:ui :nodes] merge unhidden)))
 (re-frame/reg-event-db ::show-selected [event-to-analytics] show-selected)
 
-(defn collapse-all
+(defn collapse-all-or-selected
   [app-state]
-  (let [all-close (-> app-state
-                    (get-in [:domain :nodes-map] {})
-                    (keys)
-                    (->> (map (fn [node-id] {node-id {:opened? false}})))
-                    (->> (into {})))]
-    (assoc-in app-state [:ui :fold] all-close)))
-(re-frame/reg-event-db ::collapse-all [event-to-analytics] collapse-all)
+  (let [selected-nodes (-> app-state :ui :f-selected-nodes)
+        all-nodes (-> app-state (get-in [:domain :nodes-map] {}) (keys))
+        nodes-to-collapse (if (seq selected-nodes) selected-nodes all-nodes)
+        closed (->> nodes-to-collapse
+                 (map (fn [node-id] {node-id {:opened? false}}))
+                 (into {}))]
+    (update-in app-state [:ui :fold] merge closed)))
+(re-frame/reg-event-db ::collapse-all-or-selected [event-to-analytics] collapse-all-or-selected)
 
 (defn expand-selected
   [app-state]
@@ -935,7 +937,6 @@
    {:style {:display "flex"
             :justify-content "space-evenly"
             :padding "10px"}}
-   ;; TODO Setup a new forms
    [:button.button-1
     {:title "edit graph"
      :onClick #(>evt [::toggle-edit-graph-text-area])}
@@ -943,7 +944,7 @@
      {:width "30" :height "30" :fill "currentColor" :viewBox "0 0 16 16" :xmlns "http://www.w3.org/2000/svg"}
      [:path {:fill-rule "evenodd" :d "M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"}]
      [:path {:fill-rule "evenodd" :d "M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"}]]]
-   [:a {:target "_blank" :href "" #_"https://docs.google.com/forms/d/e/1FAIpQLSd4DFTcDCl7NwjWziRn2CdoNwdiAedPCZFV0eaGA4QP1K-6iQ/viewform?usp=sf_link"}
+   [:a {:target "_blank" :href "https://docs.google.com/forms/d/e/1FAIpQLSc5SouA_vEHW8jqYrbt7IASidgaTngEwlclkrgeQ6RQXzM5nA/viewform?usp=sf_link"}
     [:button.button-1
      {:title "Feedback"}
      [:svg
@@ -1112,7 +1113,7 @@
            [:path {:fill-rule "evenodd" :d "M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"}]]]
         [:button.button-2
          {:title "hide all"
-          :onClick #(>evt [::hide-all])} ;; TODO: change behavior for ::hide-all-or-selected
+          :onClick #(>evt [::hide-all-or-selected])}
          [:svg
           {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
           [:path {:fill-rule "evenodd" :d "M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"}]
@@ -1126,7 +1127,7 @@
           [:path {:fill-rule "evenodd" :d "M1 8a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13A.5.5 0 0 1 1 8M7.646.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 1.707V5.5a.5.5 0 0 1-1 0V1.707L6.354 2.854a.5.5 0 1 1-.708-.708zM8 10a.5.5 0 0 1 .5.5v3.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 0 1 .708-.708L7.5 14.293V10.5A.5.5 0 0 1 8 10"}]]]
         [:button.button-2
          {:title "collapse all"
-          :onClick #(>evt [::collapse-all])} ;; TODO: change behavior for ::collapse-all-or-selected
+          :onClick #(>evt [::collapse-all-or-selected])}
          [:svg
           {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
           [:path {:fill-rule "evenodd" :d "M1 8a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13A.5.5 0 0 1 1 8zm7-8a.5.5 0 0 1 .5.5v3.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 1 1 .708-.708L7.5 4.293V.5A.5.5 0 0 1 8 0zm-.5 11.707-1.146 1.147a.5.5 0 0 1-.708-.708l2-2a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 11.707V15.5a.5.5 0 0 1-1 0v-3.793z"}]]])]]))
