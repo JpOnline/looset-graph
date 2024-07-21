@@ -9,7 +9,8 @@
     [re-frame.alpha :as re-frame]
     [re-frame.std-interceptors]
     [reagent.core :as reagent]
-    [reagent.dom]))
+    [reagent.dom]
+    [vis-network]))
 
 ;; ---- Util ----
 
@@ -870,7 +871,7 @@
                         (.selectNodes @network selected-nodes)))
         mount-comp (fn [component]
                      (let [container (-> js/document (.getElementById graph-component-id))]
-                       (reset! network (-> js/vis .-Network (new container nil #_options))))
+                       (reset! network (-> vis-network .-Network (new container nil #_options))))
                      (.on @network "dragStart" #_(js/console.log "dragStart") #(>evt [::drag-changed true]))
                      (.on @network "dragEnd" #(>evt [::set-nodes-positions-hierarchy {:dragging? false
                                                                                       :nodes-positions* (js->clj ^Object (.getPositions @network))
