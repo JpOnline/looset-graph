@@ -978,8 +978,7 @@
     {:keys [color]} :style
     {:keys [level hidden? path node-id]} :node}
    text]
-  (let [node-name (<sub [::nodes-map-name node-id])
-        selected-node? (<sub [::selected-node? node-id])
+  (let [selected-node? (<sub [::selected-node? node-id])
         mouse-select-mode (<sub [::mouse-select-mode])
         foldable-node? (<sub [::foldable-node? node-id])]
     [:div
@@ -1004,7 +1003,7 @@
                      foldable-node? "hover-gray"
                      :else ""))
        :style {:color (or color "inherit")}}
-      (or node-name text)]]))
+      text]]))
 
 (defn svg-label
   [{:keys [color opened?]}]
@@ -1033,14 +1032,15 @@
      [:path {:d "M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"}]]))
 
 (defn label-node [{:keys [node-id color opened?] :as node-item}]
-  [node-view
-   {:node node-item
-    :class "label-style"
-    :style {:color color}}
-   [:<>
-     [svg-label {:opened? opened?
-                 :color color}]
-     node-id]])
+  (let [node-name (<sub [::nodes-map-name node-id])]
+    [node-view
+     {:node node-item
+      :class "label-style"
+      :style {:color color}}
+     [:<>
+       [svg-label {:opened? opened?
+                   :color color}]
+       (or node-name node-id)]]))
 
 (defn lix-node [{:keys [node-id opened?] :as node-item}]
   [node-view

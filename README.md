@@ -11,6 +11,8 @@ Use `shadow-cljs release frontend` to generate releasable js.
 
 Use `shadow-cljs watch frontend` to fire hot reload.
 
+Use `shadow-cljs release frontend --debug` to show function names in console errors.
+
 <br>
 Note: The NPM module antlr4 was generating buggy .js files, so download the antlr4 module through the command
 
