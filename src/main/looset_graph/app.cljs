@@ -429,9 +429,9 @@
    :inputs {:nodes-map (re-frame/flow<- :nodes-map)
             :fold-ui [:ui :fold]}
    ;; :output (fn [{:keys [nodes-map fold-ui]}] (nodes-map->fold-list [(or nodes-map {}) (or fold-ui {})]))})
-   :output (fn [{:keys [nodes-map fold-ui]}] (nodes-map->fold-list [nodes-map fold-ui]))})
+   :output (fn [{:keys [nodes-map fold-ui]}] (nodes-map->fold-list [nodes-map fold-ui]))
    ;; :output (with-defaults nodes-map->fold-list [:nodes-map {} :fold-ui {}])})
-   ;; :path [:ui :f-fold-list]})
+   :path [:flow-paths :f-fold-list]})
 
 (defn get-edn-string
   ([all] (get-edn-string "" all))
@@ -538,6 +538,8 @@
   ::mouse-select-mode
   :-> #(get-in % [:ui :mouse-select-mode] false))
 
+;; The name is not perfect as I added indirected ways to select nodes, and the idea is to
+;; have it selected as it was clicked..
 (defn clicked-nodes
   [app-state]
   (get-in app-state [:ui :clicked-nodes] #{}))
@@ -620,6 +622,15 @@
    :inputs {:editing-graph-text [:ui :editing-graph-text]}
    :output (with-defaults first [:editing-graph-text false])
    :path [:ui :editing-graph-text]})
+
+(defn disable-select-source-target-button?
+  [[selected]]
+  (empty? selected))
+(re-frame/reg-flow
+  {:id :disable-select-source-target-button?
+   :inputs {:selected (re-frame/flow<- :f-selected-nodes)}
+   :output (with-defaults disable-select-source-target-button? [:selected #{}])
+   :path [:flow-paths :disable-select-source-target-button?]})
 
 ;; DO NOT create new reg-subs, use reg-flow instead!
 
@@ -817,6 +828,22 @@
   [app-state]
   (update-in app-state [:ui :editing-graph-text] not))
 (re-frame/reg-event-db ::toggle-edit-graph-text-area [event-to-analytics] toggle-edit-graph-text-area)
+
+(defn select-source
+  [app-state]
+  (let [selected-nodes (-> app-state :ui :f-selected-nodes)
+        vis-edges-from (-> app-state :ui :f-vis-data :edges (->> (filter #(contains? selected-nodes (:to %)))) (->> (map :from)) set)]
+    ;; Yep, :clicked-nodes is not a perfect name, the idea is to have it selected as it was clicked..
+    (assoc-in app-state [:ui :clicked-nodes] vis-edges-from)))
+(re-frame/reg-event-db ::select-source [event-to-analytics] select-source)
+
+(defn select-target
+  [app-state]
+  (let [selected-nodes (-> app-state :ui :f-selected-nodes)
+        vis-edges-to (-> app-state :ui :f-vis-data :edges (->> (filter #(contains? selected-nodes (:from %)))) (->> (map :to)) set)]
+    ;; Yep, :clicked-nodes is not a perfect name, the idea is to have it selected as it was clicked..
+    (assoc-in app-state [:ui :clicked-nodes] vis-edges-to)))
+(re-frame/reg-event-db ::select-target [event-to-analytics] select-target)
 
 (comment
   (require '[re-frame.db])
@@ -1131,7 +1158,29 @@
           :onClick #(>evt [::collapse-all-or-selected])}
          [:svg
           {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
-          [:path {:fill-rule "evenodd" :d "M1 8a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13A.5.5 0 0 1 1 8zm7-8a.5.5 0 0 1 .5.5v3.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 1 1 .708-.708L7.5 4.293V.5A.5.5 0 0 1 8 0zm-.5 11.707-1.146 1.147a.5.5 0 0 1-.708-.708l2-2a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 11.707V15.5a.5.5 0 0 1-1 0v-3.793z"}]]])]]))
+          [:path {:fill-rule "evenodd" :d "M1 8a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13A.5.5 0 0 1 1 8zm7-8a.5.5 0 0 1 .5.5v3.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 1 1 .708-.708L7.5 4.293V.5A.5.5 0 0 1 8 0zm-.5 11.707-1.146 1.147a.5.5 0 0 1-.708-.708l2-2a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 11.707V15.5a.5.5 0 0 1-1 0v-3.793z"}]]])
+      (let [disable? @(re-frame/sub :flow {:id :disable-select-source-target-button?})]
+        [:<>
+         [:button.button-2
+          {:title "select source"
+           :onClick #(>evt [::select-source])
+           :style (when disable?
+                    {:borderColor "#00000024"
+                     :cursor "not-allowed"})}
+          [:svg
+           {:width icons-size :height icons-size :fill (if disable? "#00000024" "currentColor") :viewBox "0 0 16 16"}
+           [:path {:fill-rule "evenodd" :d "M3.5 10a.5.5 0 0 1-.5-.5v-8a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 0 0 1h2A1.5 1.5 0 0 0 14 9.5v-8A1.5 1.5 0 0 0 12.5 0h-9A1.5 1.5 0 0 0 2 1.5v8A1.5 1.5 0 0 0 3.5 11h2a.5.5 0 0 0 0-1z"}]
+           [:path {:fill-rule "evenodd" :d "M7.646 15.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 14.293V5.5a.5.5 0 0 0-1 0v8.793l-2.146-2.147a.5.5 0 0 0-.708.708z"}]]]
+         [:button.button-2
+          {:title "select target"
+           :onClick #(>evt [::select-target])
+           :style (when disable?
+                    {:borderColor "#00000024"
+                     :cursor "not-allowed"})}
+          [:svg
+           {:width icons-size :height icons-size :fill (if disable? "#00000024" "currentColor") :viewBox "0 0 16 16"}
+           [:path {:fill-rule "evenodd" :d "M3.5 6a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h9a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5h-2a.5.5 0 0 1 0-1h2A1.5 1.5 0 0 1 14 6.5v8a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 14.5v-8A1.5 1.5 0 0 1 3.5 5h2a.5.5 0 0 1 0 1z"}]
+           [:path {:fill-rule "evenodd" :d "M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"}]]]])]]))
 
 (def code-font-family "dejavu sans mono, monospace")
 (def code-font-size "small")
