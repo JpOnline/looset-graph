@@ -675,13 +675,28 @@
     (update-in [:ui :nodes] #(merge-with merge % (get-in app-state [:ui :nodes-positions] {})))
     (update-in (concat [:ui :fold] path [:opened?]) not)))
 
+(re-frame/reg-fx
+  :prepare-to-ctrl-c-selected-nodes
+  (fn []
+    (let [selection-el (-> js/document (.getElementById "selection"))
+          range (-> js/document .createRange)]
+      (-> js/window .getSelection .removeAllRanges)
+      (-> range (.selectNodeContents selection-el))
+      (-> js/window .getSelection (.addRange range)))))
+
+(re-frame/reg-event-fx
+  ::prepare-to-ctrl-c-selected-nodes
+  (fn []
+    {:fx [[:prepare-to-ctrl-c-selected-nodes]]}))
+
 (defn nodes-list-item-clicked
-  [app-state [event path]]
+  [{app-state :db} [event path]]
   (let [toggly-add #(set/difference (set/union %1 %2) (set/intersection %1 %2))]
-    (if (get-in app-state [:ui :mouse-select-mode] false)
-      (update-in app-state [:ui :clicked-nodes] #(toggly-add (set %) #{(last path)}))
-      (toggle-open-close app-state [event path]))))
-(re-frame/reg-event-db
+    {:fx [[:dispatch-later {:ms 30 :dispatch [::prepare-to-ctrl-c-selected-nodes]}]]
+     :db (if (get-in app-state [:ui :mouse-select-mode] false)
+           (update-in app-state [:ui :clicked-nodes] #(toggly-add (set %) #{(last path)}))
+           (toggle-open-close app-state [event path]))}))
+(re-frame/reg-event-fx
   ::nodes-list-item-clicked
   [event-to-analytics]
   nodes-list-item-clicked)
@@ -817,12 +832,13 @@
 (re-frame/reg-event-db ::mouse-select-mode [event-to-analytics] mouse-select-mode-evt)
 
 (defn network-clicked
-  [app-state [_event click-event]]
+  [{app-state :db} [_event click-event]]
   (let [toggly-add #(set/difference (set/union %1 %2) (set/intersection %1 %2))]
-    (if (get-in app-state [:ui :mouse-select-mode] false)
-      (update-in app-state [:ui :clicked-nodes] #(toggly-add (set %) (set ^js(.-nodes click-event))))
-      (assoc-in app-state [:ui :clicked-nodes] (set ^js(.-nodes click-event))))))
-(re-frame/reg-event-db ::network-clicked [event-to-analytics] network-clicked)
+    {:fx [[:dispatch-later {:ms 30 :dispatch [::prepare-to-ctrl-c-selected-nodes]}]]
+     :db (if (get-in app-state [:ui :mouse-select-mode] false)
+           (update-in app-state [:ui :clicked-nodes] #(toggly-add (set %) (set ^js(.-nodes click-event))))
+           (assoc-in app-state [:ui :clicked-nodes] (set ^js(.-nodes click-event))))}))
+(re-frame/reg-event-fx ::network-clicked [event-to-analytics] network-clicked)
 
 (defn toggle-edit-graph-text-area
   [app-state]
@@ -830,20 +846,22 @@
 (re-frame/reg-event-db ::toggle-edit-graph-text-area [event-to-analytics] toggle-edit-graph-text-area)
 
 (defn select-source
-  [app-state]
+  [{app-state :db}]
   (let [selected-nodes (-> app-state :ui :f-selected-nodes)
         vis-edges-from (-> app-state :ui :f-vis-data :edges (->> (filter #(contains? selected-nodes (:to %)))) (->> (map :from)) set)]
     ;; Yep, :clicked-nodes is not a perfect name, the idea is to have it selected as it was clicked..
-    (assoc-in app-state [:ui :clicked-nodes] vis-edges-from)))
-(re-frame/reg-event-db ::select-source [event-to-analytics] select-source)
+    {:fx [[:dispatch-later {:ms 30 :dispatch [::prepare-to-ctrl-c-selected-nodes]}]]
+     :db (assoc-in app-state [:ui :clicked-nodes] vis-edges-from)}))
+(re-frame/reg-event-fx ::select-source [event-to-analytics] select-source)
 
 (defn select-target
-  [app-state]
+  [{app-state :db}]
   (let [selected-nodes (-> app-state :ui :f-selected-nodes)
         vis-edges-to (-> app-state :ui :f-vis-data :edges (->> (filter #(contains? selected-nodes (:from %)))) (->> (map :to)) set)]
     ;; Yep, :clicked-nodes is not a perfect name, the idea is to have it selected as it was clicked..
-    (assoc-in app-state [:ui :clicked-nodes] vis-edges-to)))
-(re-frame/reg-event-db ::select-target [event-to-analytics] select-target)
+    {:fx [[:dispatch-later {:ms 30 :dispatch [::prepare-to-ctrl-c-selected-nodes]}]]
+     :db (assoc-in app-state [:ui :clicked-nodes] vis-edges-to)}))
+(re-frame/reg-event-fx ::select-target [event-to-analytics] select-target)
 
 (comment
   (require '[re-frame.db])
@@ -1321,9 +1339,22 @@
    }
    ")])
 
+(defn ctrl-c-selected-nodes
+  "This is a workaround to be able to copy the id of selected nodes.
+  It's a div that is outside of the viewport, its content is the selected nodes
+  and its text is selected when new nodes are selected. If ctrl-c is pressed,
+  then its text is copied."
+  []
+  [:div#selection
+   {:style {:position "absolute"
+            :top "110vh"
+            :padding-left "50vw"}}
+   (interleave (<sub [::clicked-nodes]) (repeat [:br]))])
+
 (defn main []
   [:<>
    [global-style]
+   [ctrl-c-selected-nodes]
    [:div#panel-container
     {:style {:display "flex"
              :user-select "none"
