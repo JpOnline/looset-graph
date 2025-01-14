@@ -45,6 +45,38 @@
                ;; (js/console.log evt-name evt-value)
                context))))
 
+(defonce events-history (atom []))
+
+(def debugging-save-events
+  (re-frame/->interceptor
+    :id :debugging-save-events
+    :after (fn [context]
+             (let [[evt _value] (:event (:coeffects context))
+                   ignored-events #{:looset-graph.app/mouse-moved
+                                    :looset-graph.app/organize-hierarchy-positions-step-2
+                                    :looset-graph.app/node-hovered}]
+               (when-not (ignored-events evt)
+                 (js/console.log (:event (:coeffects context)))
+                 (swap! events-history conj (:event (:coeffects context)))))
+             context)))
+(re-frame/reg-global-interceptor debugging-save-events)
+
+(comment
+  @events-history
+  (reset! events-history [])
+  (dorun
+    (map re-frame/dispatch
+      [
+       ;; [:looset-graph.app/drag-changed true]
+       ;; [:looset-graph.app/set-nodes-positions-hierarchy {:dragging? false, :nodes-positions* {"FilhosDeMinervinaEElpidio" {"x" -636, "y" 0}, "FilhosDeLidiaEHelio" {"x" -550, "y" 200}, "FilhosDeZuzaEWastiEEdna" {"x" 50, "y" 200}, "FilhosDeLuziaEToninho" {"x" -122, "y" -400}, "FilhosDeCelsinaESeverino" {"x" 750, "y" 200}, "FilhosDeLeusaESeverino" {"x" -1050, "y" 200}, "FilhosDeNenaESebastiao" {"x" -1250, "y" 200}, "FilhosDeIvonelEMaura" {"x" -850, "y" 200}, "Gen3" {"x" -81, "y" 0}, "FilhosDeNilzaERosalvo" {"x" 350, "y" 200}, "FilhosDeLenaEEdizio" {"x" 250, "y" 200}, "Gen2" {"x" -100, "y" -100}, "FilhosDeIreneEMateus" {"x" -1350, "y" 200}, "FilhosDeDemiroEAna" {"x" 650, "y" 200}, "Gen4" {"x" 150, "y" 200}, "FilhosDeValdevinoEMarcianaEClaudineia" {"x" 450, "y" 200}, "FilhosDeFlorindoELeninha" {"x" -950, "y" 200}, "MariaJulia" {"x" 67, "y" 300}, "FilhosDeAntonioFilhoDeMinervinaEIrene" {"x" -419, "y" -500}, "FilhosDeMarioEDirce" {"x" -1150, "y" 200}, "FilhosDeDomitiliaELucindo" {"x" 11, "y" -200}, "FilhosDeMariaENego" {"x" -50, "y" 200}, "FilhosDeLauroEAnisia" {"x" 850, "y" 200}, "FilhosDeOsvaldoEFatima" {"x" -750, "y" 200}, "FilhosDeZumiraEAntonio" {"x" -150, "y" 200}, "Gen1" {"x" -171, "y" -300}, "FilhosDeValdeciEMaria" {"x" -210, "y" -500}, "FilhosDeJosefaEVenancio" {"x" -200, "y" -100}, "FilhosDeIdevalEFrancilina" {"x" -650, "y" 200}, "FilhosDeGaldencioEEloisa" {"x" 550, "y" 200}}, :view-position #js {:x 270.60470816781583, :y 99.70860718596816}, :scale 0.2773793694576689}]
+       [:looset-graph.app/nodes-list-item-clicked ["FilhosDeNenaESebastiao"]]
+       [:looset-graph.app/prepare-to-ctrl-c-selected-nodes]
+       [:looset-graph.app/nodes-list-item-clicked ["FilhosDeIvonelEMaura"]]
+       [:looset-graph.app/prepare-to-ctrl-c-selected-nodes]
+       [:looset-graph.app/nodes-list-item-clicked ["FilhosDeLidiaEHelio"]]
+       [:looset-graph.app/prepare-to-ctrl-c-selected-nodes]]))
+)
+
 ;; ---- Subs ----
 
 ;; TODO: Replace all reg-subs for reg-flow? Maybe there's still usage for subs,
@@ -1214,7 +1246,7 @@
             :font-family code-font-family
             :font-size code-font-size}
     :onChange #(>evt [::set-graph-text (-> % .-target .-value)])
-    :value (<sub [::graph-text])}])
+    :value @(re-frame/sub :flow {:id :ui-graph-text}) #_(<sub [::graph-text])}])
 
 (defn debug-quick-val-set []
   [:<>
