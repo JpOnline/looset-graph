@@ -279,12 +279,11 @@
                             (let [id (get-in node [1 1 1])
                                   type-str (get-in node [1 0])
                                   type (type-str->type type-str)]
-                              {id (merge label-or-parent {:type type})}))
+                              {id (assoc label-or-parent :type type)}))
         inner-nodes (map extract-node-info (drop 2 foldable))
         foldable-id-node {foldable-id-name {:type foldable-type
                                             :children (set (mapcat keys inner-nodes))
-                                            :foldable (if (seq inner-nodes) true false)
-                                            :parent :global}}]
+                                            :foldable (if (seq inner-nodes) true false)}}]
     (apply merge foldable-id-node inner-nodes)))
 
 (defn deep-merge-with
@@ -334,10 +333,10 @@
                     (assoc v :parent :global) ;; Add global as a parent of nodes that have edges, but are not in a label.
                     v)
                 path (fn path
-                       ([cur-k cur-v] (conj (path cur-v) cur-k))
-                       ([cur]
-                        (if-let [parent (:parent cur)]
-                          (conj (path (nodes-map parent)) parent)
+                       ([cur-k cur-v] (conj (path {:cur cur-v :level 0}) cur-k))
+                       ([{:keys [level] {:keys [parent]} :cur}]
+                        (if (and parent (< level 4))
+                          (conj (path {:cur (nodes-map parent) :level (inc level)}) parent)
                           [])))
                 ;; _ (tap> {:k k :path (path k v) :global? (if (and (not (:label v)) (not (:parent v))) :global (:parent v))})
                 to-assoc (get-in r (path k v) {})
@@ -417,18 +416,37 @@
 
 (defn no-memo-nodes-map*
   [{:keys [graph-ast]}]
-  (let [nodes-from-edges (->> graph-ast
+  (let [nodes-from-foldable-rules (->> graph-ast
+                                    (filter #(= "foldable" (first %)))
+                                    (mapv extract-nodes-from-foldable-rule))
+
+        nodes-from-edges (->> graph-ast
                            (filter #(= "edge" (first %)))
                            (mapcat extract-nodes-from-edge-rule))
         node-props (->> graph-ast
                      (filter #(= "nodeProps" (first %)))
-                     (mapcat extract-edn-props))]
-    (->> graph-ast
-      (filter #(= "foldable" (first %)))
-      (mapv extract-nodes-from-foldable-rule)
-      (concat nodes-from-edges)
-      (concat node-props)
-      (merge-nodes))))
+                     (mapcat extract-edn-props))
+
+        ;; Consolidates the nodes from the 3 types of rules.
+        merged-nodes
+        (merge-nodes
+          (concat nodes-from-foldable-rules
+                  nodes-from-edges
+                  node-props))
+
+        ;; Extra step to go through the nodes and see what are the lixs' children to define
+        ;; nodes parents and which ones are global
+        nodes-with-parents-but-not-globals
+        (reduce (fn [nodes [k {:keys [children]}]]
+                  (reduce #(assoc-in %1 [%2 :parent] k) nodes children))
+                merged-nodes
+                merged-nodes)
+
+        nodes-with-parents
+        (update-vals nodes-with-parents-but-not-globals
+                     #(if (:parent %) % (assoc % :parent :global)))]
+    nodes-with-parents))
+
 (def nodes-map* (memoize no-memo-nodes-map*))
 (re-frame/reg-flow
  {:id     :nodes-map*

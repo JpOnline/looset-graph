@@ -17,7 +17,7 @@
   (re-frame.test/run-test-sync
     (let [sub-under-test (re-frame/subscribe [::app/visible-nodes])
           selected-nodes (re-frame/subscribe [::app/selected-nodes])
-          input-graph-text "=>label1:\n  node1\n  node2\n  node5\n\nnode6:\n  node7\n\n=>label5:\n  =>label6\n\n=>label2:\n  node5\n\nnode8:\n  node9\n\nnode7:\n  node8\n  =>label7\n\n=>label4:\n  node3\n\n=>label6:\n  =>label5\n\n=>label7:\n  node1\n\n=>label3:\n  node1\n  node2\n  =>label4\n\nnode3:\n  node4\n  node5\n\nnode9:\n  node10\n\n=>label1 -> node6\nnodeA -> nodeB\nnode4 -> node1\nnode1 -> node2\n\n=>label1 {:position {\"x\" -47, \"y\" 100}}\nnodeB {:position {\"x\" -164, \"y\" -100}}\nnode6 {:position {\"x\" -139, \"y\" 100}}\n=>label5 {:position {\"x\" 9, \"y\" 0}}\n=>label2 {:position {\"x\" 81, \"y\" -100}}\nnode7 {:position {\"x\" 47, \"y\" -200}}\nnodeA {:position {\"x\" -156, \"y\" 0}}\n=>label4 {:position {\"x\" -24, \"y\" -100}}\n=>label6 {:position {\"x\" 45, \"y\" -100}}\n=>label7 {:position {\"x\" 131, \"y\" 0}}\n=>label3 {:position {\"x\" 39, \"y\" 0}}\nnode3 {:position {\"x\" 164, \"y\" 100}}\nnode9 {:position {\"x\" 1, \"y\" -100}}\n"]
+          input-graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label5:\n  =>label6\n\n=>label2:\n  node5\n\nnode8:\n  node9\n\nnode7:\n  node8\n  =>label7\n\n=>label6:\n  =>label5\n\n=>label7:\n  node1\n\n=>label3:\n  node1\n  node2\n  =>label4\n\nnode3:\n  node4\n  node5\n\nnode9:\n  node10\n\n=>label1 -> node6\nnodeA -> nodeB\nnode4 -> node1\nnode1 -> node2\n\n=>label1 {:position {\"x\" -47, \"y\" 100}}\nnodeB {:position {\"x\" -164, \"y\" -100}}\nnode6 {:position {\"x\" -139, \"y\" 100}}\n=>label5 {:position {\"x\" 9, \"y\" 0}}\n=>label2 {:position {\"x\" 81, \"y\" -100}}\nnode7 {:position {\"x\" 47, \"y\" -200}}\nnodeA {:position {\"x\" -156, \"y\" 0}}\n=>label4 {:position {\"x\" -24, \"y\" -100}}\n=>label6 {:position {\"x\" 45, \"y\" -100}}\n=>label7 {:position {\"x\" 131, \"y\" 0}}\n=>label3 {:position {\"x\" 39, \"y\" 0}}\nnode3 {:position {\"x\" 164, \"y\" 100}}\nnode9 {:position {\"x\" 1, \"y\" -100}}\n"]
       (re-frame/dispatch [::app/set-app-state input-graph-text])
       (re-frame/dispatch [:looset-graph.app/hide-all-or-selected])
       (is (= #{} @selected-nodes))
@@ -60,31 +60,31 @@
 (deftest hiding-multiple
   (re-frame.test/run-test-sync
     (let [sub-under-test (re-frame/subscribe [::app/visible-nodes])
-          input-graph-text "=>label1:\n  node1\n  node2\n  node5\n\nnode6:\n  node7\n\n=>label5:\n  =>label6\n\n=>label2:\n  node5\n\nnode8:\n  node9\n\nnode7:\n  node8\n  =>label7\n\n=>label4:\n  node3\n\n=>label6:\n  =>label5\n\n=>label7:\n  node1\n\n=>label3:\n  node1\n  node2\n  =>label4\n\nnode3:\n  node4\n  node5\n\nnode9:\n  node10\n\n=>label1 -> node6\nnodeA -> nodeB\nnode4 -> node1\nnode1 -> node2\n\n=>label1 {:position {\"x\" -47, \"y\" 100}}\nnodeB {:position {\"x\" -164, \"y\" -100}}\nnode6 {:position {\"x\" -139, \"y\" 100}}\n=>label5 {:position {\"x\" 9, \"y\" 0}}\n=>label2 {:position {\"x\" 81, \"y\" -100}}\nnode7 {:position {\"x\" 47, \"y\" -200}}\nnodeA {:position {\"x\" -156, \"y\" 0}}\n=>label4 {:position {\"x\" -24, \"y\" -100}}\n=>label6 {:position {\"x\" 45, \"y\" -100}}\n=>label7 {:position {\"x\" 131, \"y\" 0}}\n=>label3 {:position {\"x\" 39, \"y\" 0}}\nnode3 {:position {\"x\" 164, \"y\" 100}}\nnode9 {:position {\"x\" 1, \"y\" -100}}\n"]
+          input-graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label5:\n  =>label6\n\n=>label2:\n  node5\n\nnode8:\n  node9\n\nnode7:\n  node8\n  =>label7\n\n=>label6:\n  =>label5\n\n=>label7:\n  node1\n\n=>label3:\n  node1\n  node2\n  =>label4\n\nnode3:\n  node4\n  node5\n\nnode9:\n  node10\n\n=>label1 -> node6\nnodeA -> nodeB\nnode4 -> node1\nnode1 -> node2\n\n=>label1 {:position {\"x\" -47, \"y\" 100}}\nnodeB {:position {\"x\" -164, \"y\" -100}}\nnode6 {:position {\"x\" -139, \"y\" 100}}\n=>label5 {:position {\"x\" 9, \"y\" 0}}\n=>label2 {:position {\"x\" 81, \"y\" -100}}\nnode7 {:position {\"x\" 47, \"y\" -200}}\nnodeA {:position {\"x\" -156, \"y\" 0}}\n=>label4 {:position {\"x\" -24, \"y\" -100}}\n=>label6 {:position {\"x\" 45, \"y\" -100}}\n=>label7 {:position {\"x\" 131, \"y\" 0}}\n=>label3 {:position {\"x\" 39, \"y\" 0}}\nnode3 {:position {\"x\" 164, \"y\" 100}}\nnode9 {:position {\"x\" 1, \"y\" -100}}\n"]
       (re-frame/dispatch [::app/set-app-state input-graph-text])
-      (is (= 13 (count @sub-under-test)))
+      (is (= 8 (count @sub-under-test)))
       (re-frame/dispatch [:looset-graph.app/mouse-select-mode true])
       (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["label3"]])
       (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node7"]])
       (re-frame/dispatch [:looset-graph.app/hide-all-or-selected])
-      (is (= 11 (count @sub-under-test)))
+      (is (= 6 (count @sub-under-test)))
       (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node7"]])
       (re-frame/dispatch [:looset-graph.app/show-selected])
-      (is (= 12 (count @sub-under-test))))))
+      (is (= 7 (count @sub-under-test))))))
 
 (deftest hide-all
   (re-frame.test/run-test-sync
     (let [sub-under-test (re-frame/subscribe [::app/visible-nodes])
-          input-graph-text "=>label1:\n  node1\n  node2\n  node5\n\nnode6:\n  node7\n\n=>label5:\n  =>label6\n\n=>label2:\n  node5\n\nnode8:\n  node9\n\nnode7:\n  node8\n  =>label7\n\n=>label4:\n  node3\n\n=>label6:\n  =>label5\n\n=>label7:\n  node1\n\n=>label3:\n  node1\n  node2\n  =>label4\n\nnode3:\n  node4\n  node5\n\nnode9:\n  node10\n\n=>label1 -> node6\nnodeA -> nodeB\nnode4 -> node1\nnode1 -> node2\n\n=>label1 {:position {\"x\" -47, \"y\" 100}}\nnodeB {:position {\"x\" -164, \"y\" -100}}\nnode6 {:position {\"x\" -139, \"y\" 100}}\n=>label5 {:position {\"x\" 9, \"y\" 0}}\n=>label2 {:position {\"x\" 81, \"y\" -100}}\nnode7 {:position {\"x\" 47, \"y\" -200}}\nnodeA {:position {\"x\" -156, \"y\" 0}}\n=>label4 {:position {\"x\" -24, \"y\" -100}}\n=>label6 {:position {\"x\" 45, \"y\" -100}}\n=>label7 {:position {\"x\" 131, \"y\" 0}}\n=>label3 {:position {\"x\" 39, \"y\" 0}}\nnode3 {:position {\"x\" 164, \"y\" 100}}\nnode9 {:position {\"x\" 1, \"y\" -100}}\n"]
+          input-graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label5:\n  =>label6\n\n=>label2:\n  node5\n\nnode8:\n  node9\n\nnode7:\n  node8\n  =>label7\n\n=>label6:\n  =>label5\n\n=>label7:\n  node1\n\n=>label3:\n  node1\n  node2\n  =>label4\n\nnode3:\n  node4\n  node5\n\nnode9:\n  node10\n\n=>label1 -> node6\nnodeA -> nodeB\nnode4 -> node1\nnode1 -> node2\n\n=>label1 {:position {\"x\" -47, \"y\" 100}}\nnodeB {:position {\"x\" -164, \"y\" -100}}\nnode6 {:position {\"x\" -139, \"y\" 100}}\n=>label5 {:position {\"x\" 9, \"y\" 0}}\n=>label2 {:position {\"x\" 81, \"y\" -100}}\nnode7 {:position {\"x\" 47, \"y\" -200}}\nnodeA {:position {\"x\" -156, \"y\" 0}}\n=>label4 {:position {\"x\" -24, \"y\" -100}}\n=>label6 {:position {\"x\" 45, \"y\" -100}}\n=>label7 {:position {\"x\" 131, \"y\" 0}}\n=>label3 {:position {\"x\" 39, \"y\" 0}}\nnode3 {:position {\"x\" 164, \"y\" 100}}\nnode9 {:position {\"x\" 1, \"y\" -100}}\n"]
       (re-frame/dispatch [::app/set-app-state input-graph-text])
-      (is (= 13 (count @sub-under-test)))
+      (is (= 8 (count @sub-under-test)))
       (re-frame/dispatch [:looset-graph.app/hide-all-or-selected])
       (is (= 0 (count @sub-under-test))))))
 
 (deftest node-selection
   (re-frame.test/run-test-sync
     (let [sub-under-test (re-frame/subscribe [::app/selected-nodes])
-          input-graph-text "=>label1:\n  node1\n  node2\n  node5\n\nnode6:\n  node7\n\n=>label5:\n  =>label6\n\n=>label2:\n  node5\n\nnode8:\n  node9\n\nnode7:\n  node8\n  =>label7\n\n=>label4:\n  node3\n\n=>label6:\n  =>label5\n\n=>label7:\n  node1\n\n=>label3:\n  node1\n  node2\n  =>label4\n\nnode3:\n  node4\n  node5\n\nnode9:\n  node10\n\n=>label1 -> node6\nnodeA -> nodeB\nnode4 -> node1\nnode1 -> node2\n\n=>label1 {:position {\"x\" -47, \"y\" 100}}\nnodeB {:position {\"x\" -164, \"y\" -100}}\nnode6 {:position {\"x\" -139, \"y\" 100}}\n=>label5 {:position {\"x\" 9, \"y\" 0}}\n=>label2 {:position {\"x\" 81, \"y\" -100}}\nnode7 {:position {\"x\" 47, \"y\" -200}}\nnodeA {:position {\"x\" -156, \"y\" 0}}\n=>label4 {:position {\"x\" -24, \"y\" -100}}\n=>label6 {:position {\"x\" 45, \"y\" -100}}\n=>label7 {:position {\"x\" 131, \"y\" 0}}\n=>label3 {:position {\"x\" 39, \"y\" 0}}\nnode3 {:position {\"x\" 164, \"y\" 100}}\nnode9 {:position {\"x\" 1, \"y\" -100}}\n"]
+          input-graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label5:\n  =>label6\n\n=>label2:\n  node5\n\nnode8:\n  node9\n\nnode7:\n  node8\n  =>label7\n\n=>label6:\n  =>label5\n\n=>label7:\n  node1\n\n=>label3:\n  node1\n  node2\n  =>label4\n\nnode3:\n  node4\n  node5\n\nnode9:\n  node10\n\n=>label1 -> node6\nnodeA -> nodeB\nnode4 -> node1\nnode1 -> node2\n\n=>label1 {:position {\"x\" -47, \"y\" 100}}\nnodeB {:position {\"x\" -164, \"y\" -100}}\nnode6 {:position {\"x\" -139, \"y\" 100}}\n=>label5 {:position {\"x\" 9, \"y\" 0}}\n=>label2 {:position {\"x\" 81, \"y\" -100}}\nnode7 {:position {\"x\" 47, \"y\" -200}}\nnodeA {:position {\"x\" -156, \"y\" 0}}\n=>label4 {:position {\"x\" -24, \"y\" -100}}\n=>label6 {:position {\"x\" 45, \"y\" -100}}\n=>label7 {:position {\"x\" 131, \"y\" 0}}\n=>label3 {:position {\"x\" 39, \"y\" 0}}\nnode3 {:position {\"x\" 164, \"y\" 100}}\nnode9 {:position {\"x\" 1, \"y\" -100}}\n"]
       (re-frame/dispatch [::app/set-app-state input-graph-text])
       (is (= #{} @sub-under-test))
       (re-frame/dispatch [:looset-graph.app/mouse-select-mode true])
@@ -103,7 +103,7 @@
 (deftest click-default-layout
   (re-frame.test/run-test-sync
     (let [node7-position #(-> @re-frame.db/app-db :domain :nodes-map (get "node7") :position)
-          input-graph-text "=>label1:\n  node1\n  node2\n  node5\n\nnode6:\n  node7\n\n=>label5:\n  =>label6\n\n=>label2:\n  node5\n\nnode8:\n  node9\n\nnode7:\n  node8\n  =>label7\n\n=>label4:\n  node3\n\n=>label6:\n  =>label5\n\n=>label7:\n  node1\n\n=>label3:\n  node1\n  node2\n  =>label4\n\nnode3:\n  node4\n  node5\n\nnode9:\n  node10\n\n=>label1 -> node6\nnodeA -> nodeB\nnode4 -> node1\nnode1 -> node2\n\n=>label1 {:position {\"x\" -47, \"y\" 100}}\nnodeB {:position {\"x\" -164, \"y\" -100}}\nnode6 {:position {\"x\" -139, \"y\" 100}}\n=>label5 {:position {\"x\" 9, \"y\" 0}}\n=>label2 {:position {\"x\" 81, \"y\" -100}}\nnode7 {:position {\"x\" 47, \"y\" -200}}\nnodeA {:position {\"x\" -156, \"y\" 0}}\n=>label4 {:position {\"x\" -24, \"y\" -100}}\n=>label6 {:position {\"x\" 45, \"y\" -100}}\n=>label7 {:position {\"x\" 131, \"y\" 0}}\n=>label3 {:position {\"x\" 39, \"y\" 0}}\nnode3 {:position {\"x\" 164, \"y\" 100}}\nnode9 {:position {\"x\" 1, \"y\" -100}}\n"]
+          input-graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label5:\n  =>label6\n\n=>label2:\n  node5\n\nnode8:\n  node9\n\nnode7:\n  node8\n  =>label7\n\n=>label6:\n  =>label5\n\n=>label7:\n  node1\n\n=>label3:\n  node1\n  node2\n  =>label4\n\nnode3:\n  node4\n  node5\n\nnode9:\n  node10\n\n=>label1 -> node6\nnodeA -> nodeB\nnode4 -> node1\nnode1 -> node2\n\n=>label1 {:position {\"x\" -47, \"y\" 100}}\nnodeB {:position {\"x\" -164, \"y\" -100}}\nnode6 {:position {\"x\" -139, \"y\" 100}}\n=>label5 {:position {\"x\" 9, \"y\" 0}}\n=>label2 {:position {\"x\" 81, \"y\" -100}}\nnode7 {:position {\"x\" 47, \"y\" -200}}\nnodeA {:position {\"x\" -156, \"y\" 0}}\n=>label4 {:position {\"x\" -24, \"y\" -100}}\n=>label6 {:position {\"x\" 45, \"y\" -100}}\n=>label7 {:position {\"x\" 131, \"y\" 0}}\n=>label3 {:position {\"x\" 39, \"y\" 0}}\nnode3 {:position {\"x\" 164, \"y\" 100}}\nnode9 {:position {\"x\" 1, \"y\" -100}}\n"]
       (re-frame/dispatch [::app/set-app-state input-graph-text])
       (is (= {"x" 47, "y" -200}
              (node7-position)))
@@ -113,7 +113,7 @@
 (deftest toggle-node-visibility
   (re-frame.test/run-test-sync
     (let [sub-under-test (re-frame/subscribe [::app/visible-nodes])
-          input-graph-text "=>label1:\n  node1\n  node2\n  node5\n\nnode6:\n  node7\n\n=>label5:\n  =>label6\n\n=>label2:\n  node5\n\nnode8:\n  node9\n\nnode7:\n  node8\n  =>label7\n\n=>label4:\n  node3\n\n=>label6:\n  =>label5\n\n=>label7:\n  node1\n\n=>label3:\n  node1\n  node2\n  =>label4\n\nnode3:\n  node4\n  node5\n\nnode9:\n  node10\n\n=>label1 -> node6\nnodeA -> nodeB\nnode4 -> node1\nnode1 -> node2\n\n=>label1 {:position {\"x\" -47, \"y\" 100}}\nnodeB {:position {\"x\" -164, \"y\" -100}}\nnode6 {:position {\"x\" -139, \"y\" 100}}\n=>label5 {:position {\"x\" 9, \"y\" 0}}\n=>label2 {:position {\"x\" 81, \"y\" -100}}\nnode7 {:position {\"x\" 47, \"y\" -200}}\nnodeA {:position {\"x\" -156, \"y\" 0}}\n=>label4 {:position {\"x\" -24, \"y\" -100}}\n=>label6 {:position {\"x\" 45, \"y\" -100}}\n=>label7 {:position {\"x\" 131, \"y\" 0}}\n=>label3 {:position {\"x\" 39, \"y\" 0}}\nnode3 {:position {\"x\" 164, \"y\" 100}}\nnode9 {:position {\"x\" 1, \"y\" -100}}\n"]
+          input-graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label5:\n  =>label6\n\n=>label2:\n  node5\n\nnode8:\n  node9\n\nnode7:\n  node8\n  =>label7\n\n=>label6:\n  =>label5\n\n=>label7:\n  node1\n\n=>label3:\n  node1\n  node2\n  =>label4\n\nnode3:\n  node4\n  node5\n\nnode9:\n  node10\n\n=>label1 -> node6\nnodeA -> nodeB\nnode4 -> node1\nnode1 -> node2\n\n=>label1 {:position {\"x\" -47, \"y\" 100}}\nnodeB {:position {\"x\" -164, \"y\" -100}}\nnode6 {:position {\"x\" -139, \"y\" 100}}\n=>label5 {:position {\"x\" 9, \"y\" 0}}\n=>label2 {:position {\"x\" 81, \"y\" -100}}\nnode7 {:position {\"x\" 47, \"y\" -200}}\nnodeA {:position {\"x\" -156, \"y\" 0}}\n=>label4 {:position {\"x\" -24, \"y\" -100}}\n=>label6 {:position {\"x\" 45, \"y\" -100}}\n=>label7 {:position {\"x\" 131, \"y\" 0}}\n=>label3 {:position {\"x\" 39, \"y\" 0}}\nnode3 {:position {\"x\" 164, \"y\" 100}}\nnode9 {:position {\"x\" 1, \"y\" -100}}\n"]
       (re-frame/dispatch [::app/set-app-state input-graph-text])
       (is (= "node7" (@sub-under-test "node7")))
       (re-frame/dispatch [::app/toggle-hidden "node7"])
@@ -123,7 +123,7 @@
 (deftest drag-node
   (re-frame.test/run-test-sync
     (let [node7-position #(-> @re-frame.db/app-db :domain :nodes-map (get "node7") :position)
-          input-graph-text "=>label1:\n  node1\n  node2\n  node5\n\nnode6:\n  node7\n\n=>label5:\n  =>label6\n\n=>label2:\n  node5\n\nnode8:\n  node9\n\nnode7:\n  node8\n  =>label7\n\n=>label4:\n  node3\n\n=>label6:\n  =>label5\n\n=>label7:\n  node1\n\n=>label3:\n  node1\n  node2\n  =>label4\n\nnode3:\n  node4\n  node5\n\nnode9:\n  node10\n\n=>label1 -> node6\nnodeA -> nodeB\nnode4 -> node1\nnode1 -> node2\n\n=>label1 {:position {\"x\" -47, \"y\" 100}}\nnodeB {:position {\"x\" -164, \"y\" -100}}\nnode6 {:position {\"x\" -139, \"y\" 100}}\n=>label5 {:position {\"x\" 9, \"y\" 0}}\n=>label2 {:position {\"x\" 81, \"y\" -100}}\nnode7 {:position {\"x\" 47, \"y\" -200}}\nnodeA {:position {\"x\" -156, \"y\" 0}}\n=>label4 {:position {\"x\" -24, \"y\" -100}}\n=>label6 {:position {\"x\" 45, \"y\" -100}}\n=>label7 {:position {\"x\" 131, \"y\" 0}}\n=>label3 {:position {\"x\" 39, \"y\" 0}}\nnode3 {:position {\"x\" 164, \"y\" 100}}\nnode9 {:position {\"x\" 1, \"y\" -100}}\n"]
+          input-graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label5:\n  =>label6\n\n=>label2:\n  node5\n\nnode8:\n  node9\n\nnode7:\n  node8\n  =>label7\n\n=>label6:\n  =>label5\n\n=>label7:\n  node1\n\n=>label3:\n  node1\n  node2\n  =>label4\n\nnode3:\n  node4\n  node5\n\nnode9:\n  node10\n\n=>label1 -> node6\nnodeA -> nodeB\nnode4 -> node1\nnode1 -> node2\n\n=>label1 {:position {\"x\" -47, \"y\" 100}}\nnodeB {:position {\"x\" -164, \"y\" -100}}\nnode6 {:position {\"x\" -139, \"y\" 100}}\n=>label5 {:position {\"x\" 9, \"y\" 0}}\n=>label2 {:position {\"x\" 81, \"y\" -100}}\nnode7 {:position {\"x\" 47, \"y\" -200}}\nnodeA {:position {\"x\" -156, \"y\" 0}}\n=>label4 {:position {\"x\" -24, \"y\" -100}}\n=>label6 {:position {\"x\" 45, \"y\" -100}}\n=>label7 {:position {\"x\" 131, \"y\" 0}}\n=>label3 {:position {\"x\" 39, \"y\" 0}}\nnode3 {:position {\"x\" 164, \"y\" 100}}\nnode9 {:position {\"x\" 1, \"y\" -100}}\n"]
       (re-frame/dispatch [::app/set-app-state input-graph-text])
       (is (= {"x" 47, "y" -200}
              (node7-position)))
@@ -137,7 +137,7 @@
 (deftest set-graph-text
   (re-frame.test/run-test-sync
     (let [sub-under-test (re-frame/subscribe [::app/nodes-map])
-          input-graph-text "=>label1:\n  node1\n  node2\n  node5\n\nnode6:\n  node7\n\n=>label5:\n  =>label6\n\n=>label2:\n  node5\n\nnode8:\n  node9\n\nnode7:\n  node8\n  =>label7\n\n=>label4:\n  node3\n\n=>label6:\n  =>label5\n\n=>label7:\n  node1\n\n=>label3:\n  node1\n  node2\n  =>label4\n\nnode3:\n  node4\n  node5\n\nnode9:\n  node10\n\n=>label1 -> node6\nnodeA -> nodeB\nnode4 -> node1\nnode1 -> node2\n\n=>label1 {:position {\"x\" -47, \"y\" 100}}\nnodeB {:position {\"x\" -164, \"y\" -100}}\nnode6 {:position {\"x\" -139, \"y\" 100}}\n=>label5 {:position {\"x\" 9, \"y\" 0}}\n=>label2 {:position {\"x\" 81, \"y\" -100}}\nnode7 {:position {\"x\" 47, \"y\" -200}}\nnodeA {:position {\"x\" -156, \"y\" 0}}\n=>label4 {:position {\"x\" -24, \"y\" -100}}\n=>label6 {:position {\"x\" 45, \"y\" -100}}\n=>label7 {:position {\"x\" 131, \"y\" 0}}\n=>label3 {:position {\"x\" 39, \"y\" 0}}\nnode3 {:position {\"x\" 164, \"y\" 100}}\nnode9 {:position {\"x\" 1, \"y\" -100}}\n"]
+          input-graph-text "=>label1:\n  node1\n  node2\n  node5\n\nnode6:\n  node7\n\n=>label5:\n  =>label6\n\n=>label2:\n  node5\n\nnode8:\n  node9\n\nnode7:\n  node8\n  =>label7\n\n=>label6:\n  =>label5\n\n=>label7:\n  node1\n\n=>label3:\n  node1\n  node2\n  =>label4\n\nnode3:\n  node4\n  node5\n\nnode9:\n  node10\n\n=>label1 -> node6\nnodeA -> nodeB\nnode4 -> node1\nnode1 -> node2\n\n=>label1 {:position {\"x\" -47, \"y\" 100}}\nnodeB {:position {\"x\" -164, \"y\" -100}}\nnode6 {:position {\"x\" -139, \"y\" 100}}\n=>label5 {:position {\"x\" 9, \"y\" 0}}\n=>label2 {:position {\"x\" 81, \"y\" -100}}\nnode7 {:position {\"x\" 47, \"y\" -200}}\nnodeA {:position {\"x\" -156, \"y\" 0}}\n=>label4 {:position {\"x\" -24, \"y\" -100}}\n=>label6 {:position {\"x\" 45, \"y\" -100}}\n=>label7 {:position {\"x\" 131, \"y\" 0}}\n=>label3 {:position {\"x\" 39, \"y\" 0}}\nnode3 {:position {\"x\" 164, \"y\" 100}}\nnode9 {:position {\"x\" 1, \"y\" -100}}\n"]
       (re-frame/dispatch [::app/set-app-state input-graph-text])
       (is (= ["label1" "nodeB" "node6" "label5" "label2" "node8" "node7" "node10" "node5" "nodeA" "label4" "label6" "label7" "node4" "node1" "node2" "label3" "node3" "node9"]
              (keys @sub-under-test))))))
@@ -196,7 +196,7 @@
 (deftest resizing-panel
   (re-frame.test/run-test-sync
     (let [left-panel-size (re-frame/subscribe [::app/left-panel-size])
-          input-graph-text "=>label1:\n  node1\n  node2\n  node5\n\nnode6:\n  node7\n\n=>label5:\n  =>label6\n\n=>label2:\n  node5\n\nnode8:\n  node9\n\nnode7:\n  node8\n  =>label7\n\n=>label4:\n  node3\n\n=>label6:\n  =>label5\n\n=>label7:\n  node1\n\n=>label3:\n  node1\n  node2\n  =>label4\n\nnode3:\n  node4\n  node5\n\nnode9:\n  node10\n\n=>label1 -> node6\nnodeA -> nodeB\nnode4 -> node1\nnode1 -> node2\n\n=>label1 {:position {\"x\" -47, \"y\" 100}}\nnodeB {:position {\"x\" -164, \"y\" -100}}\nnode6 {:position {\"x\" -139, \"y\" 100}}\n=>label5 {:position {\"x\" 9, \"y\" 0}}\n=>label2 {:position {\"x\" 81, \"y\" -100}}\nnode7 {:position {\"x\" 47, \"y\" -200}}\nnodeA {:position {\"x\" -156, \"y\" 0}}\n=>label4 {:position {\"x\" -24, \"y\" -100}}\n=>label6 {:position {\"x\" 45, \"y\" -100}}\n=>label7 {:position {\"x\" 131, \"y\" 0}}\n=>label3 {:position {\"x\" 39, \"y\" 0}}\nnode3 {:position {\"x\" 164, \"y\" 100}}\nnode9 {:position {\"x\" 1, \"y\" -100}}\n"]
+          input-graph-text "=>label1:\n  node1\n  node2\n  node5\n\nnode6:\n  node7\n\n=>label5:\n  =>label6\n\n=>label2:\n  node5\n\nnode8:\n  node9\n\nnode7:\n  node8\n  =>label7\n\n=>label6:\n  =>label5\n\n=>label7:\n  node1\n\n=>label3:\n  node1\n  node2\n  =>label4\n\nnode3:\n  node4\n  node5\n\nnode9:\n  node10\n\n=>label1 -> node6\nnodeA -> nodeB\nnode4 -> node1\nnode1 -> node2\n\n=>label1 {:position {\"x\" -47, \"y\" 100}}\nnodeB {:position {\"x\" -164, \"y\" -100}}\nnode6 {:position {\"x\" -139, \"y\" 100}}\n=>label5 {:position {\"x\" 9, \"y\" 0}}\n=>label2 {:position {\"x\" 81, \"y\" -100}}\nnode7 {:position {\"x\" 47, \"y\" -200}}\nnodeA {:position {\"x\" -156, \"y\" 0}}\n=>label4 {:position {\"x\" -24, \"y\" -100}}\n=>label6 {:position {\"x\" 45, \"y\" -100}}\n=>label7 {:position {\"x\" 131, \"y\" 0}}\n=>label3 {:position {\"x\" 39, \"y\" 0}}\nnode3 {:position {\"x\" 164, \"y\" 100}}\nnode9 {:position {\"x\" 1, \"y\" -100}}\n"]
       (re-frame/dispatch [::app/set-app-state input-graph-text])
       (is (= "65vw" @left-panel-size))
       (re-frame/dispatch [:looset-graph.app/resizing-panels true])
@@ -207,21 +207,50 @@
 (deftest open-node
   (re-frame.test/run-test-sync
     (let [fold-ui (re-frame/subscribe [::app/fold-ui])
-          input-graph-text "=>label1:\n  node1\n  node2\n  node5\n\nnode6:\n  node7\n\n=>label5:\n  =>label6\n\n=>label2:\n  node5\n\nnode8:\n  node9\n\nnode7:\n  node8\n  =>label7\n\n=>label4:\n  node3\n\n=>label6:\n  =>label5\n\n=>label7:\n  node1\n\n=>label3:\n  node1\n  node2\n  =>label4\n\nnode3:\n  node4\n  node5\n\nnode9:\n  node10\n\n=>label1 -> node6\nnodeA -> nodeB\nnode4 -> node1\nnode1 -> node2\n\n=>label1 {:position {\"x\" -47, \"y\" 100}}\nnodeB {:position {\"x\" -164, \"y\" -100}}\nnode6 {:position {\"x\" -139, \"y\" 100}}\n=>label5 {:position {\"x\" 9, \"y\" 0}}\n=>label2 {:position {\"x\" 81, \"y\" -100}}\nnode7 {:position {\"x\" 47, \"y\" -200}}\nnodeA {:position {\"x\" -156, \"y\" 0}}\n=>label4 {:position {\"x\" -24, \"y\" -100}}\n=>label6 {:position {\"x\" 45, \"y\" -100}}\n=>label7 {:position {\"x\" 131, \"y\" 0}}\n=>label3 {:position {\"x\" 39, \"y\" 0}}\nnode3 {:position {\"x\" 164, \"y\" 100}}\nnode9 {:position {\"x\" 1, \"y\" -100}}\n"]
+          input-graph-text "=>label1:\n  node1\n  node2\n  node5\n\nnode6:\n  node7\n\n=>label5:\n  =>label6\n\n=>label2:\n  node5\n\nnode8:\n  node9\n\nnode7:\n  node8\n  =>label7\n\n=>label6:\n  =>label5\n\n=>label7:\n  node1\n\n=>label3:\n  node1\n  node2\n  =>label4\n\nnode3:\n  node4\n  node5\n\nnode9:\n  node10\n\n=>label1 -> node6\nnodeA -> nodeB\nnode4 -> node1\nnode1 -> node2\n\n=>label1 {:position {\"x\" -47, \"y\" 100}}\nnodeB {:position {\"x\" -164, \"y\" -100}}\nnode6 {:position {\"x\" -139, \"y\" 100}}\n=>label5 {:position {\"x\" 9, \"y\" 0}}\n=>label2 {:position {\"x\" 81, \"y\" -100}}\nnode7 {:position {\"x\" 47, \"y\" -200}}\nnodeA {:position {\"x\" -156, \"y\" 0}}\n=>label4 {:position {\"x\" -24, \"y\" -100}}\n=>label6 {:position {\"x\" 45, \"y\" -100}}\n=>label7 {:position {\"x\" 131, \"y\" 0}}\n=>label3 {:position {\"x\" 39, \"y\" 0}}\nnode3 {:position {\"x\" 164, \"y\" 100}}\nnode9 {:position {\"x\" 1, \"y\" -100}}\n"]
       (re-frame/dispatch [::app/set-app-state input-graph-text])
       (is (= {} @fold-ui))
       (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node7"]])
       (is (= {"node7" {:opened? true}} @fold-ui)))))
 
-(deftest nodes-with-no-parent
+(deftest nodes-with-multi-level-parents
+  (is (= {"label1" {"node1" {"node7" {"node8" {}}}, "node2" {}},
+          "label2" {"node1" {"node7" {"node8" {}}}},
+          "node3" {"node4" {"node6" {}} "node5" {}}}
+         (->> "=>label1:
+                 node1
+                 node2
+
+               =>label2:
+                 node1
+
+               node1:
+                 node7
+
+               node7:
+                 node8
+
+               node3:
+                 node4
+                 node5
+
+               node4:
+                 node6
+               "
+           (graph-parser/graph-ast)
+           ;; (#(do (tap> {:ast %}) %))
+           (#(app/nodes-map* {:graph-ast %}))
+           (#(do (tap> {:nodes-map %}) %))
+           (app/nodes-hierarchy)))))
+           ;; (#(do (tap> {:nodes-hierarchy-from-test %}) %))))))
+
+(deftest nodes-with-no-parent-fixed
   (is (= {"label1" {"node5" {}, "node1" {}, "node2" {}},
           "label2" {"node5" {}, "soAndOnLabel2" {}},
           "nodeA" {},
           "nodeB" {},
           "so" {},
-          "soAndOnLabel2" {},
-          "soAndOnNode3" {}
-          "node3" {"node5" {}, "node4" {}}}
+          "node3" {"node5" {}, "node4" {}, "soAndOnNode3" {}}}
          (->> "=>label1:
                  node1
                  node2
@@ -248,7 +277,7 @@
            (graph-parser/graph-ast)
            ;; (#(do (tap> {:ast %}) %))
            (#(app/nodes-map* {:graph-ast %}))
-           (#(do (tap> {:nodes-map %}) %))
+           ;; (#(do (tap> {:nodes-map* %}) %))
            (app/nodes-hierarchy)))))
            ;; (#(do (tap> {:nodes-hierarchy-from-test %}) %))))))
 
