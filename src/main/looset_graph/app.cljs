@@ -191,62 +191,11 @@
   selected-node?)
 
 (defn text->color [text]
-  (case (mod (hash text) 50)
-  ;; Greens
-    0 "#31711c"
-    1 "#58a73e"
-    2 "#4ca72e"
-    3 "#308b12"
-    4 "#256311"
-    5 "#204b12"
-    6 "#234518"
-    7 "#2f4d26"
-    8 "#466d3a"
-    9 "#5b9549"
-  ;; Purples
-    10 "#762974"
-    11 "#551653"
-    12 "#532051"
-    13 "#6b3269"
-    14 "#954692"
-    15 "#af46ab"
-    16 "#b336ae"
-    17 "#a524a0"
-    18 "#8b1786"
-    19 "#5f105b"
-  ;; Indigos
-    20 "#061870"
-    21 "#04135f"
-    22 "#0b1a69"
-    23 "#152681"
-    24 "#1129a5"
-    25 "#041ea7"
-    26 "#0826c3"
-    27 "#1931b1"
-    28 "#1c3097"
-    29 "#19297b"
-  ;; Yellows
-    30 "#f7c545"
-    31 "#f7c031"
-    32 "#dbaa29"
-    33 "#c59c30"
-    34 "#c39f41"
-    35 "#cbaa52"
-    36 "#f1cb65"
-    37 "#b39648"
-    38 "#9d8033"
-    39 "#bd8f13"
-  ;; Blues
-    40 "#6b90bc"
-    41 "#73a1d7"
-    42 "#5980ad"
-    43 "#587597"
-    44 "#3e6695"
-    45 "#4f84c1"
-    46 "#629bdd"
-    47 "#65a9f7"
-    48 "#37567b"
-    49 "#4283d1"))
+  (let [n (hash text)
+        h (mod n 360)
+        s (+ 60 (mod (quot n 360) 20))
+        l (+ 50 (mod (quot n 7200) 10))]
+    (str "hsl("h"deg, "s"%, "l"%)")))
 
 (def label-font-family "Proza Libre")
 
@@ -810,8 +759,8 @@
   [app-state]
   (let [selected-nodes (-> app-state :ui :f-selected-nodes)
         all-nodes (-> app-state (get-in [:domain :nodes-map] {}) (keys))
-        nodes-to-unhide (if (seq selected-nodes) selected-nodes all-nodes)
-        hidden (->> nodes-to-unhide
+        nodes-to-hide (if (seq selected-nodes) selected-nodes all-nodes)
+        hidden (->> nodes-to-hide
                  (map (fn [node-id] {node-id {:hidden? true}}))
                  (into {}))]
     (update-in app-state [:ui :nodes] merge hidden)))
