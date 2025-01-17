@@ -13,6 +13,17 @@
 ;; (keys @re-frame.db/app-db)
 ;; (keys (:f-visible-nodes (:ui @re-frame.db/app-db)))
 
+(deftest load-hidden-and-opened
+  (re-frame.test/run-test-sync
+    (let [sub-under-test (re-frame/subscribe [::app/visible-nodes])
+          input-graph-text "node6:
+                              node7
+                            =>label1 -> node6
+                            node6 {:opened? true}
+                            =>label1 {:hidden? true}"]
+      (re-frame/dispatch [::app/set-app-state input-graph-text])
+      (is (= #{"node7"} @sub-under-test)))))
+
 (deftest folding
   (re-frame.test/run-test-sync
     (let [sub-under-test (re-frame/subscribe [::app/visible-nodes])
@@ -55,7 +66,6 @@
       (re-frame/dispatch [:looset-graph.app/collapse-all-or-selected])
       (is (= #{} @selected-nodes))
       (is (= #{"node3" "node7"} @sub-under-test)))))
-
 
 (deftest hiding-multiple
   (re-frame.test/run-test-sync

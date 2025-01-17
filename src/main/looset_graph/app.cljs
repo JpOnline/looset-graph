@@ -577,8 +577,8 @@
           node-k (rename-if-label node-k*)
           node-children (seq (map rename-if-label (:children node-v)))
           edges-to (->> node-v :edges-to vals (map vec) flatten (map rename-if-label) seq)
-          custom-props (dissoc node-v :type :edges-to :edges-from :label :children :foldable :parent :hidden?)
-          custom-props* (select-keys node-v [:name :position])
+          custom-props (dissoc node-v :type :edges-to :edges-from :label :children :foldable :parent)
+          custom-props* (select-keys node-v [:name :position :hidden? :opened?])
           _ (assert (= custom-props custom-props*)
                     (str "Some new node property was added, so should it be included in the text model or not?\nThe difference was "(clojure.data/diff custom-props custom-props*)))]
       [(if node-children
@@ -591,15 +591,19 @@
          (str props node-k" "custom-props"\n")
          props)])))
 (defn nodes-map->graph-text
-  [[nodes-map]]
-  (->> nodes-map
-    (reduce (nodes-map->graph-text-reduce-step nodes-map) ["" "" ""])
-    ((fn [[children edges props]]
-       (str children edges"\n"props)))))
+  [[nodes-map fold-ui]]
+  (let [merged-nodes (deep-merge-with merge nodes-map fold-ui)]
+    (->> merged-nodes
+      (reduce (nodes-map->graph-text-reduce-step merged-nodes) ["" "" ""])
+      ((fn [[children edges props]]
+         (str children edges"\n"props))))))
 (re-frame/reg-flow
   {:id :ui-graph-text
-   :inputs {:nodes-map (re-frame/flow<- :nodes-map)}
-   :output (with-defaults nodes-map->graph-text [:nodes-map {}])
+   :inputs {:nodes-map (re-frame/flow<- :nodes-map)
+            :fold-ui [:ui :fold]}
+   ;; :output (fn [{:keys [nodes-map fold-ui]}] (nodes-map->fold-list [(or nodes-map {}) (or fold-ui {})]))
+   :output (fn [{:keys [nodes-map fold-ui]}] (nodes-map->fold-list [nodes-map]))
+   ;; :output (with-defaults nodes-map->graph-text [:nodes-map {} :fold-ui {}])
    :path [:ui :graph-text]})
 
 ;; This would be an example of a layer 2 reg-flow instead of reg-sub
@@ -636,24 +640,25 @@
       (assoc-in [:ui :panels :left-panel-size] (str x"px")))))
 (re-frame/reg-event-db ::mouse-moved mouse-moved)
 
-(def memo-graph-ast (memoize graph-parser/graph-ast))
-
 ;; TODO
 ;; The [:ui :nodes-position] is set when using the event ::set-nodes-positions,
 ;; but I left it there as an alternative behavior and I still need to decide if
 ;; it's worth keeping it.
 (defn set-graph-text
   [app-state [_event v]]
-  (try (-> v (memo-graph-ast) (#(into {:graph-ast %})) (nodes-map*))
-       (-> app-state
-         (update-in [:ui :nodes] #(merge-with merge % (get-in app-state [:ui :nodes-positions] {})))
-         (assoc-in [:domain :graph-text] v)
-         (assoc-in [:ui :validation :valid-graph-ast] (memo-graph-ast v))
-         (assoc-in [:ui :validation :valid-graph?] true))
-       (catch :default _
-         (-> app-state
-           (assoc-in [:domain :graph-text] v)
-           (assoc-in [:ui :validation :valid-graph?] false)))))
+  (try
+    (let [g-ast (graph-parser/graph-ast v)
+          nm* (-> g-ast (#(into {:graph-ast %})) (nodes-map*))]
+      (-> app-state
+        (update-in [:ui :nodes] #(merge-with merge % (get-in app-state [:ui :nodes-positions] {})))
+        (assoc-in [:ui :fold] (update-vals nm* #(select-keys % [:opened?])))
+        (assoc-in [:domain :graph-text] v)
+        (assoc-in [:ui :validation :valid-graph-ast] g-ast)
+        (assoc-in [:ui :validation :valid-graph?] true)))
+    (catch :default _
+      (-> app-state
+        (assoc-in [:domain :graph-text] v)
+        (assoc-in [:ui :validation :valid-graph?] false)))))
 (re-frame/reg-event-db ::set-graph-text [event-to-analytics] set-graph-text)
 
 (defn toggle-open-close
