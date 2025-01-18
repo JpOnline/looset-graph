@@ -324,29 +324,22 @@
 ;; -=vlabel6
 ;;  -=vlabel5
 ;;   -=>label6
-(defn nodes-hierarchy
-  [nodes-map]
-  (:global
-    (reduce
-      (fn [r [k v]]
-          (let [v (if-not (or (:parent v) (:label v))
-                    (assoc v :parent :global) ;; Add global as a parent of nodes that have edges, but are not in a label.
-                    v)
-                path (fn path
-                       ([cur-k cur-v] (conj (path {:cur cur-v :level 0}) cur-k))
-                       ([{:keys [level] {:keys [parent]} :cur}]
-                        (if (and parent (< level 4))
-                          (conj (path {:cur (nodes-map parent) :level (inc level)}) parent)
-                          [])))
-                ;; _ (tap> {:k k :path (path k v) :global? (if (and (not (:label v)) (not (:parent v))) :global (:parent v))})
-                to-assoc (get-in r (path k v) {})
-                with-node-assoced (assoc-in r (path k v) to-assoc)
-                with-its-labels-assoced (reduce
-                                          #(assoc-in %1 (conj (path %2 (nodes-map %2)) k) to-assoc)
-                                          with-node-assoced
-                                          (:label v))]
-            with-its-labels-assoced))
-      {} nodes-map)))
+(def nodes-hierarchy
+  (memoize
+    (fn ([nodes-map]
+         (let [to-remove (atom #{})
+               n-hierarchy (nodes-hierarchy nodes-map (keys nodes-map) to-remove 0)]
+           (apply dissoc n-hierarchy @to-remove)))
+        ([nodes-map nodes-ids to-remove level]
+         (into {}
+           (mapcat (fn [node-id]
+                     (let [v-children (:children (nodes-map node-id))]
+                       (swap! to-remove into v-children)
+                       ;; The level avoid that nodes defined in a circular way generates an infinite structure.
+                       (if (< level 4)
+                         {node-id (nodes-hierarchy nodes-map v-children to-remove (inc level))}
+                         {node-id {}})))
+                   nodes-ids))))))
 
 (defn nodes-list
   [path nodes-map fold-ui [node node-children]]
@@ -378,10 +371,21 @@
   [nodes-map nodes-hierarchy]
   (sort-by (fn [[k _v]] (-> k nodes-map :type)) nodes-hierarchy))
 
+(defn all-instances-of-node-with-same-open-state
+  "A node can have more than one instance, in multiple labels for example. As
+  graph-text it can show up only once, so we are setting all occurrences of it
+  to the same state."
+  [nodes-map nodes-hierarchy]
+  (reduce
+    (fn step-reduce [acc [k v]]
+      (let [deeper-levels (reduce step-reduce {} v)]
+        (conj acc [k (assoc deeper-levels :opened? (:opened? (nodes-map k) false))])))
+    {}
+    nodes-hierarchy))
+
 (defn nodes-map->fold-list
   [[nodes-map fold-ui]]
   (->> nodes-map
-    ;; (#(do (tap> {:nodes-map %}) %))
     (nodes-hierarchy)
     (sort-nodes nodes-map)
     ;; (#(do (tap> {:nodes-hierarchy %}) %))
@@ -436,15 +440,13 @@
 
         ;; Extra step to go through the nodes and see what are the lixs' children to define
         ;; nodes parents and which ones are global
-        nodes-with-parents-but-not-globals
-        (reduce (fn [nodes [k {:keys [children]}]]
-                  (reduce #(assoc-in %1 [%2 :parent] k) nodes children))
-                merged-nodes
-                merged-nodes)
-
         nodes-with-parents
-        (update-vals nodes-with-parents-but-not-globals
-                     #(if (:parent %) % (assoc % :parent :global)))]
+        (reduce (fn [nodes [k {:keys [type children]}]]
+                  (if (= :lix type)
+                    (reduce #(assoc-in %1 [%2 :parent] k) nodes children)
+                    nodes))
+                merged-nodes
+                merged-nodes)]
     nodes-with-parents))
 
 (def nodes-map* (memoize no-memo-nodes-map*))
@@ -478,8 +480,6 @@
 (defn nodes-map-name
   [nodes-map [_ node-id]]
   (try
-    (tap> {:node-id node-id
-           :name (:name (nodes-map node-id))})
     (:name (nodes-map node-id))
     (catch :default _
       nil)))
@@ -591,19 +591,15 @@
          (str props node-k" "custom-props"\n")
          props)])))
 (defn nodes-map->graph-text
-  [[nodes-map fold-ui]]
-  (let [merged-nodes (deep-merge-with merge nodes-map fold-ui)]
-    (->> merged-nodes
-      (reduce (nodes-map->graph-text-reduce-step merged-nodes) ["" "" ""])
-      ((fn [[children edges props]]
-         (str children edges"\n"props))))))
+  [[nodes-map]]
+  (->> nodes-map
+    (reduce (nodes-map->graph-text-reduce-step nodes-map) ["" "" ""])
+    ((fn [[children edges props]]
+       (str children edges"\n"props)))))
 (re-frame/reg-flow
   {:id :ui-graph-text
-   :inputs {:nodes-map (re-frame/flow<- :nodes-map)
-            :fold-ui [:ui :fold]}
-   ;; :output (fn [{:keys [nodes-map fold-ui]}] (nodes-map->fold-list [(or nodes-map {}) (or fold-ui {})]))
-   :output (fn [{:keys [nodes-map fold-ui]}] (nodes-map->fold-list [nodes-map]))
-   ;; :output (with-defaults nodes-map->graph-text [:nodes-map {} :fold-ui {}])
+   :inputs {:nodes-map (re-frame/flow<- :nodes-map)}
+   :output (with-defaults nodes-map->graph-text [:nodes-map {}])
    :path [:ui :graph-text]})
 
 ;; This would be an example of a layer 2 reg-flow instead of reg-sub
@@ -648,10 +644,18 @@
   [app-state [_event v]]
   (try
     (let [g-ast (graph-parser/graph-ast v)
-          nm* (-> g-ast (#(into {:graph-ast %})) (nodes-map*))]
+          nm* (-> g-ast (#(into {:graph-ast %})) (nodes-map*))
+          n-hierarchy (nodes-hierarchy nm*)
+          fold-ui (get-in app-state [:ui :fold] {})
+          new-fold-ui (if (seq fold-ui)
+                        fold-ui
+                        (all-instances-of-node-with-same-open-state ;; If we are loading the page, we don't have information about which nodes are opened, so we use what is loaded in nodes-map from graph-text.
+                          nm*
+                          n-hierarchy))]
+      (tap> {:new-fold-ui new-fold-ui})
       (-> app-state
         (update-in [:ui :nodes] #(merge-with merge % (get-in app-state [:ui :nodes-positions] {})))
-        (assoc-in [:ui :fold] (update-vals nm* #(select-keys % [:opened?])))
+        (assoc-in [:ui :fold] new-fold-ui)
         (assoc-in [:domain :graph-text] v)
         (assoc-in [:ui :validation :valid-graph-ast] g-ast)
         (assoc-in [:ui :validation :valid-graph?] true)))
@@ -663,9 +667,11 @@
 
 (defn toggle-open-close
   [app-state [_event path]]
-  (-> app-state
-    (update-in [:ui :nodes] #(merge-with merge % (get-in app-state [:ui :nodes-positions] {})))
-    (update-in (concat [:ui :fold] path [:opened?]) not)))
+  (let [new-state (not (get-in app-state (concat [:ui :fold] path [:opened?]) false))]
+    (-> app-state
+      (update-in [:ui :nodes] #(merge-with merge % (get-in app-state [:ui :nodes-positions] {})))
+      (assoc-in (concat [:ui :fold] path [:opened?]) new-state)
+      (assoc-in [:ui :nodes (last path) :opened?] new-state))))
 
 (re-frame/reg-fx
   :prepare-to-ctrl-c-selected-nodes
