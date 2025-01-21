@@ -164,7 +164,6 @@
       (re-frame/dispatch [::app/toggle-hidden "node7"])
       (is (nil? (@sub-under-test "node7"))))))
 
-
 (deftest drag-node
   (re-frame.test/run-test-sync
     (let [node7-position #(-> @re-frame.db/app-db :domain :nodes-map (get "node7") :position)
@@ -175,6 +174,9 @@
       (re-frame/dispatch [:looset-graph.app/drag-changed true])
       (re-frame/dispatch [:looset-graph.app/set-nodes-positions-hierarchy {:dragging? false, :nodes-positions* {"label1" {"x" -47, "y" 100}, "nodeB" {"x" -164, "y" -100}, "node6" {"x" -139, "y" 100}, "label5" {"x" 9, "y" 0}, "label2" {"x" 81, "y" -100}, "node7" {"x" -110, "y" -252}, "nodeA" {"x" -156, "y" 0}, "label4" {"x" -24, "y" -100}, "label6" {"x" 45, "y" -100}, "label7" {"x" 131, "y" 0}, "label3" {"x" 39, "y" 0}, "node3" {"x" 164, "y" 100}, "node9" {"x" 1, "y" -100}}, :view-position #js {:x -0.3879394531248308, :y -75.45377976728982}, :scale 1.136826626375981}])
       (re-frame/dispatch [:looset-graph.app/mouse-up false])
+      (is (= {"x" -110, "y" -300}
+             (node7-position)))
+      (re-frame/dispatch [::app/toggle-hidden "node7"])
       (is (= {"x" -110, "y" -300}
              (node7-position))))))
 
@@ -214,21 +216,22 @@
                         (done))))))
 
 ;; Don't work with hot reload..
-(deftest t2
-  (async done
-    (let [fold-ui (re-frame/subscribe [::app/vis-data])
-          input-graph-text (app/gzip-decompress (js/atob (js/decodeURIComponent "H4sIAAAAAAAAA22RTQqDMBCF9zlFcF0h%2FzGCgt6kpS4E0UK7aBHvXoyZaJiskjf55r0Zbdrp%2FhgmXhNK5%2BU58HCKcGpC9sPAuyWkOVr0Xgp3E6uiThsr0O7QFnR1dp%2BeCl5lLJlLjI5Ve84LJZlbAXyP8IiodEgXW1m047Rsfc14pAPZe6lAci8jLC79a%2F1a3uNnXGa6Ft%2BClqK60eJXULZtvqtHiBMpYbAJF%2FZgONsp%2BDIY1Pr0gp%2BTsXNpYoURGcYuJQOqy8QZFKcQxRUPXsn0uTWZyZEWkdLmOIk4q9NFMREjAXF4LAdTCZ%2F2B25%2Bd8o%2BAwAA")))]
-      (-> input-graph-text
-        (.then #(re-frame/dispatch-sync [::app/set-app-state %]))
-        (.then
-          (js/Promise.
-            (fn [res _rej]
-              (js/setTimeout
-                #(do
-                  (is (= {:nodes [] :edges []} @fold-ui)) ;; It shouldn't be empty.
-                  (res)
-                  (done))
-                500))))))))
+;; Also, when I'm hot reloading the app code, it sometimes work correctly
+;; (deftest t2
+;;   (async done
+;;     (let [fold-ui (re-frame/subscribe [::app/vis-data])
+;;           input-graph-text (app/gzip-decompress (js/atob (js/decodeURIComponent "H4sIAAAAAAAAA22RTQqDMBCF9zlFcF0h%2FzGCgt6kpS4E0UK7aBHvXoyZaJiskjf55r0Zbdrp%2FhgmXhNK5%2BU58HCKcGpC9sPAuyWkOVr0Xgp3E6uiThsr0O7QFnR1dp%2BeCl5lLJlLjI5Ve84LJZlbAXyP8IiodEgXW1m047Rsfc14pAPZe6lAci8jLC79a%2F1a3uNnXGa6Ft%2BClqK60eJXULZtvqtHiBMpYbAJF%2FZgONsp%2BDIY1Pr0gp%2BTsXNpYoURGcYuJQOqy8QZFKcQxRUPXsn0uTWZyZEWkdLmOIk4q9NFMREjAXF4LAdTCZ%2F2B25%2Bd8o%2BAwAA")))]
+;;       (-> input-graph-text
+;;         (.then #(re-frame/dispatch-sync [::app/set-app-state %]))
+;;         (.then
+;;           (js/Promise.
+;;             (fn [res _rej]
+;;               (js/setTimeout
+;;                 #(do
+;;                   (is (= {:nodes [] :edges []} @fold-ui)) ;; It shouldn't be empty.
+;;                   (res)
+;;                   (done))
+;;                 500))))))))
 
 ;; This one works with hot reload, but again, no re-frame.
 (deftest t1

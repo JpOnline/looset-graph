@@ -357,7 +357,7 @@
 
 (defn nodes-ui
   [app-state]
-  (get-in app-state [:ui :nodes] {}))
+  (get-in app-state [:domain :nodes-map] {}))
 (re-frame/reg-sub ::nodes-ui nodes-ui)
 
 (defn fold-ui
@@ -451,23 +451,9 @@
 
 (def nodes-map* (memoize no-memo-nodes-map*))
 (re-frame/reg-flow
- {:id     :nodes-map*
+ {:id     :nodes-map
   :inputs {:graph-ast [:ui :validation :valid-graph-ast]}
   :output nodes-map*
-  :path   [:domain :nodes-map*]})
-
-(re-frame/reg-flow
- {:id     :nodes-map
-  :inputs {:nodes-ui [:ui :nodes]
-           :nodes-map* (re-frame/flow<- :nodes-map*)}
-  :output (fn [{:keys [nodes-ui nodes-map*]}]
-            (deep-merge-with
-              (fn [res v]
-                (if (map? res)
-                  (merge res v)
-                  v))
-              nodes-map*
-              (select-keys nodes-ui (keys nodes-map*))))
   :path   [:domain :nodes-map]})
 
 ;; TODO: I can eventually replace the subs by flows.
@@ -597,10 +583,10 @@
     ((fn [[children edges props]]
        (str children edges"\n"props)))))
 (re-frame/reg-flow
-  {:id :ui-graph-text
+  {:id :graph-text
    :inputs {:nodes-map (re-frame/flow<- :nodes-map)}
    :output (with-defaults nodes-map->graph-text [:nodes-map {}])
-   :path [:ui :graph-text]})
+   :path [:domain :graph-text]})
 
 ;; This would be an example of a layer 2 reg-flow instead of reg-sub
 ;; Does it make sense to use it like this instead of a subscription? 🤷
@@ -636,10 +622,6 @@
       (assoc-in [:ui :panels :left-panel-size] (str x"px")))))
 (re-frame/reg-event-db ::mouse-moved mouse-moved)
 
-;; TODO
-;; The [:ui :nodes-position] is set when using the event ::set-nodes-positions,
-;; but I left it there as an alternative behavior and I still need to decide if
-;; it's worth keeping it.
 (defn set-graph-text
   [app-state [_event v]]
   (try
@@ -654,7 +636,6 @@
                           n-hierarchy))]
       (tap> {:new-fold-ui new-fold-ui})
       (-> app-state
-        (update-in [:ui :nodes] #(merge-with merge % (get-in app-state [:ui :nodes-positions] {})))
         (assoc-in [:ui :fold] new-fold-ui)
         (assoc-in [:domain :graph-text] v)
         (assoc-in [:ui :validation :valid-graph-ast] g-ast)
@@ -669,9 +650,8 @@
   [app-state [_event path]]
   (let [new-state (not (get-in app-state (concat [:ui :fold] path [:opened?]) false))]
     (-> app-state
-      (update-in [:ui :nodes] #(merge-with merge % (get-in app-state [:ui :nodes-positions] {})))
       (assoc-in (concat [:ui :fold] path [:opened?]) new-state)
-      (assoc-in [:ui :nodes (last path) :opened?] new-state))))
+      (assoc-in [:domain :nodes-map (last path) :opened?] new-state))))
 
 (re-frame/reg-fx
   :prepare-to-ctrl-c-selected-nodes
@@ -701,20 +681,6 @@
 
 (defn round-by [step pos]
   (* step (js/Math.round (/ pos step))))
-
-(defn set-nodes-positions
-  [app-state [_event dragging? nodes-positions*]]
-  (if dragging?
-    app-state
-    (let [nodes-positions (reduce-kv (fn [m k {:strs [x y]}]
-                                       (assoc m k {:position {"x" x "y" y}}))
-                                     {}
-                                     nodes-positions*)]
-      ;; (tap> {:set-pos nodes-positions})
-      (-> app-state
-        (assoc-in [:ui :graph-dragging?] dragging?)
-        (update-in [:ui :nodes-positions] #(merge-with merge % nodes-positions))))))
-(re-frame/reg-event-db ::set-nodes-positions [event-to-analytics] set-nodes-positions)
 
 (defn set-vis-view
   [app-state [_event {:keys [view-position scale]}]]
@@ -752,8 +718,7 @@
   [app-state [_event node-id]]
   ;; (tap> {:c3 (get-in app-state [:ui :nodes])})
   (-> app-state
-    (update-in [:ui :nodes] #(merge-with merge % (get-in app-state [:ui :nodes-positions] {})))
-    (update-in [:ui :nodes node-id :hidden?] not)))
+    (update-in [:domain :nodes-map node-id :hidden?] not)))
 (re-frame/reg-event-db ::toggle-hidden [event-to-analytics] toggle-hidden)
 
 (defn node-hovered
@@ -792,7 +757,7 @@
         hidden (->> nodes-to-hide
                  (map (fn [node-id] {node-id {:hidden? true}}))
                  (into {}))]
-    (update-in app-state [:ui :nodes] merge hidden)))
+    (update-in app-state [:domain :nodes-map] #(merge-with merge % hidden))))
 (re-frame/reg-event-db ::hide-all-or-selected [event-to-analytics] hide-all-or-selected)
 
 (defn show-selected
@@ -801,7 +766,7 @@
         unhidden (->> selected-nodes
                    (map (fn [node-id] {node-id {:hidden? false}}))
                    (into {}))]
-    (update-in app-state [:ui :nodes] merge unhidden)))
+    (update-in app-state [:domain :nodes-map] #(merge-with merge % unhidden))))
 (re-frame/reg-event-db ::show-selected [event-to-analytics] show-selected)
 
 (defn collapse-all-or-selected
@@ -917,12 +882,11 @@
                        (reset! network (-> vis-network .-Network (new container nil #_options))))
                      (.on @network "dragStart" #_(js/console.log "dragStart") #(>evt [::drag-changed true]))
                      (.on @network "dragEnd" #(>evt [::set-nodes-positions-hierarchy {:dragging? false
-                                                                                                                   :nodes-positions* (js->clj ^Object (.getPositions @network))
-                                                                                                                   :view-position ^Object (.getViewPosition @network)
-                                                                                                                   :scale ^Object (.getScale @network)}]))
+                                                                                      :nodes-positions* (js->clj ^Object (.getPositions @network))
+                                                                                      :view-position ^Object (.getViewPosition @network)
+                                                                                      :scale ^Object (.getScale @network)}]))
                      (.on @network "zoom" #(>evt [::set-vis-view {:view-position ^Object (.getViewPosition @network)
                                                                   :scale ^Object (.getScale @network)}]))
-                     (.on @network "stabilized" #_(js/console.log "stabilized") #(>evt [::set-nodes-positions (js->clj ^Object (.getPositions @network))])) ;; Used when physics is enabled.
                      (.on @network "afterDrawing" #_(js/console.log "configChange")
                           ;; For some reason (specific to visjs) if I don't give this
                           ;; extreme little time extra to organize the graph, it
@@ -1212,7 +1176,7 @@
             :font-family code-font-family
             :font-size code-font-size}
     :onChange #(>evt [::set-graph-text (-> % .-target .-value)])
-    :value @(re-frame/sub :flow {:id :ui-graph-text}) #_(<sub [::graph-text])}])
+    :value @(re-frame/sub :flow {:id :graph-text}) #_(<sub [::graph-text])}])
 
 (defn debug-quick-val-set []
   [:<>
@@ -1481,7 +1445,6 @@
     (set-graph-text initial-state [event graph-text])))
 
 (defn init-state []
-  ;; (re-frame/dispatch-sync [::set-app-state (get-in initial-state [:domain :graph-text])]))
   (let [compressed-graph (.get (js/URLSearchParams. js/window.location.search) "graph")
         default-graph (get-in initial-state [:domain :graph-text])]
     (if compressed-graph
