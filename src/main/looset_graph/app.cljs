@@ -1416,7 +1416,7 @@
                   graph-text nil
                   (str loc.origin loc.pathname"?graph="
                        (js/encodeURIComponent (js/btoa %)))))))
-    nil [:ui :graph-text]))
+    nil [:domain :graph-text]))
 (re-frame/reg-global-interceptor set-url-state-interceptor)
 
 (defn init-url-history-observer []
