@@ -858,13 +858,6 @@
 
 (defn graph-component-inner []
   (let [graph-component-id "looset-graph"
-        ;; options #js {:layout #js {:hierarchical #js {:enabled true
-        ;;                                              :sortMethod "directed"
-        ;;                                              :shakeTowards "roots"
-        ;;                                              :nodeSpacing 100}}
-        ;;              :physics #js {:enabled false}
-        ;;                            ;; :minVelocity 1.2}
-        ;;              :nodes #js {:borderWidth 1}}
         update-comp (fn [component [_ prev-props]]
                       (let [prev-vis-data (:vis-data prev-props)
                             {:keys [selected-nodes vis-data options view]} (reagent/props component)]
