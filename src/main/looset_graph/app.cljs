@@ -906,7 +906,8 @@
   [graph-component-inner
    {:selected-nodes (clj->js (<sub [::selected-nodes-visible]))
     :vis-data       @(re-frame/sub :flow {:id :f-vis-data})
-    :number-input (<sub [::number-input])
+    :number-input (<sub [::number-input 1])
+    :number-input2 (<sub [::number-input 2])
     :view (<sub [::vis-view])
     :options #js {:layout #js {:hierarchical #js {:enabled (<sub [::vis-option-hierarchy])
                                                   :direction "UD"
@@ -914,10 +915,16 @@
                                                   :shakeTowards "roots"}}
                                                   ;; :nodeSpacing (int (<sub [::number-input]))}}
                   :physics #js {:enabled false
-                                :hierarchicalRepulsion #js {:avoidOverlap 1
-                                                            :nodeDistance 300}}
+                                :minVelocity 1
+                                :barnesHut
+                                #js {:gravitationalConstant (<sub [::number-input 1])
+                                     :centralGravity (* 0.01 (<sub [::number-input 2]))}}
+
+                                ;; :hierarchicalRepulsion #js {:avoidOverlap 1
+                                ;;                             :nodeDistance 300}}
                   ;; :minVelocity 1.2}
                   :nodes #js {:borderWidth 1}}}])
+                              ;; :mass 0.5}}}])
 
     ;; :options #js {:physics #js {:enabled true
     ;;                             :minVelocity 1.5}
@@ -1174,12 +1181,20 @@
 (defn debug-quick-val-set []
   [:<>
     [:<>
-     [:span "Range "(<sub [::number-input])]
+     [:span "Range1 "(<sub [::number-input 1])]
      [:input {:type "range"
-              :value (<sub [::number-input])
-              :onChange #(>evt [::set-number-input (-> % .-target .-value)])}]]
+              :min -5000
+              :max 1000
+              :value (<sub [::number-input 1])
+              :onChange #(>evt [::set-number-input (-> % .-target .-value) 1])}]
+     [:span "Range2 "(<sub [::number-input 2])]
+     [:input {:type "range"
+              :min 0
+              :max 100
+              :value (<sub [::number-input 2])
+              :onChange #(>evt [::set-number-input (-> % .-target .-value) 2])}]]
     [:<> [:span "Number"] [:input {:type "number"
-                                   :value (<sub [::number-input])
+                                   :value (<sub [::number-input 1])
                                    :onChange #(>evt [::set-number-input (-> % .-target .-value)])}]]
     [:<> [:span "Toggle"] [:input {:type "checkbox"
                                    :onChange #(do (>evt [::set-toggle-input (-> % .-target .-checked)])
@@ -1366,13 +1381,13 @@
 (re-frame/reg-sub ::toggle-input toggle-input)
 
 (defn set-number-input
-  [app-state [_event n]]
-  (assoc-in app-state [:ui :number-input] n))
+  [app-state [_event n knob]]
+  (assoc-in app-state [:ui :number-input knob] n))
 (re-frame/reg-event-db ::set-number-input set-number-input)
 
 (defn number-input
-  [app-state]
-  (get-in app-state [:ui :number-input] 0))
+  [app-state [_ knob]]
+  (get-in app-state [:ui :number-input knob] 0))
 (re-frame/reg-sub ::number-input number-input)
 
 ;; ---- Initialization ----
