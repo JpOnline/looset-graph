@@ -320,8 +320,8 @@
                soAndOnNode3:
 
                node1 -> node2
-               node4->node1
-               nodeA->nodeB"
+               node4 -> node1
+               nodeA -> nodeB"
            (graph-parser/graph-ast)
            ;; (#(do (tap> {:ast %}) %))
            (#(app/nodes-map* {:graph-ast %}))
