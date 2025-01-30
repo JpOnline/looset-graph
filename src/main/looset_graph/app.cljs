@@ -622,6 +622,14 @@
       (assoc-in [:ui :panels :left-panel-size] (str x"px")))))
 (re-frame/reg-event-db ::mouse-moved mouse-moved)
 
+(defn keypress
+  [app-state [_event keypressed]]
+  (case keypressed
+    "v" (assoc-in app-state [:ui :mouse-select-mode] false)
+    "s" (assoc-in app-state [:ui :mouse-select-mode] true)
+    app-state))
+(re-frame/reg-event-db ::keypress keypress)
+
 (defn set-graph-text
   [app-state [_event v]]
   (try
@@ -1082,13 +1090,13 @@
                :padding "10px"
                :inline-size "fit-content"}}
       [:button.button-2
-       {:title "move"
+       {:title "move (shortcut: v)"
         :onClick #(>evt [::mouse-select-mode false])}
        [:svg
         {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
         [:path {:fill-rule "evenodd" :d "M14.082 2.182a.5.5 0 0 1 .103.557L8.528 15.467a.5.5 0 0 1-.917-.007L5.57 10.694.803 8.652a.5.5 0 0 1-.006-.916l12.728-5.657a.5.5 0 0 1 .556.103zM2.25 8.184l3.897 1.67a.5.5 0 0 1 .262.263l1.67 3.897L12.743 3.52z"}]]]
       [:button.button-2
-       {:title "select"
+       {:title "select (shortcut: s)"
         :onClick #(>evt [::mouse-select-mode true])}
        [:svg
         {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
@@ -1326,13 +1334,13 @@
    [global-style]
    [ctrl-c-selected-nodes]
    [:div#panel-container
-    {:style {:display "flex"
+    {:class (when (<sub [::mouse-select-mode])
+               "select-mode-cursor")
+     :style {:display "flex"
              :user-select "none"
              :max-height "100vh"}}
     [:div#left-panel
-     {:class (when (<sub [::mouse-select-mode])
-               "select-mode-cursor")
-      :style {:width (<sub [::left-panel-size])
+     {:style {:width (<sub [::left-panel-size])
               :min-width "20vw"
               :display "flex"
               :flex-direction "column"}}
@@ -1446,6 +1454,11 @@
     "mousemove"
     #(>evt [::mouse-moved (-> % .-x) (-> % .-y)])))
 
+(defn init-keyboard-events []
+  (js/document.body.addEventListener
+    "keypress"
+    #(>evt [::keypress (-> % .-key)])))
+
 (re-frame/reg-event-db
   ::set-app-state
   [event-to-analytics]
@@ -1490,6 +1503,7 @@
   (init-state)
   (init-mousemove)
   (mount-app-element)
-  (init-mouseup))
+  (init-mouseup)
   (init-url-history-observer)
+  (init-keyboard-events))
   ;; (init-style-observer))
