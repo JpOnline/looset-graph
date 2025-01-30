@@ -147,15 +147,17 @@
    :output (fn [{:keys [fold-list]}] (visible-nodes fold-list))
    :path [:ui :f-visible-nodes]})
 
+(defn get-descendents [nodes-map nodes]
+  (let [step-fn #(clojure.set/union
+                   %1
+                   (get-descendents nodes-map (:children (nodes-map %2))))]
+    (reduce step-fn nodes nodes)))
+
 (defn selected-nodes
   [[hovered-node clicked-nodes nodes-map]]
   (if (empty? hovered-node)
-    clicked-nodes
-    (->> nodes-map
-      (filter #(contains? hovered-node (first %)))
-      (map second)
-      (reduce #(clojure.set/union (:children %2) %1) #{})
-      (clojure.set/union hovered-node))))
+    (get-descendents nodes-map clicked-nodes)
+    (get-descendents nodes-map hovered-node)))
 (re-frame/reg-sub
   ::selected-nodes
   :<- [::hovered-node]
@@ -803,13 +805,23 @@
 (re-frame/reg-event-db ::mouse-select-mode [event-to-analytics] mouse-select-mode-evt)
 
 (defn network-clicked
-  [{app-state :db} [_event click-event]]
+  [{app-state :db} [_event nodes]]
   (let [toggly-add #(set/difference (set/union %1 %2) (set/intersection %1 %2))]
     {:fx [[:dispatch-later {:ms 30 :dispatch [::prepare-to-ctrl-c-selected-nodes]}]]
      :db (if (get-in app-state [:ui :mouse-select-mode] false)
-           (update-in app-state [:ui :clicked-nodes] #(toggly-add (set %) (set ^js(.-nodes click-event))))
-           (assoc-in app-state [:ui :clicked-nodes] (set ^js(.-nodes click-event))))}))
+           (update-in app-state [:ui :clicked-nodes] #(toggly-add (set %) nodes))
+           (assoc-in app-state [:ui :clicked-nodes] nodes))}))
 (re-frame/reg-event-fx ::network-clicked [event-to-analytics] network-clicked)
+
+(defn rerender-vis-sub
+  [app-state]
+  (get-in app-state [:ui :rerender-vis] false))
+(re-frame/reg-sub ::rerender-vis-sub rerender-vis-sub)
+
+(defn rerender-vis
+  [app-state]
+  (update-in app-state [:ui :rerender-vis] not))
+(re-frame/reg-event-db ::rerender-vis rerender-vis)
 
 (defn toggle-edit-graph-text-area
   [app-state]
@@ -896,9 +908,9 @@
                           ; ;but it's working for now.
                           #(js/setTimeout (fn [] (>evt [::organize-hierarchy-positions-step-2 (js->clj ^Object (.getPositions @network))]))
                                           20))
-                     (.on @network "click" #(do ^js (.-nodes %)
-                                                (>evt [::network-clicked %])))
-                                                ;; (.selectNodes @network #js["node1" "node5"])))
+                     (.on @network "click" #(do (>evt [::network-clicked (set ^js(.-nodes %))])
+                                                (when (empty? ^js(.-nodes %)) ;; To avoid the automatic behavior of deselecting all nodes.
+                                                  (>evt [::rerender-vis]))))
                      (update-comp component nil))]
     (reagent/create-class
       {:reagent-render (fn []
@@ -912,7 +924,8 @@
 
 (defn graph-component []
   [graph-component-inner
-   {:selected-nodes (clj->js (<sub [::selected-nodes-visible]))
+   {:rerender (<sub [::rerender-vis-sub])
+    :selected-nodes (clj->js (<sub [::selected-nodes-visible]))
     :vis-data       @(re-frame/sub :flow {:id :f-vis-data})
     :number-input (<sub [::number-input 1])
     :number-input2 (<sub [::number-input 2])
