@@ -13,10 +13,10 @@
 ;; (keys @re-frame.db/app-db)
 ;; (keys (:f-visible-nodes (:ui @re-frame.db/app-db)))
 
-(defn- submap?
-  "Check if all keys and values of map1 are contained in map2."
-  [map1 map2]
-  (= map1 (select-keys map2 (keys map1))))
+;; (defn- submap?
+;;   "Check if all keys and values of map1 are contained in map2."
+;;   [map1 map2]
+;;   (= map1 (select-keys map2 (keys map1))))
 
 (deftest order-of-fold-definition-2
   (re-frame.test/run-test-sync
@@ -59,6 +59,87 @@
       (re-frame/dispatch [::app/set-app-state input-graph-text])
       (is (= #{"node7"} @sub-under-test)))))
 
+(deftest click-network
+  (re-frame.test/run-test-sync
+    (let [selected-nodes (re-frame/subscribe [::app/selected-nodes])
+          input-graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label5:\n  =>label6\n\n=>label2:\n  node5\n\nnode8:\n  node9\n\nnode7:\n  node8\n  =>label7\n\n=>label6:\n  =>label5\n\n=>label7:\n  node1\n\n=>label3:\n  node1\n  node2\n  =>label4\n\nnode3:\n  node4\n  node5\n\nnode9:\n  node10\n\n=>label1 -> node6\nnodeA -> nodeB\nnode4 -> node1\nnode1 -> node2\n\n=>label1 {:position {\"x\" -47, \"y\" 100}}\nnodeB {:position {\"x\" -164, \"y\" -100}}\nnode6 {:position {\"x\" -139, \"y\" 100}}\n=>label5 {:position {\"x\" 9, \"y\" 0}}\n=>label2 {:position {\"x\" 81, \"y\" -100}}\nnode7 {:position {\"x\" 47, \"y\" -200}}\nnodeA {:position {\"x\" -156, \"y\" 0}}\n=>label4 {:position {\"x\" -24, \"y\" -100}}\n=>label6 {:position {\"x\" 45, \"y\" -100}}\n=>label7 {:position {\"x\" 131, \"y\" 0}}\n=>label3 {:position {\"x\" 39, \"y\" 0}}\nnode3 {:position {\"x\" 164, \"y\" 100}}\nnode9 {:position {\"x\" 1, \"y\" -100}}\n"]
+      (re-frame/dispatch [::app/set-app-state input-graph-text])
+      (is (= #{} @selected-nodes))
+      (re-frame/dispatch [:looset-graph.app/network-clicked #{"node7"}])
+      (is (= #{"node7"} @selected-nodes))
+      (re-frame/dispatch [:looset-graph.app/network-clicked #{"node8"}])
+      (is (= #{"node8"} @selected-nodes))
+      (re-frame/dispatch [:looset-graph.app/network-clicked #{"node8"}])
+      (is (= #{"node8"} @selected-nodes))
+      (re-frame/dispatch [:looset-graph.app/network-clicked #{}])
+      (is (= #{} @selected-nodes))
+      (re-frame/dispatch [:looset-graph.app/mouse-select-mode true])
+      (re-frame/dispatch [:looset-graph.app/network-clicked #{"node7"}])
+      (is (= #{"node7"} @selected-nodes))
+      (re-frame/dispatch [:looset-graph.app/network-clicked #{"node8"}])
+      (is (= #{"node7" "node8"} @selected-nodes))
+      (re-frame/dispatch [:looset-graph.app/network-clicked #{"node8"}])
+      (is (= #{"node7"} @selected-nodes))
+      (re-frame/dispatch [:looset-graph.app/network-clicked #{}])
+      (is (= #{"node7"} @selected-nodes)))))
+
+(deftest folding2
+  (re-frame.test/run-test-sync
+    (let [sub-under-test (re-frame/subscribe [::app/visible-nodes])
+          selected-nodes (re-frame/subscribe [::app/selected-nodes])
+          input-graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label5:\n  =>label6\n\n=>label2:\n  node5\n\nnode8:\n  node9\n\nnode7:\n  node8\n  =>label7\n\n=>label6:\n  =>label5\n\n=>label7:\n  node1\n\n=>label3:\n  node1\n  node2\n  =>label4\n\nnode3:\n  node4\n  node5\n\nnode9:\n  node10\n\n=>label1 -> node6\nnodeA -> nodeB\nnode4 -> node1\nnode1 -> node2\n\n=>label1 {:position {\"x\" -47, \"y\" 100}}\nnodeB {:position {\"x\" -164, \"y\" -100}}\nnode6 {:position {\"x\" -139, \"y\" 100}}\n=>label5 {:position {\"x\" 9, \"y\" 0}}\n=>label2 {:position {\"x\" 81, \"y\" -100}}\nnode7 {:position {\"x\" 47, \"y\" -200}}\nnodeA {:position {\"x\" -156, \"y\" 0}}\n=>label4 {:position {\"x\" -24, \"y\" -100}}\n=>label6 {:position {\"x\" 45, \"y\" -100}}\n=>label7 {:position {\"x\" 131, \"y\" 0}}\n=>label3 {:position {\"x\" 39, \"y\" 0}}\nnode3 {:position {\"x\" 164, \"y\" 100}}\nnode9 {:position {\"x\" 1, \"y\" -100}}\n"]
+      (re-frame/dispatch [::app/set-app-state input-graph-text])
+      (re-frame/dispatch [:looset-graph.app/hide-all-or-selected])
+      (is (= #{} @selected-nodes))
+      (is (= #{} @sub-under-test))
+      (re-frame/dispatch [:looset-graph.app/mouse-select-mode true])
+      ;; Selecting node 3 and 7 and all inner nodes.
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node3"]])
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node7"]])
+      ;; Deselecting specific nodes
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node9"]])
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["label7"]])
+      (re-frame/dispatch [:looset-graph.app/show-selected])
+      (is (= #{"node3" "node4" "node5" "node7" "node8"} @selected-nodes))
+      (is (= #{"node3" "node7"} @sub-under-test))
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node7"]])
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node7"]])
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node8"]])
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node9"]])
+      (re-frame/dispatch [:looset-graph.app/expand-selected])
+      (is (= #{"node3" "node4" "node5" "node8"} @selected-nodes))
+      (is (= #{"node5" "node4" "node7"} @sub-under-test))
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node7"]])
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node9"]])
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["label7"]])
+      (re-frame/dispatch [:looset-graph.app/expand-selected])
+      (re-frame/dispatch [:looset-graph.app/mouse-select-mode false])
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node7" "node8"]])
+      (is (= #{"node3" "node4" "node5" "node7" "node8"} @selected-nodes))
+      (is (= #{"node5" "node4" "node8"} @sub-under-test))
+      (re-frame/dispatch [:looset-graph.app/mouse-select-mode true])
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node3"]])
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node4"]])
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node5"]])
+      (re-frame/dispatch [:looset-graph.app/collapse-all-or-selected])
+      (is (= #{"node4" "node5" "node7" "node8"} @selected-nodes))
+      (is (= #{"node5" "node4" "node7"} @sub-under-test))
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node3"]])
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node4"]])
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node5"]])
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node8"]])
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node8"]])
+      (re-frame/dispatch [:looset-graph.app/expand-selected])
+      (is (= #{"node3" "node7"} @selected-nodes))
+      (is (= #{"node4" "node5" "node8"} @sub-under-test))
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node3"]])
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node3"]])
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node7"]])
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node7"]])
+      (re-frame/dispatch [:looset-graph.app/collapse-all-or-selected])
+      (is (= #{} @selected-nodes))
+      (is (= #{"node3" "node7"} @sub-under-test)))))
+
 (deftest folding
   (re-frame.test/run-test-sync
     (let [sub-under-test (re-frame/subscribe [::app/visible-nodes])
@@ -75,31 +156,31 @@
       (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node7"]])
       (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node8"]])
       (re-frame/dispatch [:looset-graph.app/show-selected])
-      (is (= #{"node3" "node4" "node5" "node7" "node8"} @selected-nodes))
+      (is (= #{"node3" "node7" "label7" "node1"} @selected-nodes))
       (is (= #{"node3" "node7"} @sub-under-test))
       (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node7"]])
       (re-frame/dispatch [:looset-graph.app/expand-selected])
-      (is (= #{"node3" "node4" "node5" "node8"} @selected-nodes))
-      (is (= #{"node5" "node4" "node7"} @sub-under-test))
+      (is (= #{"node3" "node7" "label7" "node1" "node8" "node9" "node10"} @selected-nodes))
+      (is (= #{"node1"} @sub-under-test))
       (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node7"]])
       (re-frame/dispatch [:looset-graph.app/expand-selected])
-      (is (= #{"node3" "node4" "node5" "node7" "node8"} @selected-nodes))
-      (is (= #{"node5" "node4" "node8"} @sub-under-test))
+      (is (= #{"node3"} @selected-nodes))
+      (is (= #{"node1"} @sub-under-test))
       (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node3"]])
       (re-frame/dispatch [:looset-graph.app/collapse-all-or-selected])
-      (is (= #{"node4" "node5" "node7" "node8"} @selected-nodes))
-      (is (= #{"node5" "node4" "node7"} @sub-under-test))
+      (is (= #{"node4" "node5" "node3"} @selected-nodes))
+      (is (= #{"node3" "node1"} @sub-under-test))
       (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node3"]])
       (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node4"]])
       (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node5"]])
       (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node8"]])
       (re-frame/dispatch [:looset-graph.app/expand-selected])
-      (is (= #{"node3" "node7"} @selected-nodes))
-      (is (= #{"node4" "node5" "node8"} @sub-under-test))
+      (is (= #{"node4" "node5" "node8" "node9" "node10"} @selected-nodes))
+      (is (= #{"node3" "node1"} @sub-under-test))
       (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node3"]])
       (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node7"]])
       (re-frame/dispatch [:looset-graph.app/collapse-all-or-selected])
-      (is (= #{} @selected-nodes))
+      (is (= #{"node3" "node4" "node5" "node7" "label7" "node1" "node8" "node9" "node10"} @selected-nodes))
       (is (= #{"node3" "node7"} @sub-under-test)))))
 
 (deftest hiding-multiple
@@ -126,6 +207,24 @@
       (re-frame/dispatch [:looset-graph.app/hide-all-or-selected])
       (is (= 0 (count @sub-under-test))))))
 
+(deftest node-selection2
+  (re-frame.test/run-test-sync
+    (let [sub-under-test (re-frame/subscribe [::app/selected-nodes])
+          input-graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label5:\n  =>label6\n\n=>label2:\n  node5\n\nnode8:\n  node9\n\nnode7:\n  node8\n  =>label7\n\n=>label6:\n  =>label5\n\n=>label7:\n  node1\n\n=>label3:\n  node1\n  node2\n  =>label4\n\nnode3:\n  node4\n  node5\n\nnode9:\n  node10\n\n=>label1 -> node6\nnodeA -> nodeB\nnode4 -> node1\nnode1 -> node2\n\n=>label1 {:position {\"x\" -47, \"y\" 100}}\nnodeB {:position {\"x\" -164, \"y\" -100}}\nnode6 {:position {\"x\" -139, \"y\" 100}}\n=>label5 {:position {\"x\" 9, \"y\" 0}}\n=>label2 {:position {\"x\" 81, \"y\" -100}}\nnode7 {:position {\"x\" 47, \"y\" -200}}\nnodeA {:position {\"x\" -156, \"y\" 0}}\n=>label4 {:position {\"x\" -24, \"y\" -100}}\n=>label6 {:position {\"x\" 45, \"y\" -100}}\n=>label7 {:position {\"x\" 131, \"y\" 0}}\n=>label3 {:position {\"x\" 39, \"y\" 0}}\nnode3 {:position {\"x\" 164, \"y\" 100}}\nnode9 {:position {\"x\" 1, \"y\" -100}}\n"]
+      (re-frame/dispatch [::app/set-app-state input-graph-text])
+      (is (= #{} @sub-under-test))
+      (re-frame/dispatch [:looset-graph.app/mouse-select-mode true])
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node7"]])
+      (is (= #{"node7" "node8" "node9" "node10" "label7" "node1"} @sub-under-test))
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["label3"]])
+      (is (= #{"node7" "node8" "node9" "node10" "label7" "node1" "label3" "node2" "label4"} @sub-under-test))
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node7"]])
+      (is (= #{"label3" "node2" "label4"} @sub-under-test))
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["label3"]])
+      (is (= #{"label3" "node1" "node2" "label4"} @sub-under-test))
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["label3"]])
+      (is (= #{} @sub-under-test)))))
+
 (deftest node-selection
   (re-frame.test/run-test-sync
     (let [sub-under-test (re-frame/subscribe [::app/selected-nodes])
@@ -134,9 +233,15 @@
       (is (= #{} @sub-under-test))
       (re-frame/dispatch [:looset-graph.app/mouse-select-mode true])
       (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node7"]])
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node8"]])
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["label7"]])
       (is (= #{"node7"} @sub-under-test))
       (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["label3"]])
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node1"]])
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node2"]])
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["label4"]])
       (is (= #{"node7" "label3"} @sub-under-test))
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node7"]])
       (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["node7"]])
       (is (= #{"label3"} @sub-under-test)))))
 

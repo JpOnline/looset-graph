@@ -153,25 +153,30 @@
                    (get-descendents nodes-map (:children (nodes-map %2))))]
     (reduce step-fn nodes nodes)))
 
+(defn raw-selected-nodes
+  [app-state]
+  (get-in app-state [:ui :selected-nodes] #{}))
+(re-frame/reg-sub ::raw-selected-nodes raw-selected-nodes)
+
 (defn selected-nodes
-  [[hovered-node clicked-nodes nodes-map]]
+  [[hovered-node raw-selected-nodes nodes-map]]
   (if (empty? hovered-node)
-    (get-descendents nodes-map clicked-nodes)
+    raw-selected-nodes
     (get-descendents nodes-map hovered-node)))
 (re-frame/reg-sub
   ::selected-nodes
   :<- [::hovered-node]
-  :<- [::clicked-nodes]
+  :<- [::raw-selected-nodes]
   :<- [::nodes-map]
   selected-nodes)
 (re-frame/reg-flow
   {:id :f-selected-nodes
    :inputs {:hovs [:ui :hovered-node]
-            :clks [:ui :clicked-nodes]
+            :sels [:ui :selected-nodes]
             :nmap [:domain :nodes-map]}
-   :output (fn [{:keys [hovs clks nmap]}]
+   :output (fn [{:keys [hovs sels nmap]}]
              (selected-nodes [(or hovs #{})
-                              (or clks #{})
+                              (or sels #{})
                               nmap]))
    :path [:ui :f-selected-nodes]})
 
@@ -373,6 +378,17 @@
   [nodes-map nodes-hierarchy]
   (sort-by (fn [[k _v]] (-> k nodes-map :type)) nodes-hierarchy))
 
+(defn all-instances-of-node-with-same-open-state-with-default
+  "I created this version just I can use it with an existing fold-ui and use its
+  values as default"
+  [nodes-map nodes-hierarchy]
+  (reduce
+    (fn step-reduce [acc [k v]]
+      (let [deeper-levels (reduce step-reduce {} (dissoc v :opened?))]
+        (conj acc [k (assoc deeper-levels :opened? (get-in nodes-map [k :opened?] (:opened? v false)))])))
+    {}
+    nodes-hierarchy))
+
 (defn all-instances-of-node-with-same-open-state
   "A node can have more than one instance, in multiple labels for example. As
   graph-text it can show up only once, so we are setting all occurrences of it
@@ -513,13 +529,6 @@
   ::mouse-select-mode
   :-> #(get-in % [:ui :mouse-select-mode] false))
 
-;; The name is not perfect as I added indirected ways to select nodes, and the idea is to
-;; have it selected as it was clicked..
-(defn clicked-nodes
-  [app-state]
-  (get-in app-state [:ui :clicked-nodes] #{}))
-(re-frame/reg-sub ::clicked-nodes clicked-nodes)
-
 (defn hidden-nodes
   [nodes-ui]
   (some->> nodes-ui
@@ -644,7 +653,7 @@
                         (all-instances-of-node-with-same-open-state ;; If we are loading the page, we don't have information about which nodes are opened, so we use what is loaded in nodes-map from graph-text.
                           nm*
                           n-hierarchy))]
-      (tap> {:new-fold-ui new-fold-ui})
+      ;; (tap> {:new-fold-ui new-fold-ui})
       (-> app-state
         (assoc-in [:ui :fold] new-fold-ui)
         (assoc-in [:domain :graph-text] v)
@@ -679,10 +688,17 @@
 
 (defn nodes-list-item-clicked
   [{app-state :db} [event path]]
-  (let [toggly-add #(set/difference (set/union %1 %2) (set/intersection %1 %2))]
+  (let [selected-nodes (get-in app-state [:ui :selected-nodes] #{})
+        clicked-node (last path)
+        nodes-map (get-in app-state [:domain :nodes-map])
+        clicked-and-descendents (get-descendents nodes-map #{clicked-node})
+        sel-cli-inter (set/intersection selected-nodes clicked-and-descendents)
+        new-selection (if (= sel-cli-inter clicked-and-descendents)
+                        (set/difference selected-nodes clicked-and-descendents)
+                        (set/union selected-nodes clicked-and-descendents))]
     {:fx [[:dispatch-later {:ms 30 :dispatch [::prepare-to-ctrl-c-selected-nodes]}]]
      :db (if (get-in app-state [:ui :mouse-select-mode] false)
-           (update-in app-state [:ui :clicked-nodes] #(toggly-add (set %) #{(last path)}))
+           (assoc-in app-state [:ui :selected-nodes] new-selection)
            (toggle-open-close app-state [event path]))}))
 (re-frame/reg-event-fx
   ::nodes-list-item-clicked
@@ -786,8 +802,9 @@
         nodes-to-collapse (if (seq selected-nodes) selected-nodes all-nodes)
         closed (->> nodes-to-collapse
                  (map (fn [node-id] {node-id {:opened? false}}))
-                 (into {}))]
-    (update-in app-state [:ui :fold] merge closed)))
+                 (into {}))
+        close-all-instances #(all-instances-of-node-with-same-open-state-with-default closed %)]
+    (update-in app-state [:ui :fold] close-all-instances)))
 (re-frame/reg-event-db ::collapse-all-or-selected [event-to-analytics] collapse-all-or-selected)
 
 (defn expand-selected
@@ -795,8 +812,9 @@
   (let [selected-nodes (-> app-state :ui :f-selected-nodes)
         opened (->> selected-nodes
                  (map (fn [node-id] {node-id {:opened? true}}))
-                 (into {}))]
-    (update-in app-state [:ui :fold] merge opened)))
+                 (into {}))
+        open-all-instances #(all-instances-of-node-with-same-open-state-with-default opened %)]
+    (update-in app-state [:ui :fold] open-all-instances)))
 (re-frame/reg-event-db ::expand-selected [event-to-analytics] expand-selected)
 
 (defn mouse-select-mode-evt
@@ -809,8 +827,8 @@
   (let [toggly-add #(set/difference (set/union %1 %2) (set/intersection %1 %2))]
     {:fx [[:dispatch-later {:ms 30 :dispatch [::prepare-to-ctrl-c-selected-nodes]}]]
      :db (if (get-in app-state [:ui :mouse-select-mode] false)
-           (update-in app-state [:ui :clicked-nodes] #(toggly-add (set %) nodes))
-           (assoc-in app-state [:ui :clicked-nodes] nodes))}))
+           (update-in app-state [:ui :selected-nodes] #(toggly-add (set %) nodes))
+           (assoc-in app-state [:ui :selected-nodes] nodes))}))
 (re-frame/reg-event-fx ::network-clicked [event-to-analytics] network-clicked)
 
 (defn rerender-vis-sub
@@ -1141,7 +1159,7 @@
            [:path {:fill-rule "evenodd" :d "M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"}]
            [:path {:fill-rule "evenodd" :d "M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"}]]]
         [:button.button-2
-         {:title "hide all"
+         {:title "hide all selected"
           :onClick #(>evt [::hide-all-or-selected])}
          [:svg
           {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
@@ -1340,7 +1358,7 @@
    {:style {:position "absolute"
             :top "110vh"
             :padding-left "50vw"}}
-   (interleave (<sub [::clicked-nodes]) (repeat [:br]))])
+   (interleave (<sub [::raw-selected-nodes]) (repeat [:br]))])
 
 (defn main []
   [:<>
