@@ -91,12 +91,17 @@
 
 (def type-str->type #(if (= "labelID" %) :label :lix))
 
+(defn clean-surrounding-quotes [s]
+  (if (= \" (first s) (last s))
+    (subs s 1 (dec (count s)))
+    s))
+
 (defn extract-nodes-from-edge-rule
   [edge]
-  (let [node-from-id (get-in edge [1 1 1 1])
+  (let [node-from-id (clean-surrounding-quotes (get-in edge [1 1 1 1]))
         node-from-type (type-str->type (get-in edge [1 1 0]))
         node-to-type   (type-str->type (get-in edge [2 1 0]))
-        node-to-id   (get-in edge [2 1 1 1])]
+        node-to-id   (clean-surrounding-quotes (get-in edge [2 1 1 1]))]
     [{node-from-id {:type node-from-type :edges-to {:nameless #{node-to-id}}}}
      {node-to-id {:type node-to-type :edges-from {:nameless #{node-from-id}}}}]))
 
@@ -276,14 +281,14 @@
 
 (defn extract-nodes-from-foldable-rule
   [foldable]
-  (let [foldable-id-name (get-in foldable [1 1 1 1])
+  (let [foldable-id-name (clean-surrounding-quotes (get-in foldable [1 1 1 1]))
         foldable-type-str (get-in foldable [1 1 0])
         foldable-type (type-str->type foldable-type-str)
         label-or-parent (if (= :label foldable-type)
                           {:label #{foldable-id-name}}
                           {:parent foldable-id-name})
         extract-node-info (fn [node]
-                            (let [id (get-in node [1 1 1])
+                            (let [id (clean-surrounding-quotes (get-in node [1 1 1]))
                                   type-str (get-in node [1 0])
                                   type (type-str->type type-str)]
                               {id (assoc label-or-parent :type type)}))
@@ -432,7 +437,7 @@
 
 (defn extract-edn-props
   [node-prop]
-  (let [node-id (get-in node-prop [1 1 1 1])
+  (let [node-id (clean-surrounding-quotes (get-in node-prop [1 1 1 1]))
         edn (get node-prop 2)]
     [{node-id (cljs.reader/read-string (get-edn-string edn))}]))
 

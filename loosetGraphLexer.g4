@@ -1,6 +1,7 @@
 lexer grammar loosetGraphLexer;
 
-ID : [a-zA-Z] [a-zA-Z0-9-*+!_/]+ ;
+ID : [a-zA-Z] [a-zA-Z0-9-*+!_/]+
+  | '"' (~["\r\n])* '"' ;
 SEMI : ':' ;
 ARROW : '->' ;
 DOUBLE_ARROW : '=>' ;
