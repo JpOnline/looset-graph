@@ -10,7 +10,8 @@
     [re-frame.std-interceptors]
     [reagent.core :as reagent]
     [reagent.dom]
-    [vis-network]))
+    [vis-network]
+    [quadtree-cljc.core :as quad]))
 
 ;; ---- Util ----
 
@@ -347,10 +348,12 @@
            (mapcat (fn [node-id]
                      (let [v-children (:children (nodes-map node-id))]
                        (swap! to-remove into v-children)
-                       ;; The level avoid that nodes defined in a circular way generates an infinite structure.
-                       (if (< level 4)
-                         {node-id (nodes-hierarchy nodes-map v-children to-remove (inc level))}
-                         {node-id {}})))
+                                  ;; The level avoid that nodes defined in a circular way generates an infinite structure.
+                       ;; (if (< level 4)
+                       ;;   {node-id (nodes-hierarchy nodes-map v-children to-remove (inc level))}
+                       ;;   {node-id {}})))
+                       ;; TODO How to properly avoid that nodes defined in a circular way generates an infinite structure.
+                       {node-id (nodes-hierarchy nodes-map v-children to-remove (inc level))}))
                    nodes-ids))))))
 
 (defn nodes-list
@@ -625,24 +628,145 @@
 
 ;; ---- Events ----
 
+(declare bounding-box->dimensions)
+(declare set-nodes-positions-hierarchy)
+(declare network)
+(defn disperse-nodes-positions
+  [app-state x y]
+  (let [visible-nodes-ids (get-in app-state [:ui :f-visible-nodes])
+        nodes (map
+                 #(let [bounding-box (.getBoundingBox @network %)]
+                    (assoc (bounding-box->dimensions bounding-box)
+                      :id %
+                      :bounding-box bounding-box))
+                 visible-nodes-ids)
+        x-min (apply min (map #(.-left (:bounding-box %)) nodes))
+        x-max (apply max (map #(.-right (:bounding-box %)) nodes))
+        y-min (apply min (map #(.-top (:bounding-box %)) nodes))
+        y-max (apply max (map #(.-bottom (:bounding-box %)) nodes))
+        width (- x-max x-min)
+        height (- y-max y-min)
+        desired-width x
+        desired-height y
+        ;; reduce it to put in the format accepted by the ::set-nodes-positions-hierarchy evt
+        new-nodes-positions (into {} (map #(into {(:id %) {"x" (* desired-width (/ (- (:x %) x-min) width))
+                                                           "y" (* desired-height (/ (- (:y %) y-min) height))}})
+                                          nodes))]
+    (set-nodes-positions-hierarchy
+      app-state [::dispersing-nodes
+                 {:dagging? false
+                  :nodes-positions* new-nodes-positions
+                  :view-position (get-in app-state [:ui :vis-view :position])
+                  :scale (get-in app-state [:ui :vis-view :scale])}])))
+
 (defn resizing-panels
   [app-state [_event new-state]]
   (assoc-in app-state [:ui :panels :resizing-panels] new-state))
 (re-frame/reg-event-db ::resizing-panels resizing-panels)
 
+(defn dispersing-nodes
+  [app-state [_event new-state]]
+  (assoc-in app-state [:ui :dispersing-nodes?] new-state))
+(re-frame/reg-event-db ::dispersing-nodes dispersing-nodes)
+
 (defn mouse-moved
-  [app-state [_event x _y]]
-  (let [resizing-panels? (get-in app-state [:ui :panels :resizing-panels])]
+  [app-state [_event x _y move-x move-y]]
+  (let [new-x-pos (+ move-x (get-in app-state [:ui :mouse-x-pos] 0))
+        new-y-pos (+ move-y (get-in app-state [:ui :mouse-y-pos] 0))
+        resizing-panels? (get-in app-state [:ui :panels :resizing-panels])
+        dispersing-nodes? (get-in app-state [:ui :dispersing-nodes?])]
     (cond-> app-state
+      true (assoc-in [:ui :mouse-x-pos] new-x-pos)
+      true (assoc-in [:ui :mouse-y-pos] new-y-pos)
       resizing-panels?
-      (assoc-in [:ui :panels :left-panel-size] (str x"px")))))
+      (assoc-in [:ui :panels :left-panel-size] (str x"px"))
+      dispersing-nodes?
+      (disperse-nodes-positions new-x-pos new-y-pos)
+      dispersing-nodes?
+      (assoc-in [:ui :number-input 1] new-x-pos)
+      dispersing-nodes?
+      (assoc-in [:ui :number-input 2] new-y-pos))))
 (re-frame/reg-event-db ::mouse-moved mouse-moved)
 
+(defn get-pred
+  "Returns the first element of coll that satisfies the predicate f."
+  [f coll]
+  (some #(when (f %) %) coll))
+
+;; -- Avoid overlapping
+(declare network)
+(declare set-nodes-positions-hierarchy)
+
+(defn bounding-box->dimensions [node]
+  {:x (/ (+ (.-right node) (.-left node)) 2)
+   :y (/ (+ (.-top node) (.-bottom node)) 2)
+   :width (- (.-right node) (.-left node))
+   :height (- (.-bottom node) (.-top node))})
+
+(defn distance-between
+  "Squared distance"
+  [p1 p2]
+  (apply + (map (comp #(* % %) -) p1 p2)))
+
+(defn geometric-spiral
+  "Returns an infinite lazy sequence of [x y] points for a geometric (logarithmic) spiral.
+   - origin: starting [x y]
+   - a: base radius scale
+   - b: ratio > 1 => radius grows each step; 0 < b < 1 => radius shrinks
+   - angle-step: how much to increment theta in each step (radians)."
+  ([origin]
+   (geometric-spiral origin 20))
+  ([origin a]
+   (geometric-spiral origin a 1.04 0.52)) ; some default values
+  ([origin a b angle-step]
+   (let [[cx cy] origin]
+     (map (fn [n]
+            (let [theta (* n angle-step)
+                  r     (* a (Math/pow b theta))]
+              [(+ cx (* r (Math/cos theta)))
+               (+ cy (* r (Math/sin theta)))]))
+          (range)))))
+;; --
+
 (defn keypress
-  [app-state [_event keypressed]]
+  [app-state [event keypressed]]
   (case keypressed
     "v" (assoc-in app-state [:ui :mouse-select-mode] false)
     "s" (assoc-in app-state [:ui :mouse-select-mode] true)
+    "t" (let [visible-nodes-ids (get-in app-state [:ui :f-visible-nodes])
+              nodes (map
+                      #(assoc (bounding-box->dimensions (.getBoundingBox @network %)) :id %)
+                      visible-nodes-ids)
+              ;; nodes (map #(update % :width (partial + 10)) nodes)
+              height (- (apply max (map #(+ (:y %) (/ (:height %) 2)) nodes))
+                        (apply min (map #(- (:y %) (/ (:height %) 2)) nodes)))
+              width (- (apply max (map #(+ (:x %) (/ (:width %) 2)) nodes))
+                       (apply min (map #(- (:x %) (/ (:width %) 2)) nodes)))
+              tree (-> (quad/->bounds 0 0 (* 2 width) (* 2 height))
+                     (quad/->quadtree (count visible-nodes-ids) 8))
+              sorted-nodes (sort-by #(distance-between [0 0] [(:x %) (:y %)]) nodes) ;; TODO Do I really need to sort?
+              ;; Use a quadtree to insert nodes that do not overlap.
+              filled-tree (reduce
+                            (fn [tree node]
+                              (let [;; For the quadtree lib, the x,y point is at the top left instead of the middle.
+                                    initial-pos [(- (:x node) (/ (:width node) 2)) (- (:y node) (/ (:height node) 2))]
+                                    ;; Iterate over the points given by the geometric-spiral fn
+                                    possible-positions (cons initial-pos (geometric-spiral initial-pos (/ (:width node) 2)))
+                                    [good-x good-y :as _non-collliding-pos] (get-pred (fn [[x y]]
+                                                                                        ;; Verify if it collides
+                                                                                        (empty? (quad/retrieve-intersections tree (assoc node :x x :y y))))
+                                                                                      possible-positions)]
+                                ;; update x y coordinates
+                                ;; insert
+                                (quad/insert tree (assoc node :x good-x :y good-y))))
+                            tree sorted-nodes)
+              ;; reduce it to put in the format accepted by the ::set-nodes-positions-hierarchy evt
+              new-nodes-positions (into {} (map #(into {(:id %) {"x" (+ (:x %) (/ (:width %) 2)) "y" (+ (:y %) (/ (:height %) 2))}}) (:objects filled-tree)))]
+          (set-nodes-positions-hierarchy
+            app-state [event {:dagging? false
+                              :nodes-positions* new-nodes-positions
+                              :view-position (get-in app-state [:ui :vis-view :position])
+                              :scale (get-in app-state [:ui :vis-view :scale])}]))
     app-state))
 (re-frame/reg-event-db ::keypress keypress)
 
@@ -725,7 +849,7 @@
   (if dragging?
     app-state
     (let [nodes-positions (reduce-kv (fn [m k {:strs [x y]}]
-                                       (assoc m k {:position {"x" x "y" (round-by 100 y)}}))
+                                       (assoc m k {:position {"x" x "y" y #_(round-by 100 y)}}))
                                      {}
                                      nodes-positions*)]
       ;; (tap> {:set-pos nodes-positions})
@@ -855,18 +979,16 @@
   [{app-state :db}]
   (let [selected-nodes (-> app-state :ui :f-selected-nodes)
         vis-edges-from (-> app-state :ui :f-vis-data :edges (->> (filter #(contains? selected-nodes (:to %)))) (->> (map :from)) set)]
-    ;; Yep, :clicked-nodes is not a perfect name, the idea is to have it selected as it was clicked..
     {:fx [[:dispatch-later {:ms 30 :dispatch [::prepare-to-ctrl-c-selected-nodes]}]]
-     :db (assoc-in app-state [:ui :clicked-nodes] vis-edges-from)}))
+     :db (assoc-in app-state [:ui :selected-nodes] vis-edges-from)}))
 (re-frame/reg-event-fx ::select-source [event-to-analytics] select-source)
 
 (defn select-target
   [{app-state :db}]
   (let [selected-nodes (-> app-state :ui :f-selected-nodes)
         vis-edges-to (-> app-state :ui :f-vis-data :edges (->> (filter #(contains? selected-nodes (:from %)))) (->> (map :to)) set)]
-    ;; Yep, :clicked-nodes is not a perfect name, the idea is to have it selected as it was clicked..
     {:fx [[:dispatch-later {:ms 30 :dispatch [::prepare-to-ctrl-c-selected-nodes]}]]
-     :db (assoc-in app-state [:ui :clicked-nodes] vis-edges-to)}))
+     :db (assoc-in app-state [:ui :selected-nodes] vis-edges-to)}))
 (re-frame/reg-event-fx ::select-target [event-to-analytics] select-target)
 
 (comment
@@ -883,7 +1005,63 @@
     (#(get-in % [:domain :nodes-map]))
     (map (fn [[k {:keys [position]}]]
            {k [(get position "x") (get position "y")]}))
-    (into {})))
+    (into {}))
+
+  (do
+    (def app-state @re-frame.db/app-db)
+    (def visible-nodes-ids (get-in app-state [:ui :f-visible-nodes]))
+    (def nodes (map
+                 #(let [bounding-box (.getBoundingBox @network %)]
+                    (assoc (bounding-box->dimensions bounding-box)
+                      :id %
+                      :bounding-box bounding-box))
+                 visible-nodes-ids))
+    (def x-min (apply min (map #(.-left (:bounding-box %)) nodes)))
+    (def x-max (apply max (map #(.-right (:bounding-box %)) nodes)))
+    (def y-min (apply min (map #(.-top (:bounding-box %)) nodes)))
+    (def y-max (apply max (map #(.-bottom (:bounding-box %)) nodes)))
+    (def desired-width 2000)
+    (def desired-height 1000)
+    (def new-nodes-positions (into {} (map #(into {(:id %) {"x" (* desired-width (/ (- (:x %) x-min) (- x-max x-min))) "y" (* desired-height (/ (- (:y %) y-min) (- y-max y-min)))}}) nodes)))
+    (>evt [::set-nodes-positions-hierarchy 
+           {:dagging? false
+            :nodes-positions* new-nodes-positions
+            :view-position (get-in @re-frame.db/app-db [:ui :vis-view :position])
+            :scale (get-in @re-frame.db/app-db [:ui :vis-view :scale])}]))
+
+
+  (do
+    (def app-state @re-frame.db/app-db)
+    (def visible-nodes-ids (get-in app-state [:ui :f-visible-nodes]))
+    (def nodes (map
+                 #(let [bounding-box (.getBoundingBox @network %)]
+                    (assoc (bounding-box->dimensions bounding-box)
+                      :id %
+                      :bounding-box bounding-box))
+                 visible-nodes-ids))
+    (def height (- (apply max (map #(.-bottom (:bounding-box %)) nodes))
+                   (apply min (map #(.-top (:bounding-box %)) nodes))))
+    (def width (- (apply max (map #(.-right (:bounding-box %)) nodes))
+                  (apply min (map #(.-left (:bounding-box %)) nodes))))
+    (def tree (-> (quad/->bounds 0 0 width height)
+                (quad/->quadtree (count visible-nodes-ids) 3))))
+
+  (sort-by #(distance-between [0 0] [(:x %) (:y %)]) nodes)
+  sorted-nodes
+
+  ;; Uma volta é 2*pi. Eu quero círculos que vão aumentando, então eu posso ter um b (ration) baixo e pegar algumas quantidades de pontos e ir ignorando vários e pegar outra quantidade.
+  ;; A quantidade de pontos que vou pegar vai provavelmente ser definida pelo angle-step, que é quanto ele rotaciona por step.
+  (doseq [[x y] (take 500 (geometric-spiral [0 0] 20 1.24 0.22))]
+    (print (str "("x","y")\n")))
+
+  (.getPositions @network)
+
+  (and (< (.-top n1) (.-top n2))
+       (< (.-bottom n1) (.-top n2)))
+
+  (.getPosition @network "user-device/UserDevice")
+  (bounding-box->dimensions (.getBoundingBox @network "user-device/UserDevice"))
+  (quad/retrieve-intersections tree (bounding-box->dimensions (.getBoundingBox @network "user-device/UserDevice"))))
 
 ;; ---- Views ----
 
@@ -1204,7 +1382,21 @@
           [:svg
            {:width icons-size :height icons-size :fill (if disable? "#00000024" "currentColor") :viewBox "0 0 16 16"}
            [:path {:fill-rule "evenodd" :d "M3.5 6a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h9a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5h-2a.5.5 0 0 1 0-1h2A1.5 1.5 0 0 1 14 6.5v8a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 14.5v-8A1.5 1.5 0 0 1 3.5 5h2a.5.5 0 0 1 0 1z"}]
-           [:path {:fill-rule "evenodd" :d "M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"}]]]])]]))
+           [:path {:fill-rule "evenodd" :d "M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"}]]]])
+      [:button.button-2.drag-button
+       {:title "x"
+        :onMouseDown #(do
+                       (let [canvas (first (js/document.getElementsByTagName "canvas"))]
+                          (-> (.requestPointerLock canvas #_(clj->js {:unadjustedMovement true}))
+                            (.then (fn []
+                                     (js/console.log "Pointer lock acquired.")))
+                            (.catch (fn [err]
+                                      (js/console.error "Pointer lock failed:" err)))))
+
+                       (>evt [::dispersing-nodes true]))}
+       [:svg
+        {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
+        [:path {:fill-rule "evenodd" :d "M5.828 10.172a.5.5 0 0 0-.707 0l-4.096 4.096V11.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H4.5a.5.5 0 0 0 0-1H1.732l4.096-4.096a.5.5 0 0 0 0-.707m4.344-4.344a.5.5 0 0 0 .707 0l4.096-4.096V4.5a.5.5 0 1 0 1 0V.525a.5.5 0 0 0-.5-.5H11.5a.5.5 0 0 0 0 1h2.768l-4.096 4.096a.5.5 0 0 0 0 .707"}]]]]]))
 
 (def code-font-family "dejavu sans mono, monospace")
 (def code-font-size "small")
@@ -1225,10 +1417,11 @@
 (defn debug-quick-val-set []
   [:<>
     [:<>
+     [:pre "blabla"]
      [:span "Range1 "(<sub [::number-input 1])]
      [:input {:type "range"
-              :min -5000
-              :max 1000
+              :min 1000
+              :max 4000
               :value (<sub [::number-input 1])
               :onChange #(>evt [::set-number-input (-> % .-target .-value) 1])}]
      [:span "Range2 "(<sub [::number-input 2])]
@@ -1328,6 +1521,10 @@
       touch-action: manipulation;
    }
 
+   .drag-button {
+      cursor: se-resize;
+   }
+
    .lix-style {
      display: flex;
      flex-direction: row;
@@ -1406,13 +1603,13 @@
         [nodes-list-view]]
        (when @(re-frame/sub :flow {:id :f-editing-graph-text})
          [edit-raw-graph-text])]
-     [botton-buttons]]]])
+     [botton-buttons]
      ;; [:div
      ;;  (<sub [::fold-list])]
      ;; [:div
      ;;  (str @(re-frame/sub :flow {:id :f-editing-graph-text}))]]]])
      ;; ;; This is for testing values in a fast way, can be plugged in different components.
-     ;; [debug-quick-val-set]]]])
+     [debug-quick-val-set]]]])
 
 (defn set-toggle-input
   [app-state [_event n]]
@@ -1426,7 +1623,9 @@
 
 (defn set-number-input
   [app-state [_event n knob]]
-  (assoc-in app-state [:ui :number-input knob] n))
+  (-> app-state
+    (assoc-in [:ui :number-input knob] n)
+    (disperse-nodes-positions n n)))
 (re-frame/reg-event-db ::set-number-input set-number-input)
 
 (defn number-input
@@ -1488,7 +1687,8 @@
 (defn init-mousemove []
   (js/document.body.addEventListener
     "mousemove"
-    #(>evt [::mouse-moved (-> % .-x) (-> % .-y)])))
+    #(>evt [::mouse-moved (-> % .-x) (-> % .-y)
+                          (-> % .-movementX) (-> % .-movementY)])))
 
 (defn init-keyboard-events []
   (js/document.body.addEventListener
@@ -1514,12 +1714,15 @@
   [app-state]
   (-> app-state
     (resizing-panels [::mouse-up false])
+    (dispersing-nodes [::mouse-up false])
     (assoc-in [:ui :diagram :zooming?] false)))
 (re-frame/reg-event-db ::mouse-up mouse-up)
 (defn init-mouseup []
   (js/document.body.addEventListener
     "mouseup"
-    #(>evt [::mouse-up false])))
+    #(do
+       (js/document.exitPointerLock)
+       (>evt [::mouse-up false]))))
 
 ;; Snippet on how to react on CSS change
 ;; (defn init-style-observer []
