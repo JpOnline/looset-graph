@@ -62,6 +62,12 @@
              context)))
 (re-frame/reg-global-interceptor debugging-save-events)
 
+(defn bounding-box->dimensions [node]
+  {:x (/ (+ (.-right node) (.-left node)) 2)
+   :y (/ (+ (.-top node) (.-bottom node)) 2)
+   :width (- (.-right node) (.-left node))
+   :height (- (.-bottom node) (.-top node))})
+
 (comment
   @events-history
   (reset! events-history []))
@@ -630,11 +636,11 @@
 
 ;; -- Events ----
 
-(declare bounding-box->dimensions)
+(defonce network (atom nil))
 (declare set-nodes-positions)
-(declare network)
+
 (defn disperse-nodes-positions
-  [app-state x y]
+  [app-state mult-x mult-y]
   (let [visible-nodes-ids (get-in app-state [:ui :f-visible-nodes])
         nodes (map
                  #(let [bounding-box (.getBoundingBox @network %)]
@@ -642,17 +648,8 @@
                       :id %
                       :bounding-box bounding-box))
                  visible-nodes-ids)
-        x-min (apply min (map #(.-left (:bounding-box %)) nodes))
-        x-max (apply max (map #(.-right (:bounding-box %)) nodes))
-        y-min (apply min (map #(.-top (:bounding-box %)) nodes))
-        y-max (apply max (map #(.-bottom (:bounding-box %)) nodes))
-        width (- x-max x-min)
-        height (- y-max y-min)
-        desired-width x
-        desired-height y
-        ;; reduce it to put in the format accepted by the ::set-nodes-positions evt
-        new-nodes-positions (into {} (map #(into {(:id %) {:position {"x" (* desired-width (/ (- (:x %) x-min) width))
-                                                                      "y" (* desired-height (/ (- (:y %) y-min) height))}}})
+        new-nodes-positions (into {} (map #(into {(:id %) {:position {"x" (* (:x %) mult-x)
+                                                                      "y" (* (:y %) mult-y)}}})
                                           nodes))]
     (update-in app-state [:domain :nodes-map] #(merge-with merge % new-nodes-positions))))
 
@@ -668,21 +665,19 @@
 
 (defn mouse-moved
   [app-state [_event x _y move-x move-y]]
-  (let [new-x-pos (+ move-x (get-in app-state [:ui :mouse-x-pos] 0))
-        new-y-pos (+ move-y (get-in app-state [:ui :mouse-y-pos] 0))
-        resizing-panels? (get-in app-state [:ui :panels :resizing-panels])
-        dispersing-nodes? (get-in app-state [:ui :dispersing-nodes?])]
+  (let [resizing-panels? (get-in app-state [:ui :panels :resizing-panels])
+        dispersing-nodes? (get-in app-state [:ui :dispersing-nodes?])
+        new-disp-x (max 0.5 (inc (/ move-x 200)))
+        new-disp-y (max 0.5 (inc (/ move-y 200)))]
     (cond-> app-state
-      true (assoc-in [:ui :mouse-x-pos] new-x-pos)
-      true (assoc-in [:ui :mouse-y-pos] new-y-pos)
       resizing-panels?
       (assoc-in [:ui :panels :left-panel-size] (str x"px"))
       dispersing-nodes?
-      (disperse-nodes-positions new-x-pos new-y-pos)
+      (disperse-nodes-positions new-disp-x new-disp-y)
       dispersing-nodes?
-      (assoc-in [:ui :number-input 1] new-x-pos)
+      (assoc-in [:ui :number-input 1] new-disp-x)
       dispersing-nodes?
-      (assoc-in [:ui :number-input 2] new-y-pos))))
+      (assoc-in [:ui :number-input 2] new-disp-y))))
 (re-frame/reg-event-db ::mouse-moved mouse-moved)
 
 (defn get-pred
@@ -691,14 +686,6 @@
   (some #(when (f %) %) coll))
 
 ;; --- Avoid overlapping
-(declare network)
-
-(defn bounding-box->dimensions [node]
-  {:x (/ (+ (.-right node) (.-left node)) 2)
-   :y (/ (+ (.-top node) (.-bottom node)) 2)
-   :width (- (.-right node) (.-left node))
-   :height (- (.-bottom node) (.-top node))})
-
 (defn distance-between
   "Squared distance"
   [p1 p2]
@@ -841,9 +828,9 @@
           ;; reduce it to put in the format accepted by the ::set-nodes-positions evt
           new-nodes-positions (into {} (map #(into {(:id %) {:position {"x" (+ (:x %) (/ (:width %) 2)) "y" (+ (:y %) (/ (:height %) 2))}}}) (:objects filled-tree)))]
       (-> app-state
-        (assoc-in [:ui :graph-dragging?] dragging?)
-        (update-in [:domain :nodes-map] #(merge-with merge % new-nodes-positions))
-        (set-vis-view [event args])))))
+        ;; (assoc-in [:ui :graph-dragging?] dragging?)
+        (update-in [:domain :nodes-map] #(merge-with merge % new-nodes-positions))))))
+        ;; (set-vis-view [event args])))))
 (re-frame/reg-event-db ::set-nodes-positions [event-to-analytics] set-nodes-positions)
 
 (defn clear-nodes-positions
@@ -1070,8 +1057,6 @@
 ;;
 ;; (def draw-graph (memoize draw-graph-no-memo))
 
-(defonce network (atom nil))
-
 (defn graph-component-inner []
   (let [graph-component-id "looset-graph"
         update-comp (fn [component [_ prev-props]]
@@ -1090,9 +1075,8 @@
                      (let [container (-> js/document (.getElementById graph-component-id))]
                        (reset! network (-> vis-network .-Network (new container nil #_options))))
                      (.on @network "dragStart" #_(js/console.log "dragStart") #(>evt [::drag-changed true]))
-                     (.on @network "dragEnd" #(>evt [::set-nodes-positions {:dragging? false
-                                                                            :view-position ^Object (.getViewPosition @network)
-                                                                            :scale ^Object (.getScale @network)}]))
+                     (.on @network "dragEnd" #(>evt [::set-vis-view {:view-position ^Object (.getViewPosition @network)
+                                                                     :scale ^Object (.getScale @network)}]))
                      (.on @network "zoom" #(>evt [::set-vis-view {:view-position ^Object (.getViewPosition @network)
                                                                   :scale ^Object (.getScale @network)}]))
                      (.on @network "click" #(do (>evt [::network-clicked (set ^js(.-nodes %))])
@@ -1368,20 +1352,20 @@
           [:svg
            {:width icons-size :height icons-size :fill (if disable? "#00000024" "currentColor") :viewBox "0 0 16 16"}
            [:path {:fill-rule "evenodd" :d "M3.5 6a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h9a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5h-2a.5.5 0 0 1 0-1h2A1.5 1.5 0 0 1 14 6.5v8a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 14.5v-8A1.5 1.5 0 0 1 3.5 5h2a.5.5 0 0 1 0 1z"}]
-           [:path {:fill-rule "evenodd" :d "M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"}]]]])]]))
-      ;; [:button.button-2.drag-button
-      ;;  {:title "dispersion (click, hold and drag)"
-      ;;   :onMouseDown #(let [canvas (first (js/document.getElementsByTagName "canvas"))]
-      ;;                   (-> (.requestPointerLock canvas #_(clj->js {:unadjustedMovement true}))
-      ;;                     (.then (fn []
-      ;;                              (js/console.log "Pointer lock acquired.")))
-      ;;                     (.catch (fn [err]
-      ;;                               (js/console.error "Pointer lock failed:" err))))
-      ;;
-      ;;                   (>evt [::dispersing-nodes true]))}
-      ;;  [:svg
-      ;;   {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
-      ;;   [:path {:fill-rule "evenodd" :d "M5.828 10.172a.5.5 0 0 0-.707 0l-4.096 4.096V11.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H4.5a.5.5 0 0 0 0-1H1.732l4.096-4.096a.5.5 0 0 0 0-.707m4.344-4.344a.5.5 0 0 0 .707 0l4.096-4.096V4.5a.5.5 0 1 0 1 0V.525a.5.5 0 0 0-.5-.5H11.5a.5.5 0 0 0 0 1h2.768l-4.096 4.096a.5.5 0 0 0 0 .707"}]]]]]))
+           [:path {:fill-rule "evenodd" :d "M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"}]]]])
+      [:button.button-2.drag-button
+       {:title "dispersion (click, hold and drag)"
+        :onMouseDown #(let [canvas (first (js/document.getElementsByTagName "canvas"))]
+                        (-> (.requestPointerLock canvas #_(clj->js {:unadjustedMovement true}))
+                          (.then (fn []
+                                   (js/console.log "Pointer lock acquired.")))
+                          (.catch (fn [err]
+                                    (js/console.error "Pointer lock failed:" err))))
+
+                        (>evt [::dispersing-nodes true]))}
+       [:svg
+        {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
+        [:path {:fill-rule "evenodd" :d "M5.828 10.172a.5.5 0 0 0-.707 0l-4.096 4.096V11.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H4.5a.5.5 0 0 0 0-1H1.732l4.096-4.096a.5.5 0 0 0 0-.707m4.344-4.344a.5.5 0 0 0 .707 0l4.096-4.096V4.5a.5.5 0 1 0 1 0V.525a.5.5 0 0 0-.5-.5H11.5a.5.5 0 0 0 0 1h2.768l-4.096 4.096a.5.5 0 0 0 0 .707"}]]]]]))
 
 (def code-font-family "dejavu sans mono, monospace")
 (def code-font-size "small")
@@ -1588,13 +1572,13 @@
         [nodes-list-view]]
        (when @(re-frame/sub :flow {:id :f-editing-graph-text})
          [edit-raw-graph-text])]
-     [botton-buttons]
+     [botton-buttons]]]])
      ;; [:div
      ;;  (<sub [::fold-list])]
      ;; [:div
      ;;  (str @(re-frame/sub :flow {:id :f-editing-graph-text}))]]]])
      ;; ;; This is for testing values in a fast way, can be plugged in different components.
-     [debug-quick-val-set]]]])
+     ;; [debug-quick-val-set]]]])
 
 (defn set-toggle-input
   [app-state [_event n]]
@@ -1609,8 +1593,8 @@
 (defn set-number-input
   [app-state [_event n knob]]
   (-> app-state
-    (assoc-in [:ui :number-input knob] n)
-    (disperse-nodes-positions n n)))
+    (assoc-in [:ui :number-input knob] n)))
+    ;; (disperse-nodes-positions n n)))
 (re-frame/reg-event-db ::set-number-input set-number-input)
 
 (defn number-input
@@ -1696,12 +1680,14 @@
 
 ;; Snippets about mouse-up event
 (defn mouse-up
-  [app-state]
-  (-> app-state
-    (resizing-panels [::mouse-up false])
-    (dispersing-nodes [::mouse-up false])
-    (assoc-in [:ui :diagram :zooming?] false)))
-(re-frame/reg-event-db ::mouse-up mouse-up)
+  [{app-state :db}]
+  {:fx [[:dispatch-later {:ms 20 :dispatch [::set-nodes-positions]}]]
+   :db (-> app-state
+         (resizing-panels [::mouse-up false])
+         (dispersing-nodes [::mouse-up false])
+         (assoc-in [:ui :diagram :zooming?] false)
+         (assoc-in [:ui :graph-dragging?] false))})
+(re-frame/reg-event-fx ::mouse-up mouse-up)
 (defn init-mouseup []
   (js/document.body.addEventListener
     "mouseup"
