@@ -279,10 +279,10 @@
       (re-frame/dispatch [:looset-graph.app/drag-changed true])
       (re-frame/dispatch [:looset-graph.app/set-nodes-positions-hierarchy {:dragging? false, :nodes-positions* {"label1" {"x" -47, "y" 100}, "nodeB" {"x" -164, "y" -100}, "node6" {"x" -139, "y" 100}, "label5" {"x" 9, "y" 0}, "label2" {"x" 81, "y" -100}, "node7" {"x" -110, "y" -252}, "nodeA" {"x" -156, "y" 0}, "label4" {"x" -24, "y" -100}, "label6" {"x" 45, "y" -100}, "label7" {"x" 131, "y" 0}, "label3" {"x" 39, "y" 0}, "node3" {"x" 164, "y" 100}, "node9" {"x" 1, "y" -100}}, :view-position #js {:x -0.3879394531248308, :y -75.45377976728982}, :scale 1.136826626375981}])
       (re-frame/dispatch [:looset-graph.app/mouse-up false])
-      (is (= {"x" -110, "y" -300}
+      (is (= {"x" -110, "y" -252} ;; y is -300 if I'm rounding its value
              (node7-position)))
       (re-frame/dispatch [::app/toggle-hidden "node7"])
-      (is (= {"x" -110, "y" -300}
+      (is (= {"x" -110, "y" -252}
              (node7-position))))))
 
 ;; Avoiding the Promise by not using the compressed graph-text is an ok approach in the meanwhile.

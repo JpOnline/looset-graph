@@ -13,7 +13,7 @@
     [vis-network]
     [quadtree-cljc.core :as quad]))
 
-;; ---- Util ----
+;; -- Util ----
 
 (when ^boolean js/goog.DEBUG ;; Code removed in production
   ;; (day8.re-frame-10x/show-panel! true) ;; Or just press ctrl-shift-x to toggle pannel
@@ -66,7 +66,7 @@
   @events-history
   (reset! events-history []))
 
-;; ---- Subs ----
+;; -- Subs ----
 
 ;; TODO: Replace all reg-subs for reg-flow? Maybe there's still usage for subs,
 ;; it also has the nice effect of defining default values in a single place.
@@ -337,24 +337,26 @@
 ;; -=vlabel6
 ;;  -=vlabel5
 ;;   -=>label6
+(defn- build-hierarchy
+  [nodes-map nodes-ids to-remove visited]
+  ;; Maybe to acomplish the cyclical nodes definition to show, I could have a
+  ;;lazy-seq here, so intead of the `(into {} (mapcat ...` I'd have `{:node-children (lazy-seq (mapcat ...`.
+  (into {}
+    (mapcat (fn [node-id]
+              (if (contains? visited node-id)
+                {node-id {}}
+                (let [new-visited (conj visited node-id)
+                      node (get nodes-map node-id)
+                      v-children (:children node)]
+                  (swap! to-remove into v-children)
+                  {node-id (build-hierarchy nodes-map v-children to-remove new-visited)})))
+            nodes-ids)))
 (def nodes-hierarchy
   (memoize
-    (fn ([nodes-map]
-         (let [to-remove (atom #{})
-               n-hierarchy (nodes-hierarchy nodes-map (keys nodes-map) to-remove 0)]
-           (apply dissoc n-hierarchy @to-remove)))
-        ([nodes-map nodes-ids to-remove level]
-         (into {}
-           (mapcat (fn [node-id]
-                     (let [v-children (:children (nodes-map node-id))]
-                       (swap! to-remove into v-children)
-                                  ;; The level avoid that nodes defined in a circular way generates an infinite structure.
-                       ;; (if (< level 4)
-                       ;;   {node-id (nodes-hierarchy nodes-map v-children to-remove (inc level))}
-                       ;;   {node-id {}})))
-                       ;; TODO How to properly avoid that nodes defined in a circular way generates an infinite structure.
-                       {node-id (nodes-hierarchy nodes-map v-children to-remove (inc level))}))
-                   nodes-ids))))))
+    (fn [nodes-map]
+      (let [to-remove (atom #{})
+            n-hierarchy (build-hierarchy nodes-map (keys nodes-map) to-remove #{})]
+        (apply dissoc n-hierarchy @to-remove)))))
 
 (defn nodes-list
   [path nodes-map fold-ui [node node-children]]
@@ -626,10 +628,10 @@
 
 ;; DO NOT create new reg-subs, use reg-flow instead!
 
-;; ---- Events ----
+;; -- Events ----
 
 (declare bounding-box->dimensions)
-(declare set-nodes-positions-hierarchy)
+(declare set-nodes-positions)
 (declare network)
 (defn disperse-nodes-positions
   [app-state x y]
@@ -648,16 +650,11 @@
         height (- y-max y-min)
         desired-width x
         desired-height y
-        ;; reduce it to put in the format accepted by the ::set-nodes-positions-hierarchy evt
-        new-nodes-positions (into {} (map #(into {(:id %) {"x" (* desired-width (/ (- (:x %) x-min) width))
-                                                           "y" (* desired-height (/ (- (:y %) y-min) height))}})
+        ;; reduce it to put in the format accepted by the ::set-nodes-positions evt
+        new-nodes-positions (into {} (map #(into {(:id %) {:position {"x" (* desired-width (/ (- (:x %) x-min) width))
+                                                                      "y" (* desired-height (/ (- (:y %) y-min) height))}}})
                                           nodes))]
-    (set-nodes-positions-hierarchy
-      app-state [::dispersing-nodes
-                 {:dagging? false
-                  :nodes-positions* new-nodes-positions
-                  :view-position (get-in app-state [:ui :vis-view :position])
-                  :scale (get-in app-state [:ui :vis-view :scale])}])))
+    (update-in app-state [:domain :nodes-map] #(merge-with merge % new-nodes-positions))))
 
 (defn resizing-panels
   [app-state [_event new-state]]
@@ -693,9 +690,8 @@
   [f coll]
   (some #(when (f %) %) coll))
 
-;; -- Avoid overlapping
+;; --- Avoid overlapping
 (declare network)
-(declare set-nodes-positions-hierarchy)
 
 (defn bounding-box->dimensions [node]
   {:x (/ (+ (.-right node) (.-left node)) 2)
@@ -726,48 +722,13 @@
               [(+ cx (* r (Math/cos theta)))
                (+ cy (* r (Math/sin theta)))]))
           (range)))))
-;; --
+;; ---
 
 (defn keypress
-  [app-state [event keypressed]]
+  [app-state [_event keypressed]]
   (case keypressed
     "v" (assoc-in app-state [:ui :mouse-select-mode] false)
-    "s" (assoc-in app-state [:ui :mouse-select-mode] true)
-    "t" (let [visible-nodes-ids (get-in app-state [:ui :f-visible-nodes])
-              nodes (map
-                      #(assoc (bounding-box->dimensions (.getBoundingBox @network %)) :id %)
-                      visible-nodes-ids)
-              ;; nodes (map #(update % :width (partial + 10)) nodes)
-              height (- (apply max (map #(+ (:y %) (/ (:height %) 2)) nodes))
-                        (apply min (map #(- (:y %) (/ (:height %) 2)) nodes)))
-              width (- (apply max (map #(+ (:x %) (/ (:width %) 2)) nodes))
-                       (apply min (map #(- (:x %) (/ (:width %) 2)) nodes)))
-              tree (-> (quad/->bounds 0 0 (* 2 width) (* 2 height))
-                     (quad/->quadtree (count visible-nodes-ids) 8))
-              sorted-nodes (sort-by #(distance-between [0 0] [(:x %) (:y %)]) nodes) ;; TODO Do I really need to sort?
-              ;; Use a quadtree to insert nodes that do not overlap.
-              filled-tree (reduce
-                            (fn [tree node]
-                              (let [;; For the quadtree lib, the x,y point is at the top left instead of the middle.
-                                    initial-pos [(- (:x node) (/ (:width node) 2)) (- (:y node) (/ (:height node) 2))]
-                                    ;; Iterate over the points given by the geometric-spiral fn
-                                    possible-positions (cons initial-pos (geometric-spiral initial-pos (/ (:width node) 2)))
-                                    [good-x good-y :as _non-collliding-pos] (get-pred (fn [[x y]]
-                                                                                        ;; Verify if it collides
-                                                                                        (empty? (quad/retrieve-intersections tree (assoc node :x x :y y))))
-                                                                                      possible-positions)]
-                                ;; update x y coordinates
-                                ;; insert
-                                (quad/insert tree (assoc node :x good-x :y good-y))))
-                            tree sorted-nodes)
-              ;; reduce it to put in the format accepted by the ::set-nodes-positions-hierarchy evt
-              new-nodes-positions (into {} (map #(into {(:id %) {"x" (+ (:x %) (/ (:width %) 2)) "y" (+ (:y %) (/ (:height %) 2))}}) (:objects filled-tree)))]
-          (set-nodes-positions-hierarchy
-            app-state [event {:dagging? false
-                              :nodes-positions* new-nodes-positions
-                              :view-position (get-in app-state [:ui :vis-view :position])
-                              :scale (get-in app-state [:ui :vis-view :scale])}]))
-    app-state))
+    "s" (assoc-in app-state [:ui :mouse-select-mode] true)))
 (re-frame/reg-event-db ::keypress keypress)
 
 (defn set-graph-text
@@ -783,23 +744,25 @@
                           nm*
                           n-hierarchy))]
       ;; (tap> {:new-fold-ui new-fold-ui})
-      (-> app-state
-        (assoc-in [:ui :fold] new-fold-ui)
-        (assoc-in [:domain :graph-text] v)
-        (assoc-in [:ui :validation :valid-graph-ast] g-ast)
-        (assoc-in [:ui :validation :valid-graph?] true)))
+      {:fx [[:dispatch-later {:ms 20 :dispatch [::set-nodes-positions]}]]
+       :db (-> app-state
+             (assoc-in [:ui :fold] new-fold-ui)
+             (assoc-in [:domain :graph-text] v)
+             (assoc-in [:ui :validation :valid-graph-ast] g-ast)
+             (assoc-in [:ui :validation :valid-graph?] true))})
     (catch :default _
       (-> app-state
         (assoc-in [:domain :graph-text] v)
         (assoc-in [:ui :validation :valid-graph?] false)))))
-(re-frame/reg-event-db ::set-graph-text [event-to-analytics] set-graph-text)
+(re-frame/reg-event-fx ::set-graph-text [event-to-analytics] set-graph-text)
 
 (defn toggle-open-close
-  [app-state [_event path]]
+  [app-state [event path]]
   (let [new-state (not (get-in app-state (concat [:ui :fold] path [:opened?]) false))]
     (-> app-state
       (assoc-in (concat [:ui :fold] path [:opened?]) new-state)
-      (assoc-in [:domain :nodes-map (last path) :opened?] new-state))))
+      (assoc-in [:domain :nodes-map (last path) :opened?] new-state)
+      (set-nodes-positions [event nil]))))
 
 (re-frame/reg-fx
   :prepare-to-ctrl-c-selected-nodes
@@ -825,7 +788,8 @@
         new-selection (if (= sel-cli-inter clicked-and-descendents)
                         (set/difference selected-nodes clicked-and-descendents)
                         (set/union selected-nodes clicked-and-descendents))]
-    {:fx [[:dispatch-later {:ms 30 :dispatch [::prepare-to-ctrl-c-selected-nodes]}]]
+    {:fx [[:dispatch-later {:ms 30 :dispatch [::prepare-to-ctrl-c-selected-nodes]}]
+          [:dispatch-later {:ms 20 :dispatch [::set-nodes-positions]}]]
      :db (if (get-in app-state [:ui :mouse-select-mode] false)
            (assoc-in app-state [:ui :selected-nodes] new-selection)
            (toggle-open-close app-state [event path]))}))
@@ -842,27 +806,51 @@
   (assoc-in app-state [:ui :vis-view] {:position view-position :scale scale}))
 (re-frame/reg-event-db ::set-vis-view set-vis-view)
 
-(defn set-nodes-positions-hierarchy
-  "Set the nodes positions, but differently of `set-nodes-positions`, it's
-  triggered every time the drag ends and as a side effect the zoom is reset 😕"
-  [app-state [event {:keys [dragging? nodes-positions* _view-position _scale] :as args}]]
+;; It used to receive the nodes-positions, now it just compute it from the bounding box.
+(defn set-nodes-positions
+  [app-state [event {:keys [dragging? _view-position _scale] :as args}]]
   (if dragging?
     app-state
-    (let [nodes-positions (reduce-kv (fn [m k {:strs [x y]}]
-                                       (assoc m k {:position {"x" x "y" y #_(round-by 100 y)}}))
-                                     {}
-                                     nodes-positions*)]
-      ;; (tap> {:set-pos nodes-positions})
+    (let [visible-nodes-ids (get-in app-state [:ui :f-visible-nodes])
+          nodes (map
+                  #(assoc (bounding-box->dimensions (.getBoundingBox @network %)) :id %)
+                  visible-nodes-ids)
+          ;; nodes (map #(update % :width (partial + 10)) nodes)
+          height (- (apply max (map #(+ (:y %) (/ (:height %) 2)) nodes))
+                    (apply min (map #(- (:y %) (/ (:height %) 2)) nodes)))
+          width (- (apply max (map #(+ (:x %) (/ (:width %) 2)) nodes))
+                   (apply min (map #(- (:x %) (/ (:width %) 2)) nodes)))
+          tree (-> (quad/->bounds 0 0 (* 2 width) (* 2 height))
+                 (quad/->quadtree (count visible-nodes-ids) 8))
+          sorted-nodes (sort-by #(distance-between [0 0] [(:x %) (:y %)]) nodes) ;; TODO Do I really need to sort?
+          ;; Use a quadtree to insert nodes that do not overlap.
+          filled-tree (reduce
+                        (fn [tree node]
+                          (let [;; For the quadtree lib, the x,y point is at the top left instead of the middle.
+                                initial-pos [(- (:x node) (/ (:width node) 2)) (- (:y node) (/ (:height node) 2))]
+                                ;; Iterate over the points given by the geometric-spiral fn
+                                possible-positions (cons initial-pos (geometric-spiral initial-pos (/ (:width node) 2)))
+                                [good-x good-y :as _non-collliding-pos] (get-pred (fn [[x y]]
+                                                                                    ;; Verify if it collides
+                                                                                    (empty? (quad/retrieve-intersections tree (assoc node :x x :y y))))
+                                                                                  possible-positions)]
+                            ;; update x y coordinates
+                            ;; insert
+                            (quad/insert tree (assoc node :x good-x :y good-y))))
+                        tree sorted-nodes)
+          ;; reduce it to put in the format accepted by the ::set-nodes-positions evt
+          new-nodes-positions (into {} (map #(into {(:id %) {:position {"x" (+ (:x %) (/ (:width %) 2)) "y" (+ (:y %) (/ (:height %) 2))}}}) (:objects filled-tree)))]
       (-> app-state
         (assoc-in [:ui :graph-dragging?] dragging?)
-        (update-in [:domain :nodes-map] #(merge-with merge % nodes-positions))
+        (update-in [:domain :nodes-map] #(merge-with merge % new-nodes-positions))
         (set-vis-view [event args])))))
-(re-frame/reg-event-db ::set-nodes-positions-hierarchy [event-to-analytics] set-nodes-positions-hierarchy)
+(re-frame/reg-event-db ::set-nodes-positions [event-to-analytics] set-nodes-positions)
 
 (defn clear-nodes-positions
-  [app-state]
-  (update-in app-state [:domain :nodes-map] #(into {} (for [[k v] %] {k (dissoc v :position)}))))
-(re-frame/reg-event-db ::clear-nodes-positions [event-to-analytics] clear-nodes-positions)
+  [{app-state :db}]
+  {:fx [[:dispatch-later {:ms 40 :dispatch [::set-nodes-positions]}]]
+   :db (update-in app-state [:domain :nodes-map] #(into {} (for [[k v] %] {k (dissoc v :position)})))})
+(re-frame/reg-event-fx ::clear-nodes-positions [event-to-analytics] clear-nodes-positions)
 
 (defn drag-changed
   [app-state [_event dragging?]]
@@ -870,10 +858,11 @@
 (re-frame/reg-event-db ::drag-changed [event-to-analytics] drag-changed)
 
 (defn toggle-hidden
-  [app-state [_event node-id]]
+  [app-state [event node-id]]
   ;; (tap> {:c3 (get-in app-state [:ui :nodes])})
   (-> app-state
-    (update-in [:domain :nodes-map node-id :hidden?] not)))
+    (update-in [:domain :nodes-map node-id :hidden?] not)
+    (set-nodes-positions [event nil])))
 (re-frame/reg-event-db ::toggle-hidden [event-to-analytics] toggle-hidden)
 
 (defn node-hovered
@@ -888,18 +877,21 @@
 (re-frame/reg-event-db ::debug-event debug-event)
 
 (defn organize-hierarchy-positions
-  [app-state [_event v]]
-  (assoc-in app-state [:ui :vis-options :layout :hierarchical :enabled] v))
-(re-frame/reg-event-db ::organize-hierarchy-positions [event-to-analytics] organize-hierarchy-positions)
+  [{app-state :db} [event v]]
+  {:fx [[:dispatch-later {:ms 20 :dispatch [::organize-hierarchy-positions-step-2]}]]
+   :db (-> app-state
+         (assoc-in [:ui :vis-options :layout :hierarchical :enabled] v)
+         (set-nodes-positions [event nil]))})
+(re-frame/reg-event-fx ::organize-hierarchy-positions [event-to-analytics] organize-hierarchy-positions)
 
 (defn organize-hierarchy-positions-step-2
-  [app-state [event nodes-positions]]
+  "Used when 'hierarchy layout' button is clicked."
+  [app-state [event]]
   (if (vis-option-hierarchy app-state)
     (-> app-state
-      (set-nodes-positions-hierarchy [event {:dagging? false
-                                             :nodes-positions* nodes-positions
-                                             :view-position (get-in app-state [:ui :vis-view :position])
-                                             :scale (get-in app-state [:ui :vis-view :scale])}])
+      (set-nodes-positions [event {:dagging? false
+                                   :view-position (get-in app-state [:ui :vis-view :position])
+                                   :scale (get-in app-state [:ui :vis-view :scale])}])
       (assoc-in [:ui :vis-options :layout :hierarchical :enabled] false))
     app-state))
 (re-frame/reg-event-db ::organize-hierarchy-positions-step-2 organize-hierarchy-positions-step-2)
@@ -916,16 +908,17 @@
 (re-frame/reg-event-db ::hide-all-or-selected [event-to-analytics] hide-all-or-selected)
 
 (defn show-selected
-  [app-state]
+  [{app-state :db}]
   (let [selected-nodes (-> app-state :ui :f-selected-nodes)
         unhidden (->> selected-nodes
                    (map (fn [node-id] {node-id {:hidden? false}}))
                    (into {}))]
-    (update-in app-state [:domain :nodes-map] #(merge-with merge % unhidden))))
-(re-frame/reg-event-db ::show-selected [event-to-analytics] show-selected)
+    {:fx [[:dispatch-later {:ms 20 :dispatch [::set-nodes-positions]}]]
+     :db (update-in app-state [:domain :nodes-map] #(merge-with merge % unhidden))}))
+(re-frame/reg-event-fx ::show-selected [event-to-analytics] show-selected)
 
 (defn collapse-all-or-selected
-  [app-state]
+  [{app-state :db}]
   (let [selected-nodes (-> app-state :ui :f-selected-nodes)
         all-nodes (-> app-state (get-in [:domain :nodes-map] {}) (keys))
         nodes-to-collapse (if (seq selected-nodes) selected-nodes all-nodes)
@@ -933,17 +926,19 @@
                  (map (fn [node-id] {node-id {:opened? false}}))
                  (into {}))
         close-all-instances #(all-instances-of-node-with-same-open-state-with-default closed %)]
-    (update-in app-state [:ui :fold] close-all-instances)))
-(re-frame/reg-event-db ::collapse-all-or-selected [event-to-analytics] collapse-all-or-selected)
+    {:fx [[:dispatch-later {:ms 20 :dispatch [::set-nodes-positions]}]]
+     :db (update-in app-state [:ui :fold] close-all-instances)}))
+(re-frame/reg-event-fx ::collapse-all-or-selected [event-to-analytics] collapse-all-or-selected)
 
 (defn expand-selected
-  [app-state]
+  [{app-state :db}]
   (let [selected-nodes (-> app-state :ui :f-selected-nodes)
         opened (->> selected-nodes
                  (map (fn [node-id] {node-id {:opened? true}}))
                  (into {}))
         open-all-instances #(all-instances-of-node-with-same-open-state-with-default opened %)]
-    (update-in app-state [:ui :fold] open-all-instances)))
+    {:fx [[:dispatch-later {:ms 20 :dispatch [::set-nodes-positions]}]]
+     :db (update-in app-state [:ui :fold] open-all-instances)}))
 (re-frame/reg-event-db ::expand-selected [event-to-analytics] expand-selected)
 
 (defn mouse-select-mode-evt
@@ -1023,7 +1018,7 @@
     (def desired-width 2000)
     (def desired-height 1000)
     (def new-nodes-positions (into {} (map #(into {(:id %) {"x" (* desired-width (/ (- (:x %) x-min) (- x-max x-min))) "y" (* desired-height (/ (- (:y %) y-min) (- y-max y-min)))}}) nodes)))
-    (>evt [::set-nodes-positions-hierarchy 
+    (>evt [::set-nodes-positions
            {:dagging? false
             :nodes-positions* new-nodes-positions
             :view-position (get-in @re-frame.db/app-db [:ui :vis-view :position])
@@ -1063,7 +1058,7 @@
   (bounding-box->dimensions (.getBoundingBox @network "user-device/UserDevice"))
   (quad/retrieve-intersections tree (bounding-box->dimensions (.getBoundingBox @network "user-device/UserDevice"))))
 
-;; ---- Views ----
+;; -- Views ----
 
 ;; (defn draw-graph-no-memo [id data options]
 ;;   (fn []
@@ -1095,20 +1090,11 @@
                      (let [container (-> js/document (.getElementById graph-component-id))]
                        (reset! network (-> vis-network .-Network (new container nil #_options))))
                      (.on @network "dragStart" #_(js/console.log "dragStart") #(>evt [::drag-changed true]))
-                     (.on @network "dragEnd" #(>evt [::set-nodes-positions-hierarchy {:dragging? false
-                                                                                      :nodes-positions* (js->clj ^Object (.getPositions @network))
-                                                                                      :view-position ^Object (.getViewPosition @network)
-                                                                                      :scale ^Object (.getScale @network)}]))
+                     (.on @network "dragEnd" #(>evt [::set-nodes-positions {:dragging? false
+                                                                            :view-position ^Object (.getViewPosition @network)
+                                                                            :scale ^Object (.getScale @network)}]))
                      (.on @network "zoom" #(>evt [::set-vis-view {:view-position ^Object (.getViewPosition @network)
                                                                   :scale ^Object (.getScale @network)}]))
-                     (.on @network "afterDrawing" #_(js/console.log "configChange")
-                          ;; For some reason (specific to visjs) if I don't give this
-                          ;; extreme little time extra to organize the graph, it
-                          ;; settles with x positions much sparser, might be a hacky
-                          ;; solution and this timeout might depend on the environment,
-                          ; ;but it's working for now.
-                          #(js/setTimeout (fn [] (>evt [::organize-hierarchy-positions-step-2 (js->clj ^Object (.getPositions @network))]))
-                                          20))
                      (.on @network "click" #(do (>evt [::network-clicked (set ^js(.-nodes %))])
                                                 (when (empty? ^js(.-nodes %)) ;; To avoid the automatic behavior of deselecting all nodes.
                                                   (>evt [::rerender-vis]))))
@@ -1382,21 +1368,20 @@
           [:svg
            {:width icons-size :height icons-size :fill (if disable? "#00000024" "currentColor") :viewBox "0 0 16 16"}
            [:path {:fill-rule "evenodd" :d "M3.5 6a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h9a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5h-2a.5.5 0 0 1 0-1h2A1.5 1.5 0 0 1 14 6.5v8a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 14.5v-8A1.5 1.5 0 0 1 3.5 5h2a.5.5 0 0 1 0 1z"}]
-           [:path {:fill-rule "evenodd" :d "M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"}]]]])
-      [:button.button-2.drag-button
-       {:title "x"
-        :onMouseDown #(do
-                       (let [canvas (first (js/document.getElementsByTagName "canvas"))]
-                          (-> (.requestPointerLock canvas #_(clj->js {:unadjustedMovement true}))
-                            (.then (fn []
-                                     (js/console.log "Pointer lock acquired.")))
-                            (.catch (fn [err]
-                                      (js/console.error "Pointer lock failed:" err)))))
-
-                       (>evt [::dispersing-nodes true]))}
-       [:svg
-        {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
-        [:path {:fill-rule "evenodd" :d "M5.828 10.172a.5.5 0 0 0-.707 0l-4.096 4.096V11.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H4.5a.5.5 0 0 0 0-1H1.732l4.096-4.096a.5.5 0 0 0 0-.707m4.344-4.344a.5.5 0 0 0 .707 0l4.096-4.096V4.5a.5.5 0 1 0 1 0V.525a.5.5 0 0 0-.5-.5H11.5a.5.5 0 0 0 0 1h2.768l-4.096 4.096a.5.5 0 0 0 0 .707"}]]]]]))
+           [:path {:fill-rule "evenodd" :d "M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"}]]]])]]))
+      ;; [:button.button-2.drag-button
+      ;;  {:title "dispersion (click, hold and drag)"
+      ;;   :onMouseDown #(let [canvas (first (js/document.getElementsByTagName "canvas"))]
+      ;;                   (-> (.requestPointerLock canvas #_(clj->js {:unadjustedMovement true}))
+      ;;                     (.then (fn []
+      ;;                              (js/console.log "Pointer lock acquired.")))
+      ;;                     (.catch (fn [err]
+      ;;                               (js/console.error "Pointer lock failed:" err))))
+      ;;
+      ;;                   (>evt [::dispersing-nodes true]))}
+      ;;  [:svg
+      ;;   {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
+      ;;   [:path {:fill-rule "evenodd" :d "M5.828 10.172a.5.5 0 0 0-.707 0l-4.096 4.096V11.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H4.5a.5.5 0 0 0 0-1H1.732l4.096-4.096a.5.5 0 0 0 0-.707m4.344-4.344a.5.5 0 0 0 .707 0l4.096-4.096V4.5a.5.5 0 1 0 1 0V.525a.5.5 0 0 0-.5-.5H11.5a.5.5 0 0 0 0 1h2.768l-4.096 4.096a.5.5 0 0 0 0 .707"}]]]]]))
 
 (def code-font-family "dejavu sans mono, monospace")
 (def code-font-size "small")
@@ -1633,7 +1618,7 @@
   (get-in app-state [:ui :number-input knob] 0))
 (re-frame/reg-sub ::number-input number-input)
 
-;; ---- Initialization ----
+;; -- Initialization ----
 
 (def initial-state
   {:domain {:graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label2:\n  node5\n\nnode3:\n  node4\n  node5\n\nnode1 -> node2\nnode4->node1\nnodeA->nodeB"
