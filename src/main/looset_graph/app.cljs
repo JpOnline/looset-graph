@@ -586,7 +586,10 @@
 (defn nodes-map->graph-text-reduce-step
   [nodes-map]
   (fn [[children edges props] [node-k* node-v]]
-    (let [rename-if-label #(if (= :label (:type (get nodes-map % {}))) (str "=>"%) %)
+    (let [rename-if-label (fn [s]
+                            (-> s
+                              (#(str "\""%"\""))
+                              (#(if (= :label (:type (get nodes-map s {}))) (str "=>"%) %))))
           node-k (rename-if-label node-k*)
           node-children (seq (map rename-if-label (:children node-v)))
           edges-to (->> node-v :edges-to vals (map vec) flatten (map rename-if-label) seq)
@@ -736,7 +739,8 @@
              (assoc-in [:ui :fold] new-fold-ui)
              (assoc-in [:domain :graph-text] v)
              (assoc-in [:ui :validation :valid-graph-ast] g-ast)
-             (assoc-in [:ui :validation :valid-graph?] true))})
+             (assoc-in [:ui :validation :valid-graph?] true)
+             (#(do (js/console.log "Jp" %) %)))})
     (catch :default _
       (-> app-state
         (assoc-in [:domain :graph-text] v)
@@ -1282,11 +1286,11 @@
        [:svg
         {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
         [:path {:fill-rule "evenodd" :d "M14.082 2.182a.5.5 0 0 1 .103.557L8.528 15.467a.5.5 0 0 1-.917-.007L5.57 10.694.803 8.652a.5.5 0 0 1-.006-.916l12.728-5.657a.5.5 0 0 1 .556.103zM2.25 8.184l3.897 1.67a.5.5 0 0 1 .262.263l1.67 3.897L12.743 3.52z"}]]]
-      [:button.button-2
+      [:button.button-2.black-background
        {:title "select (shortcut: s)"
         :onClick #(>evt [::mouse-select-mode true])}
        [:svg
-        {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
+        {:width icons-size :height icons-size :fill "#dddddd" :viewBox "0 0 16 16"}
         [:path {:fill-rule "evenodd" :d black-cursor-svg-path}]]]
       [:div
        {:style {:height "2px"
@@ -1497,6 +1501,10 @@
       user-select: none;
       -webkit-user-select: none;
       touch-action: manipulation;
+   }
+
+   .black-background {
+      background-color: #000000;
    }
 
    .drag-button {
