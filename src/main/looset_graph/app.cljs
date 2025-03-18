@@ -722,7 +722,7 @@
 (re-frame/reg-event-db ::keypress keypress)
 
 (defn set-graph-text
-  [app-state [_event v]]
+  [{app-state :db} [_event v]]
   (try
     (let [g-ast (graph-parser/graph-ast v)
           nm* (-> g-ast (#(into {:graph-ast %})) (nodes-map*))
@@ -742,9 +742,10 @@
              (assoc-in [:ui :validation :valid-graph?] true)
              (#(do (js/console.log "Jp" %) %)))})
     (catch :default _
-      (-> app-state
-        (assoc-in [:domain :graph-text] v)
-        (assoc-in [:ui :validation :valid-graph?] false)))))
+      {:fx [[:dispatch-later {:ms 20 :dispatch [::set-nodes-positions]}]]
+       :db (-> app-state
+             (assoc-in [:domain :graph-text] v)
+             (assoc-in [:ui :validation :valid-graph?] false))})))
 (re-frame/reg-event-fx ::set-graph-text [event-to-analytics] set-graph-text)
 
 (defn toggle-open-close
@@ -1681,7 +1682,7 @@
     "keypress"
     #(>evt [::keypress (-> % .-key)])))
 
-(re-frame/reg-event-db
+(re-frame/reg-event-fx
   ::set-app-state
   [event-to-analytics]
   (fn [_ [event graph-text]]
