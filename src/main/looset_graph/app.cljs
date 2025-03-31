@@ -1629,7 +1629,7 @@
 ;; -- Initialization ----
 
 (def initial-state
-  {:domain {:graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label2:\n  node5\n\nnode3:\n  node4\n  node5\n\nnode1 -> node2\nnode4->node1\nnodeA->nodeB"
+  {:domain {:graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label2:\n  node5\n\nnode3:\n  node4\n  node5\n\nnode1 -> node2\nnode4 -> node1\nnodeA -> nodeB"
             :nodes-map {}}
    :ui {:panels {:resizing-panels false
                  :left-panel-size "65vw"}
