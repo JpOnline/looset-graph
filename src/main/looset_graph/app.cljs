@@ -746,7 +746,7 @@
        :db (-> app-state
              (assoc-in [:domain :graph-text] v)
              (assoc-in [:ui :validation :valid-graph?] false))})))
-(re-frame/reg-event-fx ::set-graph-text [event-to-analytics] set-graph-text)
+(re-frame/reg-event-fx ::set-graph-text #_[event-to-analytics] set-graph-text)
 
 (defn toggle-open-close
   [app-state [event path]]
@@ -787,7 +787,7 @@
            (toggle-open-close app-state [event path]))}))
 (re-frame/reg-event-fx
   ::nodes-list-item-clicked
-  [event-to-analytics]
+  ;; [event-to-analytics]
   nodes-list-item-clicked)
 
 (defn round-by [step pos]
@@ -836,18 +836,18 @@
         ;; (assoc-in [:ui :graph-dragging?] dragging?)
         (update-in [:domain :nodes-map] #(merge-with merge % new-nodes-positions))))))
         ;; (set-vis-view [event args])))))
-(re-frame/reg-event-db ::set-nodes-positions [event-to-analytics] set-nodes-positions)
+(re-frame/reg-event-db ::set-nodes-positions #_[event-to-analytics] set-nodes-positions)
 
 (defn clear-nodes-positions
   [{app-state :db}]
   {:fx [[:dispatch-later {:ms 40 :dispatch [::set-nodes-positions]}]]
    :db (update-in app-state [:domain :nodes-map] #(into {} (for [[k v] %] {k (dissoc v :position)})))})
-(re-frame/reg-event-fx ::clear-nodes-positions [event-to-analytics] clear-nodes-positions)
+(re-frame/reg-event-fx ::clear-nodes-positions #_[event-to-analytics] clear-nodes-positions)
 
 (defn drag-changed
   [app-state [_event dragging?]]
   (assoc-in app-state [:ui :graph-dragging?] dragging?))
-(re-frame/reg-event-db ::drag-changed [event-to-analytics] drag-changed)
+(re-frame/reg-event-db ::drag-changed #_[event-to-analytics] drag-changed)
 
 (defn toggle-hidden
   [app-state [event node-id]]
@@ -855,7 +855,7 @@
   (-> app-state
     (update-in [:domain :nodes-map node-id :hidden?] not)
     (set-nodes-positions [event nil])))
-(re-frame/reg-event-db ::toggle-hidden [event-to-analytics] toggle-hidden)
+(re-frame/reg-event-db ::toggle-hidden #_[event-to-analytics] toggle-hidden)
 
 (defn node-hovered
   [app-state [_event nodes-ids]]
@@ -874,7 +874,7 @@
    :db (-> app-state
          (assoc-in [:ui :vis-options :layout :hierarchical :enabled] v)
          (set-nodes-positions [event nil]))})
-(re-frame/reg-event-fx ::organize-hierarchy-positions [event-to-analytics] organize-hierarchy-positions)
+(re-frame/reg-event-fx ::organize-hierarchy-positions #_[event-to-analytics] organize-hierarchy-positions)
 
 (defn organize-hierarchy-positions-step-2
   "Used when 'hierarchy layout' button is clicked."
@@ -897,7 +897,7 @@
                  (map (fn [node-id] {node-id {:hidden? true}}))
                  (into {}))]
     (update-in app-state [:domain :nodes-map] #(merge-with merge % hidden))))
-(re-frame/reg-event-db ::hide-all-or-selected [event-to-analytics] hide-all-or-selected)
+(re-frame/reg-event-db ::hide-all-or-selected #_[event-to-analytics] hide-all-or-selected)
 
 (defn show-selected
   [{app-state :db}]
@@ -907,7 +907,7 @@
                    (into {}))]
     {:fx [[:dispatch-later {:ms 20 :dispatch [::set-nodes-positions]}]]
      :db (update-in app-state [:domain :nodes-map] #(merge-with merge % unhidden))}))
-(re-frame/reg-event-fx ::show-selected [event-to-analytics] show-selected)
+(re-frame/reg-event-fx ::show-selected #_[event-to-analytics] show-selected)
 
 (defn collapse-all-or-selected
   [{app-state :db}]
@@ -920,7 +920,7 @@
         close-all-instances #(all-instances-of-node-with-same-open-state-with-default closed %)]
     {:fx [[:dispatch-later {:ms 20 :dispatch [::set-nodes-positions]}]]
      :db (update-in app-state [:ui :fold] close-all-instances)}))
-(re-frame/reg-event-fx ::collapse-all-or-selected [event-to-analytics] collapse-all-or-selected)
+(re-frame/reg-event-fx ::collapse-all-or-selected #_[event-to-analytics] collapse-all-or-selected)
 
 (defn expand-selected
   [{app-state :db}]
@@ -931,12 +931,12 @@
         open-all-instances #(all-instances-of-node-with-same-open-state-with-default opened %)]
     {:fx [[:dispatch-later {:ms 20 :dispatch [::set-nodes-positions]}]]
      :db (update-in app-state [:ui :fold] open-all-instances)}))
-(re-frame/reg-event-db ::expand-selected [event-to-analytics] expand-selected)
+(re-frame/reg-event-db ::expand-selected #_[event-to-analytics] expand-selected)
 
 (defn mouse-select-mode-evt
   [app-state [_event state]]
   (assoc-in app-state [:ui :mouse-select-mode] state))
-(re-frame/reg-event-db ::mouse-select-mode [event-to-analytics] mouse-select-mode-evt)
+(re-frame/reg-event-db ::mouse-select-mode #_[event-to-analytics] mouse-select-mode-evt)
 
 (defn network-clicked
   [{app-state :db} [_event nodes]]
@@ -945,7 +945,7 @@
      :db (if (get-in app-state [:ui :mouse-select-mode] false)
            (update-in app-state [:ui :selected-nodes] #(toggly-add (set %) nodes))
            (assoc-in app-state [:ui :selected-nodes] nodes))}))
-(re-frame/reg-event-fx ::network-clicked [event-to-analytics] network-clicked)
+(re-frame/reg-event-fx ::network-clicked #_[event-to-analytics] network-clicked)
 
 (defn rerender-vis-sub
   [app-state]
@@ -960,7 +960,7 @@
 (defn toggle-edit-graph-text-area
   [app-state]
   (update-in app-state [:ui :editing-graph-text] not))
-(re-frame/reg-event-db ::toggle-edit-graph-text-area [event-to-analytics] toggle-edit-graph-text-area)
+(re-frame/reg-event-db ::toggle-edit-graph-text-area #_[event-to-analytics] toggle-edit-graph-text-area)
 
 (defn select-source
   [{app-state :db}]
@@ -968,7 +968,7 @@
         vis-edges-from (-> app-state :ui :f-vis-data :edges (->> (filter #(contains? selected-nodes (:to %)))) (->> (map :from)) set)]
     {:fx [[:dispatch-later {:ms 30 :dispatch [::prepare-to-ctrl-c-selected-nodes]}]]
      :db (assoc-in app-state [:ui :selected-nodes] vis-edges-from)}))
-(re-frame/reg-event-fx ::select-source [event-to-analytics] select-source)
+(re-frame/reg-event-fx ::select-source #_[event-to-analytics] select-source)
 
 (defn select-target
   [{app-state :db}]
