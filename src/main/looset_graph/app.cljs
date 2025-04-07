@@ -159,6 +159,16 @@
    :output (fn [{:keys [fold-list]}] (visible-nodes fold-list))
    :path [:ui :f-visible-nodes]})
 
+(defn visible-nodes-map
+  [{:keys [visible-nodes nodes-map]}]
+  (select-keys nodes-map visible-nodes))
+(re-frame/reg-flow
+  {:id :f-visible-nodes-map
+   :inputs {:visible-nodes (re-frame/flow<- :f-visible-nodes)
+            :nodes-map [:domain :nodes-map]}
+   :output visible-nodes-map
+   :path [:flow-paths :f-visible-nodes-map]})
+
 (defn get-descendents [nodes-map nodes]
   (let [step-fn #(clojure.set/union
                    %1
@@ -218,12 +228,80 @@
 
 (def label-font-family "Proza Libre")
 
-(defn vis-data
-  [[visible-nodes nodes-map]]
-  (let [nodes (->> nodes-map
-                (filter #(visible-nodes (first %)))
-                (into {}))
-        ->node
+;; ;; Deprecated by f-vis-data
+;; (defn vis-data
+;;   [[visible-nodes nodes-map]]
+;;   (let [nodes (->> nodes-map
+;;                 (filter #(visible-nodes (first %)))
+;;                 (into {}))
+;;         ->node
+;;         (fn [[node-id
+;;               {{:strs [x y]} :position
+;;                :keys [type name]
+;;                :or {name node-id}}]]
+;;           {:id node-id
+;;            :label (if (= type :label)
+;;                     (str "<b>"name"</b>")
+;;                     name)
+;;            :shape "box"
+;;            :color {:background "white" :border "gray"}
+;;                    ;; :highlight {:border "#ff0000"}}
+;;            :x x :y y
+;;            :margin 7
+;;            :shadow true
+;;            :font
+;;            (when (= type :label)
+;;              {:face label-font-family
+;;               :multi "html"
+;;               :color (text->color node-id)})})
+;;
+;;         get-from-set #(find-visible visible-nodes nodes-map %)
+;;         get-to-set #(->> %
+;;                       (:edges-to)
+;;                       (map val) ;; TODO: get the text in the relationship/edge.
+;;                       (apply concat)
+;;                       (mapcat (partial find-visible visible-nodes nodes-map)))
+;;         ->edge
+;;         (fn [[k v]]
+;;           (for [from (get-from-set k)
+;;                 to (get-to-set v)
+;;                 :when (not= from to)]
+;;             {:from from :to to :arrows {:to {:enabled true :type "arrow"}}
+;;              :color {:highlight "#33a0ff"}}))]
+;;     {:nodes (map ->node nodes)
+;;      :edges (mapcat ->edge nodes-map)}))
+;; (re-frame/reg-sub
+;;   ::vis-data
+;;   :<- [::visible-nodes]
+;;   :<- [::nodes-map]
+;;   vis-data)
+
+(defn f-edges
+  [{:keys [nodes-map visible-nodes]}]
+  (let [get-from-set #(find-visible visible-nodes nodes-map %)
+        get-to-set #(->> %
+                      (:edges-to)
+                      (map val) ;; TODO: get the text in the relationship/edge.
+                      (apply concat)
+                      (mapcat (partial find-visible visible-nodes nodes-map)))
+        ->edge
+        (fn [[k v]]
+          (for [from (get-from-set k)
+                to (get-to-set v)
+                :when (not= from to)]
+            {:from from :to to :arrows {:to {:enabled true :type "arrow"}}
+             :color {:highlight "#33a0ff"}}))]
+    (mapcat ->edge nodes-map)))
+(re-frame/reg-flow
+  {:id :f-edges
+   :inputs {:visible-nodes (re-frame/flow<- :f-visible-nodes)
+            :nodes-map [:domain :nodes-map]}
+   :output f-edges
+   :path [:flow-paths :f-edges]})
+
+(defn f-vis-nodes
+  [{:keys [visible-nodes-map]}]
+  (let [->node
         (fn [[node-id
               {{:strs [x y]} :position
                :keys [type name]
@@ -242,33 +320,27 @@
            (when (= type :label)
              {:face label-font-family
               :multi "html"
-              :color (text->color node-id)})})
+              :color (text->color node-id)})})]
+    (map ->node visible-nodes-map)))
+(re-frame/reg-flow
+  {:id :f-vis-nodes
+   :inputs {:visible-nodes-map (re-frame/flow<- :f-visible-nodes-map)}
+   :output f-vis-nodes})
+   ;; :path [:flow-paths :f-vis-nodes]})
 
-        get-from-set #(find-visible visible-nodes nodes-map %)
-        get-to-set #(->> %
-                      (:edges-to)
-                      (map val) ;; TODO: get the text in the relationship/edge.
-                      (apply concat)
-                      (mapcat (partial find-visible visible-nodes nodes-map)))
-        ->edge
-        (fn [[k v]]
-          (for [from (get-from-set k)
-                to (get-to-set v)
-                :when (not= from to)]
-            {:from from :to to :arrows {:to {:enabled true :type "arrow"}}
-             :color {:highlight "#33a0ff"}}))]
-    {:nodes (map ->node nodes)
-     :edges (mapcat ->edge nodes-map)}))
-(re-frame/reg-sub
-  ::vis-data
-  :<- [::visible-nodes]
-  :<- [::nodes-map]
-  vis-data)
+;; TODO: It'd make sense to refactor it so the view that is listening to it
+;; would listen to edges and nodes separatedly, but they were already depending
+;; on this behavior and I wanted to avoid this extra change, maybe the code
+;; gets cleaner doing it, so I'll mark as a very low priority TODO.
+(defn f-vis-data
+  [{:keys [vis-nodes edges]}]
+  {:nodes vis-nodes
+   :edges edges})
 (re-frame/reg-flow
   {:id :f-vis-data
-   :inputs {:visible-nodes (re-frame/flow<- :f-visible-nodes)
-            :nodes-map (re-frame/flow<- :nodes-map)}
-   :output (fn [{:keys [visible-nodes nodes-map]}] (vis-data [visible-nodes nodes-map]))
+   :inputs {:edges (re-frame/flow<- :f-edges)
+            :vis-nodes (re-frame/flow<- :f-vis-nodes)}
+   :output f-vis-data
    :path [:ui :f-vis-data]})
 
 (defn left-panel-size
@@ -976,9 +1048,24 @@
         vis-edges-to (-> app-state :ui :f-vis-data :edges (->> (filter #(contains? selected-nodes (:from %)))) (->> (map :to)) set)]
     {:fx [[:dispatch-later {:ms 30 :dispatch [::prepare-to-ctrl-c-selected-nodes]}]]
      :db (assoc-in app-state [:ui :selected-nodes] vis-edges-to)}))
-(re-frame/reg-event-fx ::select-target [event-to-analytics] select-target)
+(re-frame/reg-event-fx ::select-target #_[event-to-analytics] select-target)
 
 (comment
+  (def app-state @re-frame.db/app-db)
+  (def visible-nodes-ids (get-in app-state [:ui :f-visible-nodes]))
+  (def my-nodes-map (get-in app-state [:domain :nodes-map]))
+  (find-visible visible-nodes-ids my-nodes-map "Computer_arithmetic")
+  (first (keys my-nodes-map))
+  (count (f-edges {:nodes-map my-nodes-map :visible-nodes visible-nodes-ids}))
+
+  (def my-visible-nodes-map (get-in app-state [:flow-paths :f-visible-nodes-map]))
+  (def my-nodes-map (get-in app-state [:domain :nodes-map]))
+  (def visible-nodes-ids (get-in app-state [:ui :f-visible-nodes]))
+  (def my-edges (f-edges {:nodes-map my-nodes-map :visible-nodes visible-nodes-ids}))
+  (f-vis-data {:visible-nodes-map my-visible-nodes-map :edges my-edges})
+  (->node (seq (get my-visible-nodes-map "Number_theory")))
+
+
   (require '[re-frame.db])
   (clojure.set/union #{1 2} #{3 4})
   (->> @re-frame.db/app-db
