@@ -345,7 +345,7 @@
 
 (defn left-panel-size
   [app-state]
-  (get-in app-state [:ui :panels :left-panel-size] "400px"))
+  (get-in app-state [:ui :panels :left-panel-size] "70vw"))
 (re-frame/reg-sub ::left-panel-size left-panel-size)
 
 (defn graph-text
