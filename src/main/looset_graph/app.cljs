@@ -791,6 +791,7 @@
   (case keypressed
     "v" (assoc-in app-state [:ui :mouse-select-mode] false)
     "s" (assoc-in app-state [:ui :mouse-select-mode] true)))
+    ;; "t" (>evt [::set-url-state--on-changes])))
 (re-frame/reg-event-db ::keypress keypress)
 
 (defn set-graph-text
@@ -872,7 +873,7 @@
 
 ;; It used to receive the nodes-positions, now it just compute it from the bounding box.
 (defn set-nodes-positions
-  [app-state [event {:keys [dragging? _view-position _scale] :as args}]]
+  [app-state [_event {:keys [dragging? _view-position _scale] :as _args}]]
   (if dragging?
     app-state
     (let [visible-nodes-ids (get-in app-state [:ui :f-visible-nodes])
@@ -1050,6 +1051,7 @@
      :db (assoc-in app-state [:ui :selected-nodes] vis-edges-to)}))
 (re-frame/reg-event-fx ::select-target #_[event-to-analytics] select-target)
 
+#_:clj-kondo/ignore
 (comment
   (def app-state @re-frame.db/app-db)
   (def visible-nodes-ids (get-in app-state [:ui :f-visible-nodes]))
@@ -1745,24 +1747,52 @@
     (gzip js/DecompressionStream $)
     (.then $ #(.decode (js/TextDecoder.) %))))
 
-(def set-url-state-interceptor
-  (re-frame.std-interceptors/on-changes
-    (fn [graph-text]
-      (.then (gzip-compress graph-text)
-             #(let [loc js/window.location]
-                (js/window.history.pushState
-                  graph-text nil
-                  (str loc.origin loc.pathname"?graph="
-                       (js/encodeURIComponent (js/btoa %)))))))
-    nil [:domain :graph-text]))
-(re-frame/reg-global-interceptor set-url-state-interceptor)
+;; ;; TODO: this should be debounced. Actualy I chose to check every few
+;; ;; seconds because I believe the number of calls during high usage would
+;; ;; be lower.
+;; (def set-url-state-interceptor
+;;   (re-frame.std-interceptors/on-changes
+;;     (fn [graph-text]
+;;       (.then (gzip-compress graph-text)
+;;              #(let [loc js/window.location]
+;;                 (js/window.history.pushState
+;;                   graph-text nil
+;;                   (str loc.origin loc.pathname"?graph="
+;;                        (js/encodeURIComponent (js/btoa %)))))))
+;;     nil [:domain :graph-text]))
+;; (re-frame/reg-global-interceptor set-url-state-interceptor)
 
-(defn init-url-history-observer []
-  (js/window.addEventListener
-    "popstate"
-    #(do (js/console.log "back pressed")
-         (js/console.log "event" (.-state %)))))
-         ;; (>evt [::set-graph-text (.-state %)]))))
+(defn set-url-state--on-changes
+  [app-state]
+  ;; This behavior is a side-effect, it should be a reg-fx instead of an event.
+  (let [old-graph-text (get-in app-state [:ui :url :old-graph-text])
+        graph-text (get-in app-state [:domain :graph-text])
+        graph-text-is-the-same? (identical? graph-text old-graph-text)
+        is-graph-moving? (or (get-in app-state [:ui :graph-dragging?] false)
+                             (get-in app-state [:ui :dispersing-nodes?] false))]
+    (if (or graph-text-is-the-same? is-graph-moving?)
+      app-state
+      (do
+        (.then (gzip-compress graph-text)
+               #(let [loc js/window.location]
+                  (js/window.history.pushState
+                    graph-text nil
+                    (str loc.origin loc.pathname"?graph="
+                         (js/encodeURIComponent (js/btoa %))))))
+        (assoc-in app-state [:ui :url :old-graph-text] graph-text)))))
+(re-frame/reg-event-db ::set-url-state--on-changes set-url-state--on-changes)
+
+(defn init-url-state-timer []
+  (js/window.setInterval
+    #(>evt [::set-url-state--on-changes])
+    30000)) ;; The state is saved in the URL every 30 seconds.
+
+;; (defn init-url-history-observer []
+;;   (js/window.addEventListener
+;;     "popstate"
+;;     #(do (js/console.log "back pressed")
+;;          (js/console.log "event" (.-state %)))))
+;;          ;; (>evt [::set-graph-text (.-state %)]))))
 
 (defn init-mousemove []
   (js/document.body.addEventListener
@@ -1825,6 +1855,7 @@
   (init-mousemove)
   (mount-app-element)
   (init-mouseup)
-  (init-url-history-observer)
-  (init-keyboard-events))
+  ;; (init-url-history-observer)
+  (init-keyboard-events)
   ;; (init-style-observer))
+  (init-url-state-timer))
