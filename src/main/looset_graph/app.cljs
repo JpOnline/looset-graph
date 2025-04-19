@@ -11,7 +11,8 @@
     [reagent.core :as reagent]
     [reagent.dom]
     [vis-network]
-    [quadtree-cljc.core :as quad]))
+    [quadtree-cljc.core :as quad]
+    [goog.net.XhrIo :as xhr]))
 
 ;; -- Util ----
 
@@ -1762,6 +1763,7 @@
 ;;     nil [:domain :graph-text]))
 ;; (re-frame/reg-global-interceptor set-url-state-interceptor)
 
+;; TODO: If the graph-text is too large it doesn't make sense to create an URL.
 (defn set-url-state--on-changes
   [app-state]
   ;; This behavior is a side-effect, it should be a reg-fx instead of an event.
@@ -1787,12 +1789,12 @@
     #(>evt [::set-url-state--on-changes])
     30000)) ;; The state is saved in the URL every 30 seconds.
 
-;; (defn init-url-history-observer []
-;;   (js/window.addEventListener
-;;     "popstate"
-;;     #(do (js/console.log "back pressed")
-;;          (js/console.log "event" (.-state %)))))
-;;          ;; (>evt [::set-graph-text (.-state %)]))))
+(defn init-url-history-observer []
+  (js/window.addEventListener
+    "popstate"
+    #(do (js/console.log "back pressed")
+         (js/console.log "event" (.-state %)))))
+         ;; (>evt [::set-graph-text (.-state %)]))))
 
 (defn init-mousemove []
   (js/document.body.addEventListener
@@ -1813,10 +1815,18 @@
 
 (defn init-state []
   (let [compressed-graph (.get (js/URLSearchParams. js/window.location.search) "graph")
+        example-graph    (.get (js/URLSearchParams. js/window.location.search) "example")
         default-graph (get-in initial-state [:domain :graph-text])]
-    (if compressed-graph
+    (cond
+      compressed-graph
       (.then (gzip-decompress (js/atob compressed-graph))
              #(re-frame/dispatch-sync [::set-app-state %]))
+      example-graph
+      (xhr/send "/looset-graph/graph-examples/maths" ;; How to make it work locally or in production? The "looset-graph" path in Github makes it difficult.
+                #(if (-> % (.-target) ^js(.-isSuccess))
+                   (re-frame/dispatch-sync [::set-app-state (-> % (.-target) ^js(.getResponseText))])
+                   (re-frame/dispatch-sync [::set-app-state default-graph])))
+      :else
       (re-frame/dispatch-sync [::set-app-state default-graph]))))
 
 ;; Snippets about mouse-up event
@@ -1855,7 +1865,7 @@
   (init-mousemove)
   (mount-app-element)
   (init-mouseup)
-  ;; (init-url-history-observer)
+  (init-url-history-observer)
   (init-keyboard-events)
   ;; (init-style-observer))
   (init-url-state-timer))
