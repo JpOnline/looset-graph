@@ -618,6 +618,10 @@
   ::mouse-select-mode
   :-> #(get-in % [:ui :mouse-select-mode] false))
 
+(re-frame/reg-sub
+  ::mouse-drag-mode
+  :-> #(get-in % [:ui :mouse-drag-mode] false))
+
 (defn hidden-nodes
   [nodes-ui]
   (some->> nodes-ui
@@ -787,13 +791,22 @@
           (range)))))
 ;; ---
 
-(defn keypress
+(defn keypress ;; Actually keydown.
   [app-state [_event keypressed]]
   (case keypressed
     "v" (assoc-in app-state [:ui :mouse-select-mode] false)
-    "s" (assoc-in app-state [:ui :mouse-select-mode] true)))
-    ;; "t" (>evt [::set-url-state--on-changes])))
+    "s" (assoc-in app-state [:ui :mouse-select-mode] true)
+    " " (assoc-in app-state [:ui :mouse-drag-mode] true)))
+    ;; (js/console.log keypress)))
 (re-frame/reg-event-db ::keypress keypress)
+
+(defn keyup
+  [app-state [_event key]]
+  (case key
+    " " (assoc-in app-state [:ui :mouse-drag-mode] false)))
+    ;; (js/console.log keypress)))
+(re-frame/reg-event-db ::keyup keyup)
+
 
 (defn set-graph-text
   [{app-state :db} [_event v]]
@@ -1196,7 +1209,9 @@
     :number-input (<sub [::number-input 1])
     :number-input2 (<sub [::number-input 2])
     :view (<sub [::vis-view])
-    :options #js {:layout #js {:hierarchical #js {:enabled (<sub [::vis-option-hierarchy])
+    :options #js {:interaction #js {:selectable (not (<sub [::mouse-drag-mode]))
+                                    :dragNodes  (not (<sub [::mouse-drag-mode]))}
+                  :layout #js {:hierarchical #js {:enabled (<sub [::vis-option-hierarchy])
                                                   :direction "UD"
                                                   :sortMethod "directed"
                                                   :shakeTowards "roots"}}
@@ -1631,6 +1646,19 @@
    .select-mode-cursor {
      cursor: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 16 16'%3E%3Cpath d='"black-cursor-svg-path"'/%3E%3C/svg%3E\" ) 19 0,crosshair !important;
    }
+
+   .grabbable {
+     cursor: move; /* fallback if grab cursor is unsupported */
+     cursor: grab;
+     cursor: -moz-grab;
+     cursor: -webkit-grab;
+   }
+
+   .grabbable:active {
+     cursor: grabbing;
+     cursor: -moz-grabbing;
+     cursor: -webkit-grabbing;
+   }
    ")])
 
 (defn ctrl-c-selected-nodes
@@ -1656,7 +1684,9 @@
              :user-select "none"
              :max-height "100vh"}}
     [:div#left-panel
-     {:style {:width (<sub [::left-panel-size])
+     {:class (when (<sub [::mouse-drag-mode])
+               "grabbable")
+      :style {:width (<sub [::left-panel-size])
               :min-width "20vw"
               :display "flex"
               :flex-direction "column"}}
@@ -1804,8 +1834,13 @@
 
 (defn init-keyboard-events []
   (js/document.body.addEventListener
-    "keypress"
-    #(>evt [::keypress (-> % .-key)])))
+    "keydown"
+    #(do
+       (when (= " " (-> % .-key)) (.preventDefault %))
+       (>evt [::keypress (-> % .-key)])))
+  (js/document.body.addEventListener
+    "keyup"
+    #(>evt [::keyup (-> % .-key)])))
 
 (re-frame/reg-event-fx
   ::set-app-state
