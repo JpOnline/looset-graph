@@ -11,13 +11,15 @@ foldable
 
 foldableID : (labelID | lixID) SEMI ;
 
-edge : node ARROW node ;
+edge : node ARROW node | node HIFEN edgeString ARROW node ;
 
 node : lixID | labelID ;
 
 labelID : DOUBLE_ARROW ID ;
 
 lixID : ID ;
+
+edgeString : ID ;
 
 nodeProps : node edn ;
 
@@ -28,3 +30,4 @@ innerEdn : EDN | edn
     | OPEN_SUB_EDN innerEdn* CLOSE_EDN ;
 
 // Try it in http://lab.antlr.org/
+

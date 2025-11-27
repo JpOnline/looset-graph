@@ -14,6 +14,10 @@
     [quadtree-cljc.core :as quad]
     [goog.net.XhrIo :as xhr]))
 
+; There are 2 types of Nodes: Label and Lix (made up name).
+; Any node can have another node inside it, but a node cannot be in 2 different
+; lixs, only in 2 different labels.
+
 ;; -- Util ----
 
 (when ^boolean js/goog.DEBUG ;; Code removed in production
@@ -104,9 +108,24 @@
     (subs s 1 (dec (count s)))
     s))
 
-(defn extract-nodes-from-edge-rule
+(defmulti extract-nodes-from-edge-rule #(get-in % [3 0]))
+
+(defmethod extract-nodes-from-edge-rule "edgeString"
   [edge]
+  (tap> {:edge edge})
   (let [node-from-id (clean-surrounding-quotes (get-in edge [1 1 1 1]))
+        node-from-type (type-str->type (get-in edge [1 1 0]))
+        edge-string (clean-surrounding-quotes (get-in edge [3 1 1]))
+        node-to-type (type-str->type (get-in edge [4 1 0]))
+        node-to-id (clean-surrounding-quotes (get-in edge [4 1 1 1]))]
+    [{node-from-id {:type node-from-type :edges-to {edge-string #{node-to-id}}}}
+     {node-to-id {:type node-to-type :edges-from {edge-string #{node-from-id}}}}]))
+
+(defmethod extract-nodes-from-edge-rule :default
+  [edge]
+  (let [edge-string? (= "edgeString" (get-in edge [3 0]))
+        edge-string (get-in edge [3 1 1])
+        node-from-id (clean-surrounding-quotes (get-in edge [1 1 1 1]))
         node-from-type (type-str->type (get-in edge [1 1 0]))
         node-to-type   (type-str->type (get-in edge [2 1 0]))
         node-to-id   (clean-surrounding-quotes (get-in edge [2 1 1 1]))]
@@ -282,16 +301,18 @@
   (let [get-from-set #(find-visible visible-nodes nodes-map %)
         get-to-set #(->> %
                       (:edges-to)
-                      (map val) ;; TODO: get the text in the relationship/edge.
-                      (apply concat)
-                      (mapcat (partial find-visible visible-nodes nodes-map)))
+                      (mapcat (fn [[edge-string node-ids]]
+                                (for [node-id node-ids
+                                      visible-node (find-visible visible-nodes nodes-map node-id)]
+                                  [visible-node edge-string]))))
         ->edge
         (fn [[k v]]
           (for [from (get-from-set k)
-                to (get-to-set v)
+                [to edge-string] (get-to-set v)
                 :when (not= from to)]
             {:from from :to to :arrows {:to {:enabled true :type "arrow"}}
-             :color {:highlight "#33a0ff"}}))]
+             :color {:highlight "#33a0ff"}
+             :label edge-string}))]
     (mapcat ->edge nodes-map)))
 (re-frame/reg-flow
   {:id :f-edges
