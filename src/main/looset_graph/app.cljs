@@ -1538,7 +1538,13 @@
               :min 0
               :max 100
               :value (<sub [::number-input 2])
-              :onChange #(>evt [::set-number-input (-> % .-target .-value) 2])}]]
+              :onChange #(>evt [::set-number-input (-> % .-target .-value) 2])}]
+     [:span "Range3 "(<sub [::number-input 3])]
+     [:input {:type "range"
+              :min 0
+              :max 300
+              :value (<sub [::number-input 3])
+              :onChange #(>evt [::set-number-input (-> % .-target .-value) 3])}]]
     [:<> [:span "Number"] [:input {:type "number"
                                    :value (<sub [::number-input 1])
                                    :onChange #(>evt [::set-number-input (-> % .-target .-value)])}]]
@@ -1727,6 +1733,8 @@
               :display "flex"
               :flex-direction "column"
               :min-width "20vw"}}
+     [:input
+      {:type "range"}]
      [:div#text-component
        {:style {:overflow "auto"
                 :display "grid"
@@ -1878,7 +1886,10 @@
       (.then (gzip-decompress (js/atob compressed-graph))
              #(re-frame/dispatch-sync [::set-app-state %]))
       example-graph
-      (xhr/send "/looset-graph/graph-examples/maths" ;; How to make it work locally or in production? The "looset-graph" path in Github makes it difficult.
+      ;; How to make it work locally or in production? The "looset-graph" path
+      ;; in Github makes it difficult. Note that with "looset-graph" path, it
+      ;; won't work locally.
+      (xhr/send "/looset-graph/graph-examples/maths"
                 #(if (-> % (.-target) ^js(.-isSuccess))
                    (re-frame/dispatch-sync [::set-app-state (-> % (.-target) ^js(.getResponseText))])
                    (re-frame/dispatch-sync [::set-app-state default-graph])))
