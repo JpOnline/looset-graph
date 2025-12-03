@@ -123,9 +123,7 @@
 
 (defmethod extract-nodes-from-edge-rule :default
   [edge]
-  (let [edge-string? (= "edgeString" (get-in edge [3 0]))
-        edge-string (get-in edge [3 1 1])
-        node-from-id (clean-surrounding-quotes (get-in edge [1 1 1 1]))
+  (let [node-from-id (clean-surrounding-quotes (get-in edge [1 1 1 1]))
         node-from-type (type-str->type (get-in edge [1 1 0]))
         node-to-type   (type-str->type (get-in edge [2 1 0]))
         node-to-id   (clean-surrounding-quotes (get-in edge [2 1 1 1]))]
@@ -312,7 +310,7 @@
                 :when (not= from to)]
             {:from from :to to :arrows {:to {:enabled true :type "arrow"}}
              :color {:highlight "#33a0ff"}
-             :label edge-string}))]
+             :label (when-not (= :nameless edge-string) edge-string)}))]
     (mapcat ->edge nodes-map)))
 (re-frame/reg-flow
   {:id :f-edges
@@ -1733,8 +1731,6 @@
               :display "flex"
               :flex-direction "column"
               :min-width "20vw"}}
-     [:input
-      {:type "range"}]
      [:div#text-component
        {:style {:overflow "auto"
                 :display "grid"
