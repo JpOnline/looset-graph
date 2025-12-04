@@ -1169,8 +1169,14 @@
        (< (.-bottom n1) (.-top n2)))
 
   (.getPosition @network "user-device/UserDevice")
-  (bounding-box->dimensions (.getBoundingBox @network "user-device/UserDevice"))
-  (quad/retrieve-intersections tree (bounding-box->dimensions (.getBoundingBox @network "user-device/UserDevice"))))
+  (bounding-box->dimensions (.getBoundingBox @network "oidc"))
+  (quad/retrieve-intersections tree (bounding-box->dimensions (.getBoundingBox @network "user-device/UserDevice")))
+
+  (let [[x y] (aget (aget (.getPositions @network) "oidc") "x")]
+    [x y])
+  (doc some)
+  (get {"a" 1} "a"))
+
 
 ;; -- Views ----
 
@@ -1184,8 +1190,31 @@
 ;;
 ;; (def draw-graph (memoize draw-graph-no-memo))
 
+(defn draw-label [canvas-ctx x y]
+  (let [scale 0.35
+        rect-width (* scale 25)
+        ix x
+        iy y
+        bx (+ ix rect-width)
+        by iy
+        cx (+ bx (* scale 10))
+        cy (+ by (* scale 10))
+        dx bx
+        dy (+ by (* scale 20))
+        ex ix
+        ey (+ iy (* scale 20))]
+    (set! (.-fillStyle canvas-ctx) "#a6d5f7")
+    (.beginPath canvas-ctx)
+    (.moveTo canvas-ctx ix iy)
+    (.lineTo canvas-ctx bx by)
+    (.lineTo canvas-ctx cx cy)
+    (.lineTo canvas-ctx dx dy)
+    (.lineTo canvas-ctx ex ey)
+    (.fill canvas-ctx)))
+
 (defn graph-component-inner []
-  (let [graph-component-id "looset-graph"
+  (let [visible-nodes (re-frame/sub :flow {:id :f-visible-nodes})
+        graph-component-id "looset-graph"
         update-comp (fn [component [_ prev-props]]
                       (let [prev-vis-data (:vis-data prev-props)
                             {:keys [selected-nodes vis-data options view]} (reagent/props component)]
@@ -1209,6 +1238,13 @@
                      (.on @network "click" #(do (>evt [::network-clicked (set ^js(.-nodes %))])
                                                 (when (empty? ^js(.-nodes %)) ;; To avoid the automatic behavior of deselecting all nodes.
                                                   (>evt [::rerender-vis]))))
+                     (.on @network "beforeDrawing"
+                          (fn [canvas-ctx]
+                            (doseq [node @visible-nodes]
+                              (let [node-pos (.getBoundingBox @network node)
+                                    x (some-> node-pos (aget "left"))
+                                    y (some-> node-pos (aget "top"))]
+                                (draw-label canvas-ctx (+ x 10) (- y 2))))))
                      (update-comp component nil))]
     (reagent/create-class
       {:reagent-render (fn []
