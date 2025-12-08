@@ -1190,9 +1190,9 @@
 ;;
 ;; (def draw-graph (memoize draw-graph-no-memo))
 
-(defn draw-label [canvas-ctx x y]
+(defn draw-label [canvas-ctx color x y]
   (let [scale 0.35
-        rect-width (* scale 25)
+        rect-width (* scale 19)
         ix x
         iy y
         bx (+ ix rect-width)
@@ -1203,7 +1203,7 @@
         dy (+ by (* scale 20))
         ex ix
         ey (+ iy (* scale 20))]
-    (set! (.-fillStyle canvas-ctx) "#a6d5f7")
+    (set! (.-fillStyle canvas-ctx) color)
     (.beginPath canvas-ctx)
     (.moveTo canvas-ctx ix iy)
     (.lineTo canvas-ctx bx by)
@@ -1213,8 +1213,7 @@
     (.fill canvas-ctx)))
 
 (defn graph-component-inner []
-  (let [visible-nodes (re-frame/sub :flow {:id :f-visible-nodes})
-        graph-component-id "looset-graph"
+  (let [graph-component-id "looset-graph"
         update-comp (fn [component [_ prev-props]]
                       (let [prev-vis-data (:vis-data prev-props)
                             {:keys [selected-nodes vis-data options view]} (reagent/props component)]
@@ -1240,11 +1239,16 @@
                                                   (>evt [::rerender-vis]))))
                      (.on @network "beforeDrawing"
                           (fn [canvas-ctx]
-                            (doseq [node @visible-nodes]
+                            (doseq [node @(re-frame/sub :flow {:id :f-visible-nodes})
+                                    [total idx label] (some->> node ((<sub [::nodes-map])) :label ((fn [labels] (map #(into [(count labels) %1 %2]) (range) labels))))]
                               (let [node-pos (.getBoundingBox @network node)
-                                    x (some-> node-pos (aget "left"))
+                                    l (some-> node-pos (aget "left"))
+                                    r (some-> node-pos (aget "right"))
+                                    distance-between-labels 6
+                                    x-first-label (+ (* total (/ distance-between-labels 2)) -9 (/ (+ l r) 2))
+                                    x-idx-label (- x-first-label (* idx distance-between-labels))
                                     y (some-> node-pos (aget "top"))]
-                                (draw-label canvas-ctx (+ x 10) (- y 2))))))
+                                (draw-label canvas-ctx (text->color label) x-idx-label (- y 2))))))
                      (update-comp component nil))]
     (reagent/create-class
       {:reagent-render (fn []
