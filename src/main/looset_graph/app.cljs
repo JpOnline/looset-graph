@@ -1163,7 +1163,6 @@
   (doseq [[x y] (take 500 (geometric-spiral [0 0] 20 1.24 0.22))]
     (print (str "("x","y")\n")))
 
-  (.getPositions @network)
 
   (and (< (.-top n1) (.-top n2))
        (< (.-bottom n1) (.-top n2)))
@@ -1177,6 +1176,110 @@
   (doc some)
   (get {"a" 1} "a"))
 
+;; Converting to .dot
+#_:clj-kondo/ignore
+(comment
+  (defn download-file [content filename content-type]
+    (let [blob (js/Blob. #js [content] #js {:type content-type})
+          url (.createObjectURL js/URL blob)
+          a (.createElement js/document "a")]
+      (set! (.-href a) url)
+      (set! (.-download a) filename)
+      (.appendChild (.-body js/document) a)
+      (.click a)
+      (js/setTimeout (fn []
+                       (.removeChild (.-body js/document) a)
+                       (.revokeObjectURL js/URL url))
+                     0)))
+
+;; Example usage:
+;; (download-file (export-to-dot nodes edges) "network.dot" "text/plain")
+  (defn export-to-dot [nodes-ds edges-ds]
+    (let [nodes (js->clj (.get nodes-ds) :keywordize-keys true)
+          edges (js->clj (.get edges-ds) :keywordize-keys true)
+          node-lines (map #(str "    \"" (:id %) "\" [label=\"" (or (:label %) (:id %)) "\"];") nodes)
+          edge-lines (map #(str "    \"" (:from %) "\" -> \"" (:to %) "\""
+                               (when (:label %) (str " [label=\"" (:label %) "\"]"))
+                               ";")
+                          edges)]
+      (str "digraph Network {\n"
+           (clojure.string/join "\n" node-lines) "\n"
+           (clojure.string/join "\n" edge-lines) "\n"
+           "}")))
+
+  (.get (.-nodes (.-data (.-body @network))))
+  (.get (.-edges (.-data (.-body @network))))
+  (export-to-dot (.-nodes (.-data (.-body @network))) (.-edges (.-data (.-body @network))))
+  (download-file nn "network1.dot" "text/plain")
+  (js/alert "X")
+
+  (.moveNode @network "")
+
+  (def graphml-string (atom nil))
+
+  (defn choose-file-text
+    "Simplified version that reads a single file as text"
+    [callback & {:keys [accept]
+                 :or {accept "*/*"}}]
+
+    (let [input (js/document.createElement "input")]
+      (set! (.-type input) "file")
+      (set! (.-accept input) accept)
+      (set! (.-style input) "display: none;")
+
+      (.addEventListener input "change"
+        (fn [_]
+          (let [files (.-files input)]
+            (if (pos? (.-length files))
+              (let [file (aget files 0)
+                    reader (js/FileReader.)]
+
+                (set! (.-onload reader)
+                  (fn [e]
+                    (js/document.body.removeChild input)
+                    (callback {:file file
+                               :content (.-result reader)})))
+
+                (set! (.-onerror reader)
+                  (fn [e]
+                    (js/document.body.removeChild input)
+                    (callback {:file file :error (.-error reader)})))
+
+                (.readAsText reader file))
+
+              ;; No file selected
+              (do
+                (js/document.body.removeChild input)
+                (callback nil)))))
+        #js {:once true}) ; Remove listener after first call
+
+      (js/document.body.appendChild input)
+      (.click input)))
+
+  (choose-file-text #(reset! graphml-string %))
+
+  (defn get-node-metadata [xml-string]
+    (let [parser (js/DOMParser.)
+          xml-doc (.parseFromString parser xml-string "application/xml")
+          node-elements (.querySelectorAll xml-doc "node")]
+      (mapv (fn [node]
+              (let [id (.getAttribute node "id")
+                    ;; Extract Label
+                    y-label (.querySelector node "Label, y\\:Label")
+                    label (if y-label (.getAttribute y-label "Text") id)
+
+                    ;; Extract Geometry (yFiles uses <y:RectD X="..." Y="..."/>)
+                    geo (.querySelector node "RectD, y\\:RectD")
+                    x (if geo (js/parseFloat (.getAttribute geo "X")) 0)
+                    y (if geo (js/parseFloat (.getAttribute geo "Y")) 0)]
+                {:label label
+                 :x x
+                 :y y}))
+            (array-seq node-elements))))
+
+  (get-node-metadata (:content @graphml-string))
+  (doseq [{:keys [label x y]} nn]
+    (.moveNode @network label x y)))
 
 ;; -- Views ----
 
