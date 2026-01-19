@@ -15,8 +15,10 @@
     [goog.net.XhrIo :as xhr]))
 
 ; There are 2 types of Nodes: Label and Lix (made up name).
-; Any node can have another node inside it, but a node cannot be in 2 different
+; Any Node can have another Node inside it, but a Node cannot be in 2 different
 ; lixs, only in 2 different labels.
+; When a Lix has other Nodes inside it, it's said the Lix is the Parent of that nodes.
+; A general term that references Labels and Parent Lixs is Outer, and the Nodes inside it are Inners.
 
 ;; -- Util ----
 
@@ -143,22 +145,27 @@
 ;;   :<- [::graph-ast]
 ;;   graph-ast->dot-graph)
 
-(defn find-visible
-  ([visibles nodes-map node] (find-visible #{} #{} #{} visibles nodes-map node))
-  ([result to-visit visited visibles nodes-map node]
-   (let [new-visited (conj visited node)
-         parent-node (:parent (nodes-map node))
-         node-labels (:label (nodes-map node))
-         new-to-visit (-> to-visit
-                        (conj parent-node)
-                        (clojure.set/union node-labels)
-                        (clojure.set/difference visited))
-         new-result (if (visibles node)
-                      (conj result node)
-                      result)]
-     (if (seq new-to-visit)
-       (find-visible new-result new-to-visit new-visited visibles nodes-map (first to-visit))
-       new-result))))
+(defn find-visible-node
+  "Finds the 'best candidate', the closest visible ancestor."
+  ([visibles nodes-map node-id]
+   (find-visible-node visibles nodes-map #{node-id} (list node-id)))
+  ([visibles nodes-map visited queue]
+   (when (seq queue)
+     (let [curr-id (first queue)
+           is-visible? (contains? visibles curr-id)]
+       (if is-visible?
+         curr-id ;; Found the best candidate, return immediately
+         (let [node (get nodes-map curr-id)
+               parent (:parent node)
+               labels (:label node)
+               ;; Get all parents that haven't been visited yet
+               next-nodes (->> (cons parent labels)
+                               (remove nil?)
+                               (remove visited))]
+           (recur visibles
+                  nodes-map
+                  (into visited next-nodes)
+                  (concat (rest queue) next-nodes))))))))
 
 (defn visible-nodes
   [fold-list]
@@ -296,21 +303,27 @@
 
 (defn f-edges
   [{:keys [nodes-map visible-nodes]}]
-  (let [get-from-set #(find-visible visible-nodes nodes-map %)
-        get-to-set #(->> %
-                      (:edges-to)
-                      (mapcat (fn [[edge-string node-ids]]
-                                (for [node-id node-ids
-                                      visible-node (find-visible visible-nodes nodes-map node-id)]
-                                  [visible-node edge-string]))))
+  (let [;; Helper to resolve the single visible ancestor
+        resolve-node (partial find-visible-node visible-nodes nodes-map)
+
         ->edge
-        (fn [[k v]]
-          (for [from (get-from-set k)
-                [to edge-string] (get-to-set v)
-                :when (not= from to)]
-            {:from from :to to :arrows {:to {:enabled true :type "arrow"}}
-             :color {:highlight "#33a0ff"}
-             :label (when-not (= :nameless edge-string) edge-string)}))]
+        (fn [[from-id node-data]]
+          (let [visible-from (resolve-node from-id)]
+            ;; Only proceed if the source (or its Outer) is actually visible
+            (when visible-from
+              (for [[edge-string target-ids] (:edges-to node-data)
+                    to-id target-ids
+                    :let [visible-to (resolve-node to-id)]
+                    ;; 1. Check if target is visible
+                    ;; 2. Prevent self-loops (e.g. node A pointing to node B,
+                    ;;    but both are collapsed inside Label X)
+                    :when (and visible-to
+                               (not= visible-from visible-to))]
+                {:from visible-from
+                 :to visible-to
+                 :arrows {:to {:enabled true :type "arrow"}}
+                 :color {:highlight "#33a0ff"}
+                 :label (when-not (= :nameless edge-string) edge-string)}))))]
     (mapcat ->edge nodes-map)))
 (re-frame/reg-flow
   {:id :f-edges
@@ -1089,7 +1102,7 @@
   (def app-state @re-frame.db/app-db)
   (def visible-nodes-ids (get-in app-state [:ui :f-visible-nodes]))
   (def my-nodes-map (get-in app-state [:domain :nodes-map]))
-  (find-visible visible-nodes-ids my-nodes-map "Computer_arithmetic")
+  ; (find-visible visible-nodes-ids my-nodes-map "Computer_arithmetic")
   (first (keys my-nodes-map))
   (count (f-edges {:nodes-map my-nodes-map :visible-nodes visible-nodes-ids}))
 
