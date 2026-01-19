@@ -323,8 +323,37 @@
                  :to visible-to
                  :arrows {:to {:enabled true :type "arrow"}}
                  :color {:highlight "#33a0ff"}
-                 :label (when-not (= :nameless edge-string) edge-string)}))))]
-    (mapcat ->edge nodes-map)))
+                 :label (when-not (= :nameless edge-string) edge-string)
+                 ;; Helper for the `remove-duplications-to-original`
+                 :is-direct (and (= from-id visible-from)
+                                 (= to-id   visible-to))}))))
+        ;; Reduce to original edges when there's a duplication. Original here
+        ;; means the relationship was actually defined from both source node
+        ;; and target node, instead of a calculation of the Outers and Inners
+        ;; related to that node. If there's no difinition of original nodes,
+        ;; than the duplication is kept.
+        remove-duplications-to-original
+        (fn [acc {:keys [from to is-direct] :as candidate-edge}]
+          (let [key [from to]
+                existing-edge (get acc key)]
+            (cond
+              ;; Case 1: No edge for this pair yet. Add it.
+              (nil? existing-edge)
+              (assoc acc key candidate-edge)
+
+              ;; Case 2: We have an existing edge, but the NEW one is Direct (better).
+              ;; Overwrite the old one.
+              (and is-direct (not (:is-direct existing-edge)))
+              (assoc acc key candidate-edge)
+
+              ;; Case 3: The existing edge is already Direct, or both are Indirect.
+              ;; Keep the existing one (discard the new one).
+              :else
+              acc)))]
+    (->> nodes-map
+      (mapcat ->edge)
+      (reduce remove-duplications-to-original {})
+      (vals))))
 (re-frame/reg-flow
   {:id :f-edges
    :inputs {:visible-nodes (re-frame/flow<- :f-visible-nodes)
