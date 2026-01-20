@@ -20,6 +20,12 @@
 ; When a Lix has other Nodes inside it, it's said the Lix is the Parent of that nodes.
 ; A general term that references Labels and Parent Lixs is Outer, and the Nodes inside it are Inners.
 
+;; -- Feature Flags ----
+;; This is what makes possible to have different open/close states depending on
+;; the Label a Node is shown. So it can be opened in a Label, but closed in
+;; another.
+(def FEATURE_SYNC_OPEN_STATE true)
+
 ;; -- Util ----
 
 (when ^boolean js/goog.DEBUG ;; Code removed in production
@@ -334,7 +340,7 @@
         ;; than the duplication is kept.
         remove-duplications-to-original
         (fn [acc {:keys [from to is-direct] :as candidate-edge}]
-          (let [key [from to]
+          (let [key (sort [from to]) ;; sort, so the to->from is also captured.
                 existing-edge (get acc key)]
             (cond
               ;; Case 1: No edge for this pair yet. Add it.
@@ -500,8 +506,11 @@
 
 (defn nodes-list
   [path nodes-map fold-ui [node node-children]]
-  (let [opened? (when (seq node-children)
-                    (:opened? (fold-ui node) false))]
+  (let [opened? (if FEATURE_SYNC_OPEN_STATE
+                  (and (seq node-children)
+                       (get-in nodes-map [node :opened?] false))
+                  (when (seq node-children)
+                    (:opened? (fold-ui node) false)))]
     (cons {:node-id node
            :node-type (:type (nodes-map node))
            :path (conj path node)
@@ -898,7 +907,11 @@
 
 (defn toggle-open-close
   [app-state [event path]]
-  (let [new-state (not (get-in app-state (concat [:ui :fold] path [:opened?]) false))]
+  (let [node-id (last path)
+        current-state (if FEATURE_SYNC_OPEN_STATE
+                        (get-in app-state [:domain :nodes-map node-id :opened?] false)
+                        (get-in app-state (concat [:ui :fold] path [:opened?]) false))
+        new-state (not current-state)]
     (-> app-state
       (assoc-in (concat [:ui :fold] path [:opened?]) new-state)
       (assoc-in [:domain :nodes-map (last path) :opened?] new-state)
