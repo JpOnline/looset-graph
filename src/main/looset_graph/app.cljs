@@ -442,10 +442,20 @@
    :output f-vis-data
    :path [:ui :f-vis-data]})
 
+(defn middle-panel-size
+  [app-state]
+  (get-in app-state [:ui :panels :middle-panel-size] "40vw"))
+(re-frame/reg-sub ::middle-panel-size middle-panel-size)
+
 (defn left-panel-size
   [app-state]
   (get-in app-state [:ui :panels :left-panel-size] "70vw"))
 (re-frame/reg-sub ::left-panel-size left-panel-size)
+
+(defn right-panel-size
+  [app-state]
+  (get-in app-state [:ui :panels :right-panel-size] "300px"))
+(re-frame/reg-sub ::right-panel-size right-panel-size)
 
 (defn graph-text
   [app-state]
@@ -847,8 +857,12 @@
     (update-in app-state [:domain :nodes-map] #(merge-with merge % new-nodes-positions))))
 
 (defn resizing-panels
-  [app-state [_event new-state]]
-  (assoc-in app-state [:ui :panels :resizing-panels] new-state))
+  [app-state [_event splitter-id]]
+  (let [left-width (when (= splitter-id :middle)
+                     (-> js/document (.getElementById "left-panel") .-offsetWidth))]
+    (-> app-state
+        (assoc-in [:ui :panels :resizing-panels] splitter-id)
+        (assoc-in [:ui :panels :anchor-left-width] left-width))))
 (re-frame/reg-event-db ::resizing-panels resizing-panels)
 
 (defn dispersing-nodes
@@ -860,13 +874,18 @@
 
 (defn mouse-moved
   [app-state [_event x _y move-x move-y]]
-  (let [resizing-panels? (get-in app-state [:ui :panels :resizing-panels])
+  (let [resizing-target (get-in app-state [:ui :panels :resizing-panels])
         dispersing-nodes? (get-in app-state [:ui :dispersing-nodes?])
         new-disp-x (max 0.5 (inc (/ move-x 200)))
         new-disp-y (max 0.5 (inc (/ move-y 200)))]
     (cond-> app-state
-      resizing-panels?
-      (assoc-in [:ui :panels :left-panel-size] (str x"px"))
+      (= resizing-target :left)
+      (assoc-in [:ui :panels :left-panel-size] (str x "px"))
+
+      (= resizing-target :right)
+      (assoc-in [:ui :panels :right-panel-size]
+                (str (- js/window.innerWidth x) "px"))
+
       dispersing-nodes?
       (disperse-nodes-positions new-disp-x new-disp-y)
       dispersing-nodes?
@@ -1517,13 +1536,14 @@
 
 ;; --- UI Controls -------------------------------------------------------------
 
-(defn panel-splitter []
+(defn panel-splitter [id]
   [:div {:style {:display "flex"
                  :justify-content "center"
                  :width "6px"
                  :height "100vh"
-                 :cursor "ew-resize"}
-         :onMouseDown #(>evt [::resizing-panels true])}
+                 :cursor "ew-resize"
+                 :flex-shrink 0}
+         :onMouseDown #(>evt [::resizing-panels id])}
    [:div {:style {:border-left "1px solid gray"}}]])
 
 (defn botton-buttons []
@@ -1963,6 +1983,53 @@
             :padding-left "50vw"}}
    (interleave (<sub [::raw-selected-nodes]) (repeat [:br]))])
 
+(defn right-panel-overlay []
+  (let [width (<sub [::right-panel-size])]
+    [:div
+     {:style {:position "absolute"
+              :right "0"
+              :top "0"
+              :height "100vh"
+              :width width
+              :max-width "45vw"
+              :min-width "20vw"
+              :background-color "white" ;; Must have background to cover the graph
+              :border-left "1px solid #ccc"
+              :box-shadow "-2px 0 5px rgba(0,0,0,0.1)"
+              :z-index "20" ;; Ensure it floats above the graph
+              :display "flex"
+              :flex-direction "column"}}
+
+     ;; --- The Resizer Handle (Attached to the left edge of this panel) ---
+     [:div
+      {:style {:position "absolute"
+               :left "-5px" ;; Hangs slightly off the left edge
+               :top "0"
+               :width "10px" ;; Hit area
+               :height "100%"
+               :cursor "ew-resize"
+               :z-index "21"}
+       :onMouseDown #(>evt [::resizing-panels :right])}]
+
+     ;; --- Panel Content ---
+     [:div#right-panel-content
+      {:style {:flex-grow "1"
+               :overflow "auto"
+               :display "flex"
+               :flex-direction "column"
+               :min-width "200px"}}
+      [:div#text-component
+       {:style {:overflow "auto"
+                :display "grid"
+                :flex-grow "1"
+                :padding "7px 0"}}
+       [util/error-boundary
+        {:if-error [:h2 "Error"]}
+        [nodes-list-view]]
+       (when @(re-frame/sub :flow {:id :f-editing-graph-text})
+         [edit-raw-graph-text])]
+      [botton-buttons]]]))
+
 ;; --- Main Entry --------------------------------------------------------------
 
 (defn main []
@@ -1974,30 +2041,20 @@
                "select-mode-cursor")
      :style {:display "flex"
              :user-select "none"
-             :max-height "100vh"}}
+             :max-height "100vh"
+             :height "100vh"
+             :width "100vw"
+             :overflow "hidden"
+             :position "relative"}}
     [:div#left-panel
-     {:class (when (<sub [::mouse-drag-mode])
-               "grabbable")
-      :style {:width (<sub [::left-panel-size])
-              :min-width "20vw"
-              :display "flex"
-              :flex-direction "column"}}
-     [:div {:style {:font-family quattrocento-font
-                    :font-size "2em"
-                    :padding "10px"
-                    :border-bottom "1px solid gray"}}
-      "Looset Graph"]
-     [left-buttons]
-     [util/error-boundary
-      {:if-error [:h2 "erro"]}
-      [graph-component]]]
-    [panel-splitter]
-    [:div#right-panel
-     {:style {:width (str "calc(100vw - "(<sub [::left-panel-size])")")
+     {:style {:width (<sub [::left-panel-size])
               :overflow "auto"
               :display "flex"
               :flex-direction "column"
-              :min-width "20vw"}}
+              :min-width "20vw"
+              :max-width "45vw"
+              :flex-shrink 0
+              :z-index "10"}}
      [:div#text-component
        {:style {:overflow "auto"
                 :display "grid"
@@ -2008,7 +2065,29 @@
         [nodes-list-view]]
        (when @(re-frame/sub :flow {:id :f-editing-graph-text})
          [edit-raw-graph-text])]
-     [botton-buttons]]]])
+     [botton-buttons]]
+    [panel-splitter :left]
+    [:div#middle-panel
+     {:class (when (<sub [::mouse-drag-mode])
+               "grabbable")
+      :style {:width (<sub [::middle-panel-size])
+              :min-width "20vw"
+              :display "flex"
+              :flex-direction "column"
+              :flex-grow "1"
+              :z-index "1"
+              :position "relative"}}
+     [:div {:style {:font-family quattrocento-font
+                    :font-size "2em"
+                    :padding "10px"
+                    :border-bottom "1px solid gray"}}
+      "Looset Graph"]
+     [left-buttons]
+     [util/error-boundary
+      {:if-error [:h2 "erro"]}
+      [graph-component]]]
+    [panel-splitter :middle]
+    [right-panel-overlay]]])
      ;; [:div
      ;;  (<sub [::fold-list])]
      ;; [:div
@@ -2043,8 +2122,9 @@
 (def initial-state
   {:domain {:graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label2:\n  node5\n\nnode3:\n  node4\n  node5\n\nnode1 -> node2\nnode4 -> node1\nnodeA -> nodeB"
             :nodes-map {}}
-   :ui {:panels {:resizing-panels false
-                 :left-panel-size "65vw"}
+   :ui {:panels {:resizing-panels nil
+                 :left-panel-size "20vw"
+                 :right-panel-size "25vw"}
         :editing-graph-text false
         :fold {}}})
 
