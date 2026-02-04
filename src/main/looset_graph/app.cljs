@@ -20,6 +20,8 @@
 ; When a Lix has other Nodes inside it, it's said the Lix is the Parent of that nodes.
 ; A general term that references Labels and Parent Lixs is Outer, and the Nodes inside it are Inners.
 
+;; -- Config & Utilities -------------------------------------------------------
+
 ;; -- Feature Flags ----
 ;; This is what makes possible to have different open/close states depending on
 ;; the Label a Node is shown. So it can be opened in a Label, but closed in
@@ -85,7 +87,7 @@
   @events-history
   (reset! events-history []))
 
-;; -- Subs ----
+;; -- Re-frame: Logic & State (Subs/Flows) -------------------------------------
 
 ;; TODO: Replace all reg-subs for reg-flow? Maybe there's still usage for subs,
 ;; it also has the nice effect of defining default values in a single place.
@@ -115,6 +117,8 @@
   (if (= \" (first s) (last s))
     (subs s 1 (dec (count s)))
     s))
+
+;; --- Parsing & Graph Model ---------------------------------------------------
 
 (defmulti extract-nodes-from-edge-rule #(get-in % [3 0]))
 
@@ -151,8 +155,20 @@
 ;;   :<- [::graph-ast]
 ;;   graph-ast->dot-graph)
 
+;; --- Visibility & Folding Engine ---------------------------------------------
+
 (defn find-visible-node
-  "Finds the 'best candidate', the closest visible ancestor."
+  "Recursive lookup to find the closest visible ancestor for a given `node-id`.
+
+   If `node-id` is visible (checked against `visibles` set), returns it.
+   If not, it checks the node's `:parent` or `:label` (Outers).
+   It performs a Breadth-First Search (via a queue) up the hierarchy until
+   it hits a node that exists in the `visibles` set.
+
+   Args:
+     visibles: A set of node-ids that are currently displayed (not hidden/collapsed).
+     nodes-map: The complete domain map of nodes.
+     node-id: The starting node to resolve."
   ([visibles nodes-map node-id]
    (find-visible-node visibles nodes-map #{node-id} (list node-id)))
   ([visibles nodes-map visited queue]
@@ -205,6 +221,8 @@
                    %1
                    (get-descendents nodes-map (:children (nodes-map %2))))]
     (reduce step-fn nodes nodes)))
+
+;; --- UI State & Selection ----------------------------------------------------
 
 (defn raw-selected-nodes
   [app-state]
@@ -263,51 +281,64 @@
 ;; (defn vis-data
 ;;   [[visible-nodes nodes-map]]
 ;;   (let [nodes (->> nodes-map
-;;                 (filter #(visible-nodes (first %)))
-;;                 (into {}))
-;;         ->node
-;;         (fn [[node-id
-;;               {{:strs [x y]} :position
-;;                :keys [type name]
-;;                :or {name node-id}}]]
-;;           {:id node-id
-;;            :label (if (= type :label)
-;;                     (str "<b>"name"</b>")
-;;                     name)
-;;            :shape "box"
-;;            :color {:background "white" :border "gray"}
-;;                    ;; :highlight {:border "#ff0000"}}
-;;            :x x :y y
-;;            :margin 7
-;;            :shadow true
-;;            :font
-;;            (when (= type :label)
-;;              {:face label-font-family
-;;               :multi "html"
-;;               :color (text->color node-id)})})
+;;                  (filter #(visible-nodes (first %)))
+;;                  (into {}))
+;;          ->node
+;;          (fn [[node-id
+;;                {{:strs [x y]} :position
+;;                 :keys [type name]
+;;                 :or {name node-id}}]]
+;;            {:id node-id
+;;             :label (if (= type :label)
+;;                      (str "<b>"name"</b>")
+;;                      name)
+;;             :shape "box"
+;;             :color {:background "white" :border "gray"}
+;;                     ;; :highlight {:border "#ff0000"}}
+;;             :x x :y y
+;;             :margin 7
+;;             :shadow true
+;;             :font
+;;             (when (= type :label)
+;;               {:face label-font-family
+;;                :multi "html"
+;;                :color (text->color node-id)})})
 ;;
-;;         get-from-set #(find-visible visible-nodes nodes-map %)
-;;         get-to-set #(->> %
-;;                       (:edges-to)
-;;                       (map val) ;; TODO: get the text in the relationship/edge.
-;;                       (apply concat)
-;;                       (mapcat (partial find-visible visible-nodes nodes-map)))
-;;         ->edge
-;;         (fn [[k v]]
-;;           (for [from (get-from-set k)
-;;                 to (get-to-set v)
-;;                 :when (not= from to)]
-;;             {:from from :to to :arrows {:to {:enabled true :type "arrow"}}
-;;              :color {:highlight "#33a0ff"}}))]
-;;     {:nodes (map ->node nodes)
-;;      :edges (mapcat ->edge nodes-map)}))
+;;          get-from-set #(find-visible visible-nodes nodes-map %)
+;;          get-to-set #(->> %
+;;                         (:edges-to)
+;;                         (map val) ;; TODO: get the text in the relationship/edge.
+;;                         (apply concat)
+;;                         (mapcat (partial find-visible visible-nodes nodes-map)))
+;;          ->edge
+;;          (fn [[k v]]
+;;            (for [from (get-from-set k)
+;;                  to (get-to-set v)
+;;                  :when (not= from to)]
+;;              {:from from :to to :arrows {:to {:enabled true :type "arrow"}}
+;;               :color {:highlight "#33a0ff"}}))]
+;;      {:nodes (map ->node nodes)
+;;       :edges (mapcat ->edge nodes-map)}))
 ;; (re-frame/reg-sub
 ;;   ::vis-data
 ;;   :<- [::visible-nodes]
 ;;   :<- [::nodes-map]
 ;;   vis-data)
 
+;; --- Edge Calculation --------------------------------------------------------
+
 (defn f-edges
+  "Calculates the visual edges based on the visible nodes and the underlying graph structure.
+
+   1. Iterates through all nodes in the map.
+   2. Resolves both the 'from' and 'to' nodes to their currently visible ancestor
+      (using `find-visible-node`).
+   3. Prevents self-loops (where source and target resolve to the same folded parent).
+   4. De-duplicates edges:
+      If Node A -> Node B is defined, and both are inside Label L, no edge is drawn.
+      If Node A -> Node C, and A is in L1 and C is in L2, an edge L1 -> L2 is drawn.
+      Logic `remove-duplications-to-original` favors 'Direct' edges (explicitly defined)
+      over implicit edges derived from children."
   [{:keys [nodes-map visible-nodes]}]
   (let [;; Helper to resolve the single visible ancestor
         resolve-node (partial find-visible-node visible-nodes nodes-map)
@@ -628,7 +659,7 @@
 
 (def nodes-map* (memoize no-memo-nodes-map*))
 (re-frame/reg-flow
- {:id     :nodes-map
+ {:id      :nodes-map
   :inputs {:graph-ast [:ui :validation :valid-graph-ast]}
   :output nodes-map*
   :path   [:domain :nodes-map]})
@@ -730,6 +761,8 @@
    :output show-expand-button?
    :path [:ui :f-show-expand-button?]})
 
+;; --- Export & Text Gen -------------------------------------------------------
+
 (defn nodes-map->graph-text-reduce-step
   [nodes-map]
   (fn [[children edges props] [node-k* node-v]]
@@ -753,7 +786,15 @@
        (if (seq custom-props)
          (str props node-k" "custom-props"\n")
          props)])))
+
 (defn nodes-map->graph-text
+  "Serializes the `nodes-map` back into the custom text format.
+
+   It creates three sections:
+   1. Hierarchy (Parent/Children relationships)
+   2. Edges (-> relationships)
+   3. Properties (Custom EDN props like position/state)
+   Then joins them into a single string."
   [[nodes-map]]
   (->> nodes-map
     (reduce (nodes-map->graph-text-reduce-step nodes-map) ["" "" ""])
@@ -784,10 +825,12 @@
 
 ;; DO NOT create new reg-subs, use reg-flow instead!
 
-;; -- Events ----
+;; -- Re-frame: Event Handlers -------------------------------------------------
 
 (defonce network (atom nil))
 (declare set-nodes-positions)
+
+;; --- Layout Engine -----------------------------------------------------------
 
 (defn disperse-nodes-positions
   [app-state mult-x mult-y]
@@ -812,6 +855,8 @@
   [app-state [_event new-state]]
   (assoc-in app-state [:ui :dispersing-nodes?] new-state))
 (re-frame/reg-event-db ::dispersing-nodes dispersing-nodes)
+
+;; --- Input Handling ----------------------------------------------------------
 
 (defn mouse-moved
   [app-state [_event x _y move-x move-y]]
@@ -905,6 +950,8 @@
              (assoc-in [:ui :validation :valid-graph?] false))})))
 (re-frame/reg-event-fx ::set-graph-text #_[event-to-analytics] set-graph-text)
 
+;; --- Selection & Manipulation ------------------------------------------------
+
 (defn toggle-open-close
   [app-state [event path]]
   (let [node-id (last path)
@@ -961,6 +1008,17 @@
 
 ;; It used to receive the nodes-positions, now it just compute it from the bounding box.
 (defn set-nodes-positions
+  "Calculates and updates node positions to prevent overlap.
+
+   Algorithm:
+   1. Extracts current bounding boxes of all visible nodes.
+   2. Creates a Quadtree spatial index of these boxes.
+   3. Iterates through nodes (sorted by distance from origin).
+   4. For each node, it attempts to place it at its original position.
+   5. If there is a collision (checked via Quadtree), it generates candidate
+      positions using a `geometric-spiral` spreading outward.
+   6. Updates the node's position to the first non-colliding candidate.
+   7. Merges new positions into `app-state`."
   [app-state [_event {:keys [dragging? _view-position _scale] :as _args}]]
   (if dragging?
     app-state
@@ -1175,11 +1233,11 @@
     (def app-state @re-frame.db/app-db)
     (def visible-nodes-ids (get-in app-state [:ui :f-visible-nodes]))
     (def nodes (map
-                 #(let [bounding-box (.getBoundingBox @network %)]
-                    (assoc (bounding-box->dimensions bounding-box)
-                      :id %
-                      :bounding-box bounding-box))
-                 visible-nodes-ids))
+                  #(let [bounding-box (.getBoundingBox @network %)]
+                     (assoc (bounding-box->dimensions bounding-box)
+                       :id %
+                       :bounding-box bounding-box))
+                  visible-nodes-ids))
     (def x-min (apply min (map #(.-left (:bounding-box %)) nodes)))
     (def x-max (apply max (map #(.-right (:bounding-box %)) nodes)))
     (def y-min (apply min (map #(.-top (:bounding-box %)) nodes)))
@@ -1198,11 +1256,11 @@
     (def app-state @re-frame.db/app-db)
     (def visible-nodes-ids (get-in app-state [:ui :f-visible-nodes]))
     (def nodes (map
-                 #(let [bounding-box (.getBoundingBox @network %)]
-                    (assoc (bounding-box->dimensions bounding-box)
-                      :id %
-                      :bounding-box bounding-box))
-                 visible-nodes-ids))
+                  #(let [bounding-box (.getBoundingBox @network %)]
+                     (assoc (bounding-box->dimensions bounding-box)
+                       :id %
+                       :bounding-box bounding-box))
+                  visible-nodes-ids))
     (def height (- (apply max (map #(.-bottom (:bounding-box %)) nodes))
                    (apply min (map #(.-top (:bounding-box %)) nodes))))
     (def width (- (apply max (map #(.-right (:bounding-box %)) nodes))
@@ -1243,9 +1301,9 @@
       (.appendChild (.-body js/document) a)
       (.click a)
       (js/setTimeout (fn []
-                       (.removeChild (.-body js/document) a)
-                       (.revokeObjectURL js/URL url))
-                     0)))
+                        (.removeChild (.-body js/document) a)
+                        (.revokeObjectURL js/URL url))
+                      0)))
 
 ;; Example usage:
 ;; (download-file (export-to-dot nodes edges) "network.dot" "text/plain")
@@ -1339,7 +1397,7 @@
   (doseq [{:keys [label x y]} nn]
     (.moveNode @network label x y)))
 
-;; -- Views ----
+;; -- Reagent: Views -----------------------------------------------------------
 
 ;; (defn draw-graph-no-memo [id data options]
 ;;   (fn []
@@ -1350,6 +1408,8 @@
 ;;       network)))
 ;;
 ;; (def draw-graph (memoize draw-graph-no-memo))
+
+;; --- SVG & Canvas Primitives -------------------------------------------------
 
 (defn draw-label [canvas-ctx color x y]
   (let [scale 0.35
@@ -1373,6 +1433,8 @@
     (.lineTo canvas-ctx ex ey)
     (.fill canvas-ctx)))
 
+;; --- Graph Component ---------------------------------------------------------
+
 (defn graph-component-inner []
   (let [graph-component-id "looset-graph"
         update-comp (fn [component [_ prev-props]]
@@ -1394,7 +1456,7 @@
                      (.on @network "dragEnd" #(>evt [::set-vis-view {:view-position ^Object (.getViewPosition @network)
                                                                      :scale ^Object (.getScale @network)}]))
                      (.on @network "zoom" #(>evt [::set-vis-view {:view-position ^Object (.getViewPosition @network)
-                                                                  :scale ^Object (.getScale @network)}]))
+                                                                   :scale ^Object (.getScale @network)}]))
                      (.on @network "click" #(do (>evt [::network-clicked (set ^js(.-nodes %))])
                                                 (when (empty? ^js(.-nodes %)) ;; To avoid the automatic behavior of deselecting all nodes.
                                                   (>evt [::rerender-vis]))))
@@ -1425,7 +1487,7 @@
   [graph-component-inner
    {:rerender (<sub [::rerender-vis-sub])
     :selected-nodes (clj->js (<sub [::selected-nodes-visible]))
-    :vis-data       @(re-frame/sub :flow {:id :f-vis-data})
+    :vis-data        @(re-frame/sub :flow {:id :f-vis-data})
     :number-input (<sub [::number-input 1])
     :number-input2 (<sub [::number-input 2])
     :view (<sub [::vis-view])
@@ -1446,12 +1508,14 @@
                                 ;;                             :nodeDistance 300}}
                   ;; :minVelocity 1.2}
                   :nodes #js {:borderWidth 1}}}])
-                              ;; :mass 0.5}}}])
+                             ;; :mass 0.5}}}])
 
     ;; :options #js {:physics #js {:enabled true
     ;;                             :minVelocity 1.5}
     ;;               :nodes #js {:borderWidth 1}}}])
     ;;
+
+;; --- UI Controls -------------------------------------------------------------
 
 (defn panel-splitter []
   [:div {:style {:display "flex"
@@ -1570,18 +1634,18 @@
       :class "label-style"
       :style {:color color}}
      [:<>
-       [svg-label {:opened? opened?
-                   :color color}]
-       (or node-name node-id)]]))
+      [svg-label {:opened? opened?
+                  :color color}]
+      (or node-name node-id)]]))
 
 (defn lix-node [{:keys [node-id opened?] :as node-item}]
   [node-view
    {:node node-item
     :class "lix-style"}
    [:<>
-     (when-not (nil? opened?)
-       [svg-arrow-triangle {:opened? opened?}])
-     node-id]])
+    (when-not (nil? opened?)
+      [svg-arrow-triangle {:opened? opened?}])
+    node-id]])
 
 (defn nodes-list-view []
   [:div
@@ -1724,32 +1788,32 @@
 
 (defn debug-quick-val-set []
   [:<>
-    [:<>
-     [:pre "blabla"]
-     [:span "Range1 "(<sub [::number-input 1])]
-     [:input {:type "range"
-              :min 1000
-              :max 4000
-              :value (<sub [::number-input 1])
-              :onChange #(>evt [::set-number-input (-> % .-target .-value) 1])}]
-     [:span "Range2 "(<sub [::number-input 2])]
-     [:input {:type "range"
-              :min 0
-              :max 100
-              :value (<sub [::number-input 2])
-              :onChange #(>evt [::set-number-input (-> % .-target .-value) 2])}]
-     [:span "Range3 "(<sub [::number-input 3])]
-     [:input {:type "range"
-              :min 0
-              :max 300
-              :value (<sub [::number-input 3])
-              :onChange #(>evt [::set-number-input (-> % .-target .-value) 3])}]]
-    [:<> [:span "Number"] [:input {:type "number"
-                                   :value (<sub [::number-input 1])
-                                   :onChange #(>evt [::set-number-input (-> % .-target .-value)])}]]
-    [:<> [:span "Toggle"] [:input {:type "checkbox"
-                                   :onChange #(do (>evt [::set-toggle-input (-> % .-target .-checked)])
-                                                  (>evt [::organize-hierarchy-positions (-> % .-target .-checked)]))}]]])
+   [:<>
+    [:pre "blabla"]
+    [:span "Range1 "(<sub [::number-input 1])]
+    [:input {:type "range"
+             :min 1000
+             :max 4000
+             :value (<sub [::number-input 1])
+             :onChange #(>evt [::set-number-input (-> % .-target .-value) 1])}]
+    [:span "Range2 "(<sub [::number-input 2])]
+    [:input {:type "range"
+             :min 0
+             :max 100
+             :value (<sub [::number-input 2])
+             :onChange #(>evt [::set-number-input (-> % .-target .-value) 2])}]
+    [:span "Range3 "(<sub [::number-input 3])]
+    [:input {:type "range"
+             :min 0
+             :max 300
+             :value (<sub [::number-input 3])
+             :onChange #(>evt [::set-number-input (-> % .-target .-value) 3])}]]
+   [:<> [:span "Number"] [:input {:type "number"
+                                  :value (<sub [::number-input 1])
+                                  :onChange #(>evt [::set-number-input (-> % .-target .-value)])}]]
+   [:<> [:span "Toggle"] [:input {:type "checkbox"
+                                  :onChange #(do (>evt [::set-toggle-input (-> % .-target .-checked)])
+                                                 (>evt [::organize-hierarchy-positions (-> % .-target .-checked)]))}]]])
 
 (def quattrocento-font "Quattrocento, serif")
 
@@ -1899,6 +1963,8 @@
             :padding-left "50vw"}}
    (interleave (<sub [::raw-selected-nodes]) (repeat [:br]))])
 
+;; --- Main Entry --------------------------------------------------------------
+
 (defn main []
   [:<>
    [global-style]
@@ -1972,7 +2038,7 @@
   (get-in app-state [:ui :number-input knob] 0))
 (re-frame/reg-sub ::number-input number-input)
 
-;; -- Initialization ----
+;; -- Lifecycle & Initialization -----------------------------------------------
 
 (def initial-state
   {:domain {:graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label2:\n  node5\n\nnode3:\n  node4\n  node5\n\nnode1 -> node2\nnode4 -> node1\nnodeA -> nodeB"
@@ -2113,8 +2179,8 @@
 ;; Snippet on how to react on CSS change
 ;; (defn init-style-observer []
 ;;   (let [observer (new js/MutationObserver
-;;                    (fn [mutations]
-;;                      (js/console.log "something changed" mutations)))
+;;                     (fn [mutations]
+;;                       (js/console.log "something changed" mutations)))
 ;;         target-element (js/document.getElementById "text-component")]
 ;;     (.observe observer target-element #js{:attributes true :attributeFilter #js["style"]})))
 
