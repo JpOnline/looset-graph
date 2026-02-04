@@ -1,0 +1,2 @@
+{:deps {io.github.nextjournal/markdown {:mvn/version "0.7.189"}
+        clj-commons/pomegranate {:mvn/version "1.2.1"}}}
