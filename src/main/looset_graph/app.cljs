@@ -442,15 +442,15 @@
    :output f-vis-data
    :path [:ui :f-vis-data]})
 
-(defn middle-panel-size
-  [app-state]
-  (get-in app-state [:ui :panels :middle-panel-size] "40vw"))
-(re-frame/reg-sub ::middle-panel-size middle-panel-size)
-
 (defn left-panel-size
   [app-state]
   (get-in app-state [:ui :panels :left-panel-size] "70vw"))
 (re-frame/reg-sub ::left-panel-size left-panel-size)
+
+(defn middle-panel-size
+  [app-state]
+  (get-in app-state [:ui :panels :middle-panel-size] "40vw"))
+(re-frame/reg-sub ::middle-panel-size middle-panel-size)
 
 (defn right-panel-size
   [app-state]
@@ -858,7 +858,7 @@
 
 (defn resizing-panels
   [app-state [_event splitter-id]]
-  (let [left-width (when (= splitter-id :middle)
+  (let [left-width (when (= splitter-id :right)
                      (-> js/document (.getElementById "left-panel") .-offsetWidth))]
     (-> app-state
         (assoc-in [:ui :panels :resizing-panels] splitter-id)
@@ -1452,6 +1452,22 @@
     (.lineTo canvas-ctx ex ey)
     (.fill canvas-ctx)))
 
+(defn svg-chevron-left [props]
+  [:svg (merge {:width "12" :height "12" :viewBox "0 0 16 16" :fill "currentColor"} props)
+   [:path {:fill-rule "evenodd" :d "M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"}]])
+
+(defn svg-chevron-right [props]
+  [:svg (merge {:width "12" :height "12" :viewBox "0 0 16 16" :fill "currentColor"} props)
+   [:path {:fill-rule "evenodd" :d "M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"}]])
+
+(defn svg-grip-lines [props]
+  [:svg (merge {:width "12" :height "12" :viewBox "0 0 16 16" :fill "currentColor"} props)
+   [:path {:d "M7 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm0 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm0 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM11 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm0 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm0 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"}]])
+
+(defn svg-close-x [props]
+  [:svg (merge {:width "16" :height "16" :viewBox "0 0 16 16" :fill "currentColor"} props)
+   [:path {:d "M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"}]])
+
 ;; --- Graph Component ---------------------------------------------------------
 
 (defn graph-component-inner []
@@ -1536,15 +1552,77 @@
 
 ;; --- UI Controls -------------------------------------------------------------
 
-(defn panel-splitter [id]
-  [:div {:style {:display "flex"
-                 :justify-content "center"
-                 :width "6px"
-                 :height "100vh"
-                 :cursor "ew-resize"
-                 :flex-shrink 0}
-         :onMouseDown #(>evt [::resizing-panels id])}
-   [:div {:style {:border-left "1px solid gray"}}]])
+(defn splitter-pill [icon on-toggle]
+  [:div
+   {:style {:position "absolute"
+            :top "50%"
+            :left "50%"
+            :transform "translate(-50%, -50%)" ;; Centers on the line
+            :background-color "white"
+            :border "1px solid #ccc"
+            :border-radius "12px"
+            :padding "4px 2px"
+            :display "flex"
+            :flex-direction "column"
+            :align-items "center"
+            :gap "4px"
+            :box-shadow "0 2px 4px rgba(0,0,0,0.1)"
+            :z-index "30"
+            :cursor "default"}}
+
+   ;; Resize Grip
+   [:div {:title "Drag to resize" :style {:cursor "ew-resize" :color "#999"}}
+    [svg-grip-lines]]
+
+   ;; Toggle Button
+   [:button
+    {:onClick (fn [e]
+                (.stopPropagation e)
+                (on-toggle))
+     :title "Toggle Panel"
+     :style {:background "none" :border "none" :cursor "pointer"
+             :padding "2px" :color "#555" :display "flex"}}
+    icon]])
+
+(defn left-panel-splitter []
+  [:div
+   {:style {:display "flex"
+            :justify-content "center"
+            :width "12px"
+            :height "100vh"
+            :cursor "ew-resize"
+            :flex-shrink 0
+            :position "relative"
+            :z-index "25"}
+    :onMouseDown #(>evt [::resizing-panels :left])}
+
+   ;; The Vertical Line
+   [:div {:style {:border-left "1px solid #ccc"
+                  :height "100%"
+                  :margin-left "5px"}}]
+
+   ;; The Inner Controls (Pill)
+   [splitter-pill
+    [svg-chevron-left]
+    #(js/console.log "Toggle Left")]])
+
+(defn right-panel-splitter []
+  [:div
+   {:style {:position "absolute"
+            :left "-6px" ;; Hangs off the left edge of the Right Panel
+            :top "0"
+            :width "12px"
+            :height "100%"
+            :cursor "ew-resize"
+            :z-index "21"
+            :display "flex"
+            :justify-content "center"}
+    :onMouseDown #(>evt [::resizing-panels :right])}
+
+   ;; The Controls Pill (No vertical line needed here as the panel border does it)
+   [splitter-pill
+    [svg-chevron-right]
+    #(js/console.log "Toggle Right")]])
 
 (defn botton-buttons []
   [:div
@@ -1983,6 +2061,24 @@
             :padding-left "50vw"}}
    (interleave (<sub [::raw-selected-nodes]) (repeat [:br]))])
 
+(defn panel-close-button [{:keys [on-click style]}]
+  [:button
+   {:onClick on-click
+    :title "Close Panel"
+    :class "hover-gray-svg"
+    :style (merge 
+            {:position "absolute"   ;; Float over the content
+             :top "8px"             ;; Distance from top
+             :right "8px"           ;; Distance from right
+             :z-index "50"          ;; Ensure it stays on top of scrollbars/content
+             :background "transparent"
+             :border "none"
+             :padding "5px"
+             :cursor "pointer"
+             :color "#666"} 
+            style)}
+   [svg-close-x]])
+
 (defn right-panel-overlay []
   (let [width (<sub [::right-panel-size])]
     [:div
@@ -2000,16 +2096,10 @@
               :display "flex"
               :flex-direction "column"}}
 
-     ;; --- The Resizer Handle (Attached to the left edge of this panel) ---
-     [:div
-      {:style {:position "absolute"
-               :left "-5px" ;; Hangs slightly off the left edge
-               :top "0"
-               :width "10px" ;; Hit area
-               :height "100%"
-               :cursor "ew-resize"
-               :z-index "21"}
-       :onMouseDown #(>evt [::resizing-panels :right])}]
+     [right-panel-splitter]
+
+     [panel-close-button
+      {:on-click #(js/console.log "Close Right")}]
 
      ;; --- Panel Content ---
      [:div#right-panel-content
@@ -2054,7 +2144,10 @@
               :min-width "20vw"
               :max-width "45vw"
               :flex-shrink 0
-              :z-index "10"}}
+              :z-index "10"
+              :position "relative"}}
+     [panel-close-button
+      {:on-click #(js/console.log "Close Left")}]
      [:div#text-component
        {:style {:overflow "auto"
                 :display "grid"
@@ -2066,7 +2159,7 @@
        (when @(re-frame/sub :flow {:id :f-editing-graph-text})
          [edit-raw-graph-text])]
      [botton-buttons]]
-    [panel-splitter :left]
+    [left-panel-splitter]
     [:div#middle-panel
      {:class (when (<sub [::mouse-drag-mode])
                "grabbable")
@@ -2086,7 +2179,6 @@
      [util/error-boundary
       {:if-error [:h2 "erro"]}
       [graph-component]]]
-    [panel-splitter :middle]
     [right-panel-overlay]]])
      ;; [:div
      ;;  (<sub [::fold-list])]
