@@ -325,6 +325,49 @@
 ;;   :<- [::nodes-map]
 ;;   vis-data)
 
+(defn left-panel-open?
+  [app-state]
+  (get-in app-state [:ui :panels :left-open?] true))
+(re-frame/reg-sub ::left-panel-open? left-panel-open?)
+
+(defn right-panel-active?
+  [app-state]
+  (get-in app-state [:ui :panels :right-active?] true))
+(re-frame/reg-sub ::right-panel-active? right-panel-active?)
+
+;; Derived Logic for Right Panel Visibility
+;; Content is only shown if Active AND exactly 1 node is selected.
+(defn right-panel-shows-content?
+  [[active? selected-nodes]]
+  (and active?
+       (= 1 (count selected-nodes))))
+(re-frame/reg-sub
+  ::right-panel-shows-content?
+  :<- [::right-panel-active?]
+  :<- [::raw-selected-nodes]
+  right-panel-shows-content?)
+
+;; Some events also related to the panels.
+(defn toggle-left-panel
+  [app-state]
+  (update-in app-state [:ui :panels :left-open?] not))
+(re-frame/reg-event-db ::toggle-left-panel toggle-left-panel)
+
+(defn toggle-right-panel-active
+  [app-state]
+  (update-in app-state [:ui :panels :right-active?] not))
+(re-frame/reg-event-db ::toggle-right-panel-active toggle-right-panel-active)
+
+(defn close-left-panel
+  [app-state]
+  (assoc-in app-state [:ui :panels :left-open?] false))
+(re-frame/reg-event-db ::close-left-panel close-left-panel)
+
+(defn close-right-panel
+  [app-state]
+  (assoc-in app-state [:ui :panels :right-active?] false))
+(re-frame/reg-event-db ::close-right-panel close-right-panel)
+
 ;; --- Edge Calculation --------------------------------------------------------
 
 (defn f-edges
@@ -1552,26 +1595,43 @@
 
 ;; --- UI Controls -------------------------------------------------------------
 
-(defn splitter-pill [icon on-toggle]
+(def transition-css "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)")
+
+(defn splitter-pill-style [active?]
+  {:background-color (if active? "#4a484a" "white") ;; Dark when active, White when inactive
+   :color (if active? "white" "#555")
+   :border (if active? "1px solid #4a484a" "1px solid #ccc")
+   :transform "translate(-50%, -50%)"
+   :transition transition-css})
+
+(defn chevron-style [rotated?]
+  {:transition transition-css
+   :transform (if rotated? "rotate(180deg)" "rotate(0deg)")})
+
+(defn splitter-pill [{:keys [icon on-toggle active? rotated?]}]
   [:div
-   {:style {:position "absolute"
-            :top "50%"
-            :left "50%"
-            :transform "translate(-50%, -50%)" ;; Centers on the line
-            :background-color "white"
-            :border "1px solid #ccc"
-            :border-radius "12px"
-            :padding "4px 2px"
-            :display "flex"
-            :flex-direction "column"
-            :align-items "center"
-            :gap "4px"
-            :box-shadow "0 2px 4px rgba(0,0,0,0.1)"
-            :z-index "30"
-            :cursor "default"}}
+   {:style (merge {:position "absolute"
+                   :top "50%"
+                   :left "50%"
+                   :transform "translate(-50%, -50%)" ;; Centers on the line
+                   :background-color "white"
+                   :border "1px solid #ccc"
+                   :border-radius "12px"
+                   :padding "4px 2px"
+                   :display "flex"
+                   :flex-direction "column"
+                   :align-items "center"
+                   :gap "4px"
+                   :box-shadow "0 2px 4px rgba(0,0,0,0.1)"
+                   :z-index "30"
+                   :cursor "default"}
+                  (splitter-pill-style active?))}
 
    ;; Resize Grip
-   [:div {:title "Drag to resize" :style {:cursor "ew-resize" :color "#999"}}
+   [:div {:title "Drag to resize"
+          :style {:cursor "ew-resize"
+                  :color "#999"
+                  :opacity (if active? 0.8 0.3)}}
     [svg-grip-lines]]
 
    ;; Toggle Button
@@ -1581,48 +1641,54 @@
                 (on-toggle))
      :title "Toggle Panel"
      :style {:background "none" :border "none" :cursor "pointer"
-             :padding "2px" :color "#555" :display "flex"}}
+             :padding "2px" :color "inherit" :display "flex"}}
     icon]])
 
 (defn left-panel-splitter []
-  [:div
-   {:style {:display "flex"
-            :justify-content "center"
-            :width "12px"
-            :height "100vh"
-            :cursor "ew-resize"
-            :flex-shrink 0
-            :position "relative"
-            :z-index "25"}
-    :onMouseDown #(>evt [::resizing-panels :left])}
+  (let [open? (<sub [::left-panel-open?])]
+    [:div
+     {:style {:display "flex"
+              :justify-content "center"
+              :width "12px"
+              :height "100vh"
+              :cursor "ew-resize"
+              :flex-shrink 0
+              :position "relative"
+              :z-index "25"}
+      :onMouseDown #(when open? (>evt [::resizing-panels :left]))}
 
-   ;; The Vertical Line
-   [:div {:style {:border-left "1px solid #ccc"
-                  :height "100%"
-                  :margin-left "5px"}}]
+     ;; The Vertical Line
+     [:div {:style {:border-left "1px solid #ccc"
+                    :height "100%"
+                    :margin-left "5px"}}]
 
-   ;; The Inner Controls (Pill)
-   [splitter-pill
-    [svg-chevron-left]
-    #(js/console.log "Toggle Left")]])
+     ;; The Inner Controls (Pill)
+     [splitter-pill
+      {:icon [svg-chevron-left]
+       :active? open?
+       :rotated? (not open?)
+       :on-toggle #(>evt [::toggle-left-panel])}]]))
 
 (defn right-panel-splitter []
-  [:div
-   {:style {:position "absolute"
-            :left "-6px" ;; Hangs off the left edge of the Right Panel
-            :top "0"
-            :width "12px"
-            :height "100%"
-            :cursor "ew-resize"
-            :z-index "21"
-            :display "flex"
-            :justify-content "center"}
-    :onMouseDown #(>evt [::resizing-panels :right])}
+  (let [active? (<sub [::right-panel-active?])]
+    [:div
+     {:style {:position "absolute"
+              :left "-6px" ;; Hangs off the left edge of the Right Panel
+              :top "0"
+              :width "12px"
+              :height "100%"
+              :cursor "ew-resize"
+              :z-index "21"
+              :display "flex"
+              :justify-content "center"}
+      :onMouseDown #(>evt [::resizing-panels :right])}
 
-   ;; The Controls Pill (No vertical line needed here as the panel border does it)
-   [splitter-pill
-    [svg-chevron-right]
-    #(js/console.log "Toggle Right")]])
+     ;; The Controls Pill (No vertical line needed here as the panel border does it)
+     [splitter-pill
+      {:icon [svg-chevron-right]
+       :active? active?
+       :rotated? (not active?)
+       :on-toggle #(>evt [::toggle-right-panel-active])}]]))
 
 (defn botton-buttons []
   [:div
@@ -2080,7 +2146,8 @@
    [svg-close-x]])
 
 (defn right-panel-overlay []
-  (let [width (<sub [::right-panel-size])]
+  (let [width (<sub [::right-panel-size])
+        shows-content? (<sub [::right-panel-shows-content?])]
     [:div
      {:style {:position "absolute"
               :right "0"
@@ -2091,15 +2158,19 @@
               :min-width "20vw"
               :background-color "white" ;; Must have background to cover the graph
               :border-left "1px solid #ccc"
-              :box-shadow "-2px 0 5px rgba(0,0,0,0.1)"
+              :box-shadow (if shows-content? "-2px 0 5px rgba(0,0,0,0.1)" "none")
               :z-index "20" ;; Ensure it floats above the graph
               :display "flex"
-              :flex-direction "column"}}
+              :flex-direction "column"
+              :transition transition-css
+              :transform (if shows-content?
+                           "translateX(0)"
+                           "translateX(100%)")}}
 
      [right-panel-splitter]
 
      [panel-close-button
-      {:on-click #(js/console.log "Close Right")}]
+      {:on-click #(>evt [::close-right-panel])}]
 
      ;; --- Panel Content ---
      [:div#right-panel-content
@@ -2137,17 +2208,21 @@
              :overflow "hidden"
              :position "relative"}}
     [:div#left-panel
-     {:style {:width (<sub [::left-panel-size])
-              :overflow "auto"
+     {:style {:width (if (<sub [::left-panel-open?])
+                       (<sub [::left-panel-size])
+                       "0px")
+              :overflow "hidden"
               :display "flex"
               :flex-direction "column"
-              :min-width "20vw"
+              :min-width (if (<sub [::left-panel-open?]) "20vw" "0px")
+              :opacity (if (<sub [::left-panel-open?]) 1 0)
               :max-width "45vw"
               :flex-shrink 0
               :z-index "10"
-              :position "relative"}}
+              :position "relative"
+              :transition transition-css}}
      [panel-close-button
-      {:on-click #(js/console.log "Close Left")}]
+      {:on-click #(>evt [::close-left-panel])}]
      [:div#text-component
        {:style {:overflow "auto"
                 :display "grid"
@@ -2215,6 +2290,8 @@
   {:domain {:graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label2:\n  node5\n\nnode3:\n  node4\n  node5\n\nnode1 -> node2\nnode4 -> node1\nnodeA -> nodeB"
             :nodes-map {}}
    :ui {:panels {:resizing-panels nil
+                 :left-open? true
+                 :right-active? true
                  :left-panel-size "20vw"
                  :right-panel-size "25vw"}
         :editing-graph-text false
