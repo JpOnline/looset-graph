@@ -2019,6 +2019,11 @@
 
 ;; --- Explanation Panel ---
 
+;; TODO: Maybe what I want to to centralize the Nodes, because sometimes it's still weird.
+(defn control-spacer []
+  ;; Matches the approx width of (Eye 27px + padding 6px + Arrow ~12px)
+  [:div {:style {:width "45px" :flex-shrink 0}}])
+
 (defn node-header-controls [{:keys [node-id]}]
   (let [hidden? (get-in (<sub [::nodes-map]) [node-id :hidden?])
         opened? (get-in (<sub [::nodes-map]) [node-id :opened?])]
@@ -2031,9 +2036,10 @@
      ;; We keep the visual triangle but disable the list expansion effect here if desired,
      ;; or keep it working to sync with the left panel as requested.
      (when (get-in (<sub [::nodes-map]) [node-id :children])
-       [:div {:onClick #(>evt [::toggle-open-close [node-id]]) ; Toggles global state
-              :class "cursor-pointer"}
+       [:div {:onClick #(>evt [::nodes-list-item-clicked [node-id]]) ; Toggles global state
+              :class "hover-gray-svg"}
         [svg-arrow-triangle {:opened? opened?}]])]))
+
 
 (defn node-title-display [{:keys [node-id]}]
   (let [node-data (get (<sub [::nodes-map]) node-id)
@@ -2049,64 +2055,89 @@
        :lix   [:span.ml-1 {:style {:color "#4a484a" :font-size "x-large"}} node-id]
        [:span node-id])])) ;; Fallback
 
-(defn explanation-block [title-comp content]
-  [:div.mb-8.border-b.border-gray-200.pb-6
+(defn- explanation-block [title-comp content]
+  [:div.mb-6
    [:div.mb-3 title-comp]
-   [:div.prose.prose-sm.max-w-none.pl-2
-    {:style {:font-family "Proza Libre, sans-serif" :color "#4a484a"}}
-    (if (seq content)
-      [:> ReactMarkdown {:children content}]
-      [:span.italic.text-gray-400 "No explanation available."])]])
+   (when content
+     [:div.prose.prose-sm.max-w-none
+      {:style {:font-family "Proza Libre, sans-serif" :color "#4a484a"}}
+      [:> ReactMarkdown {:children content}]])])
 
-(defn edge-explanation-header [src edge-string target]
-  [:div.flex.flex-col.mb-2
-   ;; Source Node (Simplified, no controls)
-   [:div.flex.items-center.opacity-75
-    [node-title-display {:node-id src}]]
+(defn node-display-row [{:keys [node-id with-controls?]}]
+  [:div.flex.items-center
+   (if with-controls?
+     [node-header-controls {:node-id node-id}]
+     [control-spacer])
+   [node-title-display {:node-id node-id}]])
 
-   ;; Edge String (Indented)
-   [:div.flex.items-center.pl-6.py-1
-    [:span.text-sm.text-blue-500.font-mono
-     (str "↓ " edge-string " ↓")]]
+(defn edge-explanation-header [{:keys [src edge-string target selected-node-id]}]
+  (let [src-is-selected? (= src selected-node-id)]
+    [:div.flex.flex-col.mb-2.w-full
 
-   ;; Target Node (With controls)
-   [:div.flex.items-center
-    [node-header-controls {:node-id target}]
-    [node-title-display {:node-id target}]]])
+     ;; Source Node
+     [:div {:class (if src-is-selected? "opacity-75" "")}
+      [node-display-row {:node-id src
+                         :with-controls? (not src-is-selected?)}]]
+
+     ;; Edge String (Indented)
+     [:div.flex.items-center.pl-6.py-1
+      [:span.text-sm.text-blue-500.font-mono
+       (str "↓ " edge-string " ↓")]]
+
+
+     ;; Target Node
+     [:div {:class (if (not src-is-selected?) "opacity-75" "")}
+      [node-display-row {:node-id target
+                         :with-controls? src-is-selected?}]]]))
 
 (defn explanation-panel-content []
   (let [selected-nodes @(re-frame/sub :flow {:id :f-selected-nodes})
         explanations (<sub [::explanation-content])
         nodes-map (<sub [::nodes-map])]
 
-    [:div.p-6.h-full.overflow-y-auto
-     ;; 1. Show Explanation for Selected Nodes
-     (for [node-id selected-nodes]
-       ^{:key node-id}
-       [explanation-block
-        [:div.flex.items-center
-         [node-header-controls {:node-id node-id}]
-         [node-title-display {:node-id node-id}]]
-        (get explanations {:type :node :id node-id})])
+    [:div.h-full.overflow-y-auto.flex.flex-col
 
-     ;; 2. Show Explanation for Edges connected to Selected Nodes
-     ;; Logic: Find edges where this node is Source OR Target and we have an explanation.
-     (let [relevant-edges (for [node-id selected-nodes
-                                ;; Look at outgoing edges from this node
-                                [edge-lbl targets] (get-in nodes-map [node-id :edges-to])
-                                target targets
-                                :let [expl (get explanations {:type :edge :src node-id :edge-string edge-lbl :target target})]
-                                :when expl]
-                            {:src node-id :edge-string edge-lbl :target target :expl expl})]
+     ;; 1. SELECTED NODES SECTION
+     (when (seq selected-nodes)
+       [:div.p-6.pb-4
+        (for [node-id selected-nodes]
+          ^{:key node-id}
+          [explanation-block
+           [node-display-row {:node-id node-id :with-controls? true}]
+           (get explanations {:type :node :id node-id})])])
+
+     ;; 2. RELATIONSHIPS SECTION
+     (let [relevant-edges
+           (for [node-id selected-nodes
+                 ;; Combine Outgoing (:edges-to) and Incoming (:edges-from)
+                 [direction targets-map] [[:outgoing (:edges-to (get nodes-map node-id))]
+                                          [:incoming (:edges-from (get nodes-map node-id))]]
+                 [edge-string connected-nodes] targets-map
+                 other-node connected-nodes
+
+                 :let [src (if (= direction :outgoing) node-id other-node)
+                       target (if (= direction :outgoing) other-node node-id)
+                       expl (get explanations {:type :edge :src src :edge-string edge-string :target target})]
+                 :when expl]
+             {:src src :edge-string edge-string :target target :expl expl :selected-node-id node-id})]
 
        (when (seq relevant-edges)
-         [:div.mt-8
-          [:h3.font-bold.mb-4 "Relationships"]
-          (for [{:keys [src edge-string target expl]} relevant-edges]
-            ^{:key (str src edge-string target)}
-            [explanation-block
-             [edge-explanation-header src edge-string target]
-             expl])]))]))
+         [:<>
+          ;; Visual Separator: A subtle double line with a background shift
+          [:div.w-full.border-t-4.border-double.border-gray-200.my-2]
+
+          ;; Background Container for Relationships
+          [:div.bg-gray-50.p-6.flex-grow
+           (for [{:keys [src edge-string target expl selected-node-id]} relevant-edges]
+             ^{:key (str src edge-string target)}
+             [explanation-block
+              [edge-explanation-header {:src src
+                                        :edge-string edge-string
+                                        :target target
+                                        :selected-node-id selected-node-id}]
+              expl])]]))]))
+
+;; ----
 
 (def code-font-family "dejavu sans mono, monospace")
 (def code-font-size "small")
@@ -2299,7 +2330,7 @@
      .mb-8 { margin-bottom: 2rem; }
      .pb-6 { padding-bottom: 1.5rem; }
      .pl-2 { padding-left: 0.5rem; }
-     .pl-6 { padding-left: 1.5rem; }
+     .pl-6 { padding-left: .5em; }
      .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
      .p-6 { padding: 1.5rem; }
      .ml-1 { margin-left: 0.25rem; }
@@ -2309,6 +2340,10 @@
      .text-blue-500 { color: #3b82f6; }
      .font-mono { font-family: monospace; }
      .opacity-75 { opacity: 0.75; }
+     .w-control-spacer { width: 45px; }
+     .bg-gray-50 { background-color: #f9fafb; }
+     .border-double { border-style: double; }
+     .border-blue-200 { border-color: #bfdbfe; }
    ")])
 
 (defn ctrl-c-selected-nodes
