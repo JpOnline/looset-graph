@@ -341,7 +341,7 @@
 (defn right-panel-shows-content?
   [[active? selected-nodes]]
   (and active?
-       (= 1 (count selected-nodes))))
+       (> (count selected-nodes) 0)))
 (re-frame/reg-sub
   ::right-panel-shows-content?
   :<- [::right-panel-active?]
@@ -1317,10 +1317,15 @@
 (re-frame/reg-event-db
   ::set-markdown-content
   (fn [db [_ content-map]]
-    (assoc-in db [:domain :markdown-content] content-map)))
+    (assoc-in db [:domain :explanation-content] content-map)))
+
+(defn explanation-content
+  [app-state]
+  (get-in app-state [:domain :explanation-content] ""))
+(re-frame/reg-sub ::explanation-content explanation-content)
 
 (re-frame/reg-event-fx
-  ::fetch-markdown-content
+  ::fetch-markdown-explanation-content
   (fn [{:keys [app-state]} _]
     (xhr/send "/explanations.md"
               (fn [e]
@@ -1329,30 +1334,20 @@
                   (if ^js(.isSuccess xhr)
                     (let [text ^js(.getResponseText xhr)
                           parsed (parse-custom-markdown text)]
-                      ; (def raw-text text))
                       (re-frame/dispatch [::set-markdown-content parsed]))
                     (js/console.error "Failed to load markdown")))))
     {:db app-state}))
 
 #_:clj-kondo/ignore
 (comment
-  (def example-md
-    "{{\"Tag Object\"}}
-     Lorem Ipsum balweoowj
 
-     {{{\"Tag Object\" -\"contains\"-> \"Metadata
-     object: hash
-     tag: name\"}}}
-     Some other explanation...")
-
-  (parse-custom-markdown example-md)
-
-  (re-frame/dispatch-sync [::fetch-markdown-content])
+  (re-frame/dispatch-sync [::fetch-markdown-explanation-content])
 
   (def app-state @re-frame.db/app-db)
   (def visible-nodes-ids (get-in app-state [:ui :f-visible-nodes]))
-  (def my-nodes-map (get-in app-state [:domain :nodes-map]))
+  (def nodes-map (get-in app-state [:domain :nodes-map]))
   ; (find-visible visible-nodes-ids my-nodes-map "Computer_arithmetic")
+  (def visible-nodes-ids (keys (get-in app-state [:ui :f-selected-nodes])))
   (first (keys my-nodes-map))
   (count (f-edges {:nodes-map my-nodes-map :visible-nodes visible-nodes-ids}))
 
@@ -2022,6 +2017,97 @@
         {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
         [:path {:fill-rule "evenodd" :d "M5.828 10.172a.5.5 0 0 0-.707 0l-4.096 4.096V11.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H4.5a.5.5 0 0 0 0-1H1.732l4.096-4.096a.5.5 0 0 0 0-.707m4.344-4.344a.5.5 0 0 0 .707 0l4.096-4.096V4.5a.5.5 0 1 0 1 0V.525a.5.5 0 0 0-.5-.5H11.5a.5.5 0 0 0 0 1h2.768l-4.096 4.096a.5.5 0 0 0 0 .707"}]]]]]))
 
+;; --- Explanation Panel ---
+
+(defn node-header-controls [{:keys [node-id]}]
+  (let [hidden? (get-in (<sub [::nodes-map]) [node-id :hidden?])
+        opened? (get-in (<sub [::nodes-map]) [node-id :opened?])]
+    [:div.flex.items-center.mr-2
+     (if hidden?
+       [svg-eye {:onClick #(>evt [::toggle-hidden node-id])
+                 :class "hover-gray-svg" :style {:paddingRight 6} :width "27" :height "27"}]
+       [svg-filled-eye {:onClick #(>evt [::toggle-hidden node-id])
+                        :class "hover-gray-svg" :style {:paddingRight 6} :width "27" :height "27"}])
+     ;; We keep the visual triangle but disable the list expansion effect here if desired,
+     ;; or keep it working to sync with the left panel as requested.
+     (when (get-in (<sub [::nodes-map]) [node-id :children])
+       [:div {:onClick #(>evt [::toggle-open-close [node-id]]) ; Toggles global state
+              :class "cursor-pointer"}
+        [svg-arrow-triangle {:opened? opened?}]])]))
+
+(defn node-title-display [{:keys [node-id]}]
+  (let [node-data (get (<sub [::nodes-map]) node-id)
+        type (:type node-data)
+        color (text->color node-id)
+        opened? (:opened? node-data)]
+    [:div.flex.items-center
+     (case type
+       :label [:<>
+               [svg-label {:opened? opened? :color color}]
+               [:span.ml-1 {:style {:color color :font-weight "bold" :font-size "x-large"}}
+                (or (:name node-data) node-id)]]
+       :lix   [:span.ml-1 {:style {:color "#4a484a" :font-size "x-large"}} node-id]
+       [:span node-id])])) ;; Fallback
+
+(defn explanation-block [title-comp content]
+  [:div.mb-8.border-b.border-gray-200.pb-6
+   [:div.mb-3 title-comp]
+   [:div.prose.prose-sm.max-w-none.pl-2
+    {:style {:font-family "Proza Libre, sans-serif" :color "#4a484a"}}
+    (if (seq content)
+      [:> ReactMarkdown {:children content}]
+      [:span.italic.text-gray-400 "No explanation available."])]])
+
+(defn edge-explanation-header [src edge-string target]
+  [:div.flex.flex-col.mb-2
+   ;; Source Node (Simplified, no controls)
+   [:div.flex.items-center.opacity-75
+    [node-title-display {:node-id src}]]
+
+   ;; Edge String (Indented)
+   [:div.flex.items-center.pl-6.py-1
+    [:span.text-sm.text-blue-500.font-mono
+     (str "↓ " edge-string " ↓")]]
+
+   ;; Target Node (With controls)
+   [:div.flex.items-center
+    [node-header-controls {:node-id target}]
+    [node-title-display {:node-id target}]]])
+
+(defn explanation-panel-content []
+  (let [selected-nodes @(re-frame/sub :flow {:id :f-selected-nodes})
+        explanations (<sub [::explanation-content])
+        nodes-map (<sub [::nodes-map])]
+
+    [:div.p-6.h-full.overflow-y-auto
+     ;; 1. Show Explanation for Selected Nodes
+     (for [node-id selected-nodes]
+       ^{:key node-id}
+       [explanation-block
+        [:div.flex.items-center
+         [node-header-controls {:node-id node-id}]
+         [node-title-display {:node-id node-id}]]
+        (get explanations {:type :node :id node-id})])
+
+     ;; 2. Show Explanation for Edges connected to Selected Nodes
+     ;; Logic: Find edges where this node is Source OR Target and we have an explanation.
+     (let [relevant-edges (for [node-id selected-nodes
+                                ;; Look at outgoing edges from this node
+                                [edge-lbl targets] (get-in nodes-map [node-id :edges-to])
+                                target targets
+                                :let [expl (get explanations {:type :edge :src node-id :edge-string edge-lbl :target target})]
+                                :when expl]
+                            {:src node-id :edge-string edge-lbl :target target :expl expl})]
+
+       (when (seq relevant-edges)
+         [:div.mt-8
+          [:h3.font-bold.mb-4 "Relationships"]
+          (for [{:keys [src edge-string target expl]} relevant-edges]
+            ^{:key (str src edge-string target)}
+            [explanation-block
+             [edge-explanation-header src edge-string target]
+             expl])]))]))
+
 (def code-font-family "dejavu sans mono, monospace")
 (def code-font-size "small")
 (def code-margin "0")
@@ -2201,6 +2287,28 @@
      cursor: -moz-grabbing;
      cursor: -webkit-grabbing;
    }
+
+   /* Related to the Explanation panel */
+     .flex { display: flex; }
+     .flex-col { flex-direction: column; }
+     .items-center { align-items: center; }
+     .justify-between { justify-content: space-between; }
+     .mr-2 { margin-right: 0.5rem; }
+     .mb-2 { margin-bottom: 0.5rem; }
+     .mb-3 { margin-bottom: 0.75rem; }
+     .mb-8 { margin-bottom: 2rem; }
+     .pb-6 { padding-bottom: 1.5rem; }
+     .pl-2 { padding-left: 0.5rem; }
+     .pl-6 { padding-left: 1.5rem; }
+     .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+     .p-6 { padding: 1.5rem; }
+     .ml-1 { margin-left: 0.25rem; }
+     .border-b { border-bottom-width: 1px; }
+     .border-gray-200 { border-color: #e5e7eb; }
+     .text-sm { font-size: 0.875rem; }
+     .text-blue-500 { color: #3b82f6; }
+     .font-mono { font-family: monospace; }
+     .opacity-75 { opacity: 0.75; }
    ")])
 
 (defn ctrl-c-selected-nodes
@@ -2274,10 +2382,9 @@
                 :padding "7px 0"}}
        [util/error-boundary
         {:if-error [:h2 "Error"]}
-        [:> ReactMarkdown {:children "# some title\n\nsome text"}]]
+        [explanation-panel-content]]
        (when @(re-frame/sub :flow {:id :f-editing-graph-text})
-         [edit-raw-graph-text])]
-      [botton-buttons]]]))
+         [edit-raw-graph-text])]]]))
 
 ;; --- Main Entry --------------------------------------------------------------
 
@@ -2535,4 +2642,5 @@
   (init-url-history-observer)
   (init-keyboard-events)
   ;; (init-style-observer))
-  (init-url-state-timer))
+  (init-url-state-timer)
+  (re-frame/dispatch [::fetch-markdown-explanation-content]))
