@@ -8,6 +8,7 @@
   "dependencies": {
     "react": "^18.1.0",
     "react-dom": "^18.1.0",
+    "react-markdown": "^8.0.7",
     "vis-network": "^9.1.9"
   }
 }

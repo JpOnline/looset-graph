@@ -1,18 +1,19 @@
 (ns looset-graph.app
   (:require
+    ["react-markdown" :default ReactMarkdown]
     [cljs.reader]
     [clojure.data]
     [clojure.set :as set]
     [clojure.string]
+    [goog.net.XhrIo :as xhr]
     [looset-graph.graph-parser :as graph-parser]
     [looset-graph.util :as util]
+    [quadtree-cljc.core :as quad]
     [re-frame.alpha :as re-frame]
     [re-frame.std-interceptors]
     [reagent.core :as reagent]
     [reagent.dom]
-    [vis-network]
-    [quadtree-cljc.core :as quad]
-    [goog.net.XhrIo :as xhr]))
+    [vis-network]))
 
 ; There are 2 types of Nodes: Label and Lix (made up name).
 ; Any Node can have another Node inside it, but a Node cannot be in 2 different
@@ -1259,8 +1260,95 @@
      :db (assoc-in app-state [:ui :selected-nodes] vis-edges-to)}))
 (re-frame/reg-event-fx ::select-target #_[event-to-analytics] select-target)
 
+(defn parse-header-content [raw-content]
+  ;; 1. Clean up: Remove surrounding extra braces and trim.
+  ;;    Input could be '{ "Tag" }' or ' "Tag" '
+  (let [content (-> raw-content
+                    (clojure.string/replace #"^\{+" "")
+                    (clojure.string/replace #"\}+$" "")
+                    (clojure.string/trim))
+        ;; 2. Regex to parse the "Source" -"edge-string"-> "Target" format.
+        ;;    We use [\s\S] instead of . to ensure we match newlines (JS safe dot-all).
+        pattern #"^\s*\"([\s\S]+?)\"(?:\s*-\"([\s\S]+?)\"->\s*\"([\s\S]+?)\")?\s*$"]
+
+    (if-let [[_ src edge-string target] (re-matches pattern content)]
+      (if target
+        {:type :edge :src src :edge-string edge-string :target target}
+        {:type :node :id src})
+      ;; Fallback
+      {:type :node :id content})))
+
+(defn parse-custom-markdown [full-text]
+  ;; We use js/RegExp with the "g" (global) flag.
+  ;; ([\s\S]+?) matches any character including newlines, non-greedy.
+  (let [regex (js/RegExp. "\\{\\{([\\s\\S]+?)\\}\\}" "g")]
+    (loop [results {}
+           pending-header nil
+           last-end 0]
+      (if-let [match (.exec regex full-text)]
+        (let [match-str (aget match 0)
+              match-index (.-index match)
+              match-end (+ match-index (count match-str))
+
+              ;; 1. Extract text BEFORE this match (explanation for previous header)
+              explanation (-> (subs full-text last-end match-index)
+                              (clojure.string/trim))
+
+              ;; 2. Parse the content inside the {{...}} (Group 1)
+              header-content (aget match 1)
+              new-header (parse-header-content header-content)
+
+              ;; 3. Update results if we had a pending header
+              new-results (if pending-header
+                            (assoc results pending-header explanation)
+                            results)]
+
+          (recur new-results
+                 new-header  ;; This becomes the pending header for the NEXT loop
+                 match-end)) ;; Update our position in the text
+
+        ;; LOOP FINISHED: Handle the trailing text after the last header
+        (if pending-header
+          (let [final-explanation (-> (subs full-text last-end)
+                                      (clojure.string/trim))]
+            (assoc results pending-header final-explanation))
+          results)))))
+
+(re-frame/reg-event-db
+  ::set-markdown-content
+  (fn [db [_ content-map]]
+    (assoc-in db [:domain :markdown-content] content-map)))
+
+(re-frame/reg-event-fx
+  ::fetch-markdown-content
+  (fn [{:keys [app-state]} _]
+    (xhr/send "/explanations.md"
+              (fn [e]
+                (let [xhr (.-target e)]
+                  (js/console.log "abc")
+                  (if ^js(.isSuccess xhr)
+                    (let [text ^js(.getResponseText xhr)
+                          parsed (parse-custom-markdown text)]
+                      ; (def raw-text text))
+                      (re-frame/dispatch [::set-markdown-content parsed]))
+                    (js/console.error "Failed to load markdown")))))
+    {:db app-state}))
+
 #_:clj-kondo/ignore
 (comment
+  (def example-md
+    "{{\"Tag Object\"}}
+     Lorem Ipsum balweoowj
+
+     {{{\"Tag Object\" -\"contains\"-> \"Metadata
+     object: hash
+     tag: name\"}}}
+     Some other explanation...")
+
+  (parse-custom-markdown example-md)
+
+  (re-frame/dispatch-sync [::fetch-markdown-content])
+
   (def app-state @re-frame.db/app-db)
   (def visible-nodes-ids (get-in app-state [:ui :f-visible-nodes]))
   (def my-nodes-map (get-in app-state [:domain :nodes-map]))
@@ -2132,7 +2220,7 @@
    {:onClick on-click
     :title "Close Panel"
     :class "hover-gray-svg"
-    :style (merge 
+    :style (merge
             {:position "absolute"   ;; Float over the content
              :top "8px"             ;; Distance from top
              :right "8px"           ;; Distance from right
@@ -2141,7 +2229,7 @@
              :border "none"
              :padding "5px"
              :cursor "pointer"
-             :color "#666"} 
+             :color "#666"}
             style)}
    [svg-close-x]])
 
@@ -2186,7 +2274,7 @@
                 :padding "7px 0"}}
        [util/error-boundary
         {:if-error [:h2 "Error"]}
-        [nodes-list-view]]
+        [:> ReactMarkdown {:children "# some title\n\nsome text"}]]
        (when @(re-frame/sub :flow {:id :f-editing-graph-text})
          [edit-raw-graph-text])]
       [botton-buttons]]]))
