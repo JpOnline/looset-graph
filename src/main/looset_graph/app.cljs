@@ -2064,11 +2064,13 @@
       [:> ReactMarkdown {:children content}]])])
 
 (defn node-display-row [{:keys [node-id with-controls?]}]
-  [:div.flex.items-center
-   (if with-controls?
-     [node-header-controls {:node-id node-id}]
-     [control-spacer])
-   [node-title-display {:node-id node-id}]])
+  (let [visible-nodes @(re-frame/sub :flow {:id :f-visible-nodes})]
+    [:div.flex.items-center
+     (when-not (visible-nodes node-id) {:style {:filter "opacity(0.3)"}})
+     (if with-controls?
+       [node-header-controls {:node-id node-id}]
+       [control-spacer])
+     [node-title-display {:node-id node-id}]]))
 
 (defn edge-explanation-header [{:keys [src edge-string target selected-node-id]}]
   (let [src-is-selected? (= src selected-node-id)]
@@ -2090,7 +2092,7 @@
       [node-display-row {:node-id target
                          :with-controls? src-is-selected?}]]]))
 
-(defn edges-explanations [selected-nodes]
+(defn edges-explanations []
   (let [selected-nodes (<sub [::raw-selected-nodes])
         nodes-map (<sub [::nodes-map])
         explanations (<sub [::explanation-content])
