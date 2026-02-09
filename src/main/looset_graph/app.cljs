@@ -1817,7 +1817,7 @@
    [:path {:fill-rule "evenodd" :d "M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"}]])
 
 (defn node-view
-  [{:keys [class]
+  [{:keys [class show-eye-toggle?]
     {:keys [color]} :style
     {:keys [level hidden? path node-id]} :node}
    text]
@@ -1829,15 +1829,16 @@
       :class class
       :onMouseOver #(>evt [::node-hovered #{node-id}])
       :onMouseOut #(>evt [::node-hovered #{}])}
-     (if hidden?
-       [svg-eye
-        {:onClick #(>evt [::toggle-hidden node-id])
-         :style {:paddingRight 6}
-         :width "27" :height "27"}]
-       [svg-filled-eye
-        {:onClick #(>evt [::toggle-hidden node-id])
-         :style {:paddingRight 6}
-         :width "27" :height "27"}])
+     (when show-eye-toggle?
+       (if hidden?
+         [svg-eye
+          {:onClick #(>evt [::toggle-hidden node-id])
+           :style {:paddingRight 6}
+           :width "27" :height "27"}]
+         [svg-filled-eye
+          {:onClick #(>evt [::toggle-hidden node-id])
+           :style {:paddingRight 6}
+           :width "27" :height "27"}]))
      [:div
       {:onClick #(>evt [::nodes-list-item-clicked path])
        :class (str (when selected-node? "selected-shadow ")
@@ -1878,6 +1879,7 @@
   (let [node-name (<sub [::nodes-map-name node-id])]
     [node-view
      {:node node-item
+      :show-eye-toggle? false
       :class "label-style"
       :style {:color color}}
      [:<>
@@ -1888,6 +1890,7 @@
 (defn lix-node [{:keys [node-id opened?] :as node-item}]
   [node-view
    {:node node-item
+    :show-eye-toggle? true
     :class "lix-style"}
    [:<>
     (when-not (nil? opened?)
@@ -2073,7 +2076,9 @@
      [node-title-display {:node-id node-id}]]))
 
 (defn edge-explanation-header [{:keys [src edge-string target selected-node-id]}]
-  (let [src-is-selected? (= src selected-node-id)]
+  (let [src-is-selected? (= src selected-node-id)
+        node-data (get (<sub [::nodes-map]) selected-node-id)
+        type (:type node-data)]
     [:div.flex.flex-col.mb-2.w-full
 
      ;; Source Node
@@ -2090,7 +2095,7 @@
      ;; Target Node
      [:div {:class (if (not src-is-selected?) "opacity-75" "")}
       [node-display-row {:node-id target
-                         :with-controls? src-is-selected?}]]]))
+                         :with-controls? (and src-is-selected? (not= :label type))}]]]))
 
 (defn edges-explanations []
   (let [selected-nodes (<sub [::raw-selected-nodes])
@@ -2128,16 +2133,19 @@
 
 (defn explanation-panel-content []
   (let [selected-nodes @(re-frame/sub :flow {:id :f-selected-nodes})
-        explanations (<sub [::explanation-content])]
+        explanations (<sub [::explanation-content])
+        nodes-map (<sub [::nodes-map])]
 
     [:div.h-full.overflow-y-auto.flex.flex-col
 
      (when (seq selected-nodes)
        [:div.p-6.pb-4
-        (for [node-id selected-nodes]
+        (for [node-id selected-nodes
+              :let [node-data (get nodes-map node-id)
+                    type (:type node-data)]]
           ^{:key node-id}
           [explanation-block
-           [node-display-row {:node-id node-id :with-controls? true}]
+           [node-display-row {:node-id node-id :with-controls? (not= :label type)}]
            (get explanations {:type :node :id node-id})])])
 
      [edges-explanations]]))
