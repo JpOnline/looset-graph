@@ -1447,8 +1447,8 @@
       (.click a)
       (js/setTimeout (fn []
                         (.removeChild (.-body js/document) a)
-                        (.revokeObjectURL js/URL url))
-                      0)))
+                        (.revokeObjectURL js/URL url)
+                      0))))
 
 ;; Example usage:
 ;; (download-file (export-to-dot nodes edges) "network.dot" "text/plain")
@@ -1472,7 +1472,7 @@
   (js/alert "X")
 
   ;; To connect to specific shadow-cljs runtime.
-  ; CljEval (shadow.cljs.devtools.api/nrepl-select :frontend {:runtime-id 274})
+  ; CljEval (shadow.cljs.devtools.api/nrepl-select :frontend {:runtime-id 8})
 
   (.moveNode @network "")
 
@@ -2056,7 +2056,7 @@
        [:span node-id])])) ;; Fallback
 
 (defn- explanation-block [title-comp content]
-  [:div.mb-6
+  [:div.mb-12
    [:div.mb-3 title-comp]
    (when content
      [:div.prose.prose-sm.max-w-none
@@ -2090,14 +2090,46 @@
       [node-display-row {:node-id target
                          :with-controls? src-is-selected?}]]]))
 
+(defn edges-explanations [selected-nodes]
+  (let [selected-nodes (<sub [::raw-selected-nodes])
+        nodes-map (<sub [::nodes-map])
+        explanations (<sub [::explanation-content])
+        relevant-edges
+        (for [node-id selected-nodes
+              ;; Combine Outgoing (:edges-to) and Incoming (:edges-from)
+              [direction targets-map] [[:outgoing (:edges-to (get nodes-map node-id))]
+                                       [:incoming (:edges-from (get nodes-map node-id))]]
+              [edge-string connected-nodes] targets-map
+              other-node connected-nodes
+
+              :let [src (if (= direction :outgoing) node-id other-node)
+                    target (if (= direction :outgoing) other-node node-id)
+                    expl (get explanations {:type :edge :src src :edge-string edge-string :target target})]
+              :when expl]
+          {:src src :edge-string edge-string :target target :expl expl :selected-node-id node-id})]
+
+    (when (seq relevant-edges)
+      [:<>
+       ;; Visual Separator: A subtle double line with a background shift
+       [:div.w-full.border-t-4.border-double.border-gray-200.my-2]
+
+       ;; Background Container for Relationships
+       [:div.bg-gray-50.p-6.flex-grow
+        (for [{:keys [src edge-string target expl selected-node-id]} relevant-edges]
+          ^{:key (str src edge-string target)}
+          [explanation-block
+           [edge-explanation-header {:src src
+                                     :edge-string edge-string
+                                     :target target
+                                     :selected-node-id selected-node-id}]
+           expl])]])))
+
 (defn explanation-panel-content []
   (let [selected-nodes @(re-frame/sub :flow {:id :f-selected-nodes})
-        explanations (<sub [::explanation-content])
-        nodes-map (<sub [::nodes-map])]
+        explanations (<sub [::explanation-content])]
 
     [:div.h-full.overflow-y-auto.flex.flex-col
 
-     ;; 1. SELECTED NODES SECTION
      (when (seq selected-nodes)
        [:div.p-6.pb-4
         (for [node-id selected-nodes]
@@ -2106,36 +2138,7 @@
            [node-display-row {:node-id node-id :with-controls? true}]
            (get explanations {:type :node :id node-id})])])
 
-     ;; 2. RELATIONSHIPS SECTION
-     (let [relevant-edges
-           (for [node-id selected-nodes
-                 ;; Combine Outgoing (:edges-to) and Incoming (:edges-from)
-                 [direction targets-map] [[:outgoing (:edges-to (get nodes-map node-id))]
-                                          [:incoming (:edges-from (get nodes-map node-id))]]
-                 [edge-string connected-nodes] targets-map
-                 other-node connected-nodes
-
-                 :let [src (if (= direction :outgoing) node-id other-node)
-                       target (if (= direction :outgoing) other-node node-id)
-                       expl (get explanations {:type :edge :src src :edge-string edge-string :target target})]
-                 :when expl]
-             {:src src :edge-string edge-string :target target :expl expl :selected-node-id node-id})]
-
-       (when (seq relevant-edges)
-         [:<>
-          ;; Visual Separator: A subtle double line with a background shift
-          [:div.w-full.border-t-4.border-double.border-gray-200.my-2]
-
-          ;; Background Container for Relationships
-          [:div.bg-gray-50.p-6.flex-grow
-           (for [{:keys [src edge-string target expl selected-node-id]} relevant-edges]
-             ^{:key (str src edge-string target)}
-             [explanation-block
-              [edge-explanation-header {:src src
-                                        :edge-string edge-string
-                                        :target target
-                                        :selected-node-id selected-node-id}]
-              expl])]]))]))
+     [edges-explanations]]))
 
 ;; ----
 
@@ -2328,6 +2331,7 @@
      .mb-2 { margin-bottom: 0.5rem; }
      .mb-3 { margin-bottom: 0.75rem; }
      .mb-8 { margin-bottom: 2rem; }
+     .mb-12 { margin-bottom: 3rem; }
      .pb-6 { padding-bottom: 1.5rem; }
      .pl-2 { padding-left: 0.5rem; }
      .pl-6 { padding-left: .5em; }
@@ -2417,9 +2421,7 @@
                 :padding "7px 0"}}
        [util/error-boundary
         {:if-error [:h2 "Error"]}
-        [explanation-panel-content]]
-       (when @(re-frame/sub :flow {:id :f-editing-graph-text})
-         [edit-raw-graph-text])]]]))
+        [explanation-panel-content]]]]]))
 
 ;; --- Main Entry --------------------------------------------------------------
 
