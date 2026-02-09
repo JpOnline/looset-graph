@@ -2474,8 +2474,8 @@
         {:if-error [:h2 "erro"]}
         [nodes-list-view]]
        (when @(re-frame/sub :flow {:id :f-editing-graph-text})
-         [edit-raw-graph-text])]
-     [botton-buttons]]
+         [edit-raw-graph-text])]]
+     ; [botton-buttons]]
     [left-panel-splitter]
     [:div#middle-panel
      {:class (when (<sub [::mouse-drag-mode])
