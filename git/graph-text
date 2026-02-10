@@ -1,0 +1,220 @@
+"Tree":
+ "Snapshot"
+ "Tree Object"
+
+"Staging Area
+(Index)":
+ "Staging Area"
+ "Cache"
+ ".git/index (Index)"
+
+=>"Architecture":
+  =>"Object Model"
+  =>"Data Zones"
+  =>"References"
+  =>"Storage"
+  =>"Configuration"
+
+=>"Commands":
+  =>"Setup"
+  =>"Core Loop"
+  =>"Navigation"
+  =>"Inspection"
+  =>"Plumbing"
+
+=>"Context":
+  =>"History"
+  =>"Philosophy"
+
+=>"History":
+  "More coming soon.."
+
+=>"Practice":
+  =>"Commands"
+  =>"Strategy"
+
+=>"Philosophy":
+  "More coming soon.."
+
+=>"Object Model":
+  "Blob Object"
+  "Commit Object"
+  "Tree Object"
+
+=>"Data Zones":
+  "Staging Area
+(Index)"
+  "Working Directory"
+  "Staging Area"
+
+=>"References":
+  "HEAD"
+
+=>"Storage":
+  ".git/index (Index)"
+  ".git/HEAD"
+  ".git/config"
+  ".git/objects"
+
+=>"Configuration":
+  "user.name"
+  "user.email"
+  "Local Config"
+
+=>"Setup":
+  "git init"
+
+=>"Core Loop":
+  "git add"
+  "git commit"
+  "git status"
+  "git log"
+
+=>"Navigation":
+  "More coming soon.."
+
+=>"Inspection":
+  "More coming soon.."
+
+=>"Plumbing":
+  "More coming soon.."
+
+=>"Strategy":
+  =>"Integration"
+  =>"Workflows"
+  =>"Recovery"
+
+=>"Integration":
+  "More coming soon.."
+
+=>"Workflows":
+  "More coming soon.."
+
+=>"Recovery":
+  "More coming soon.."
+
+=>"By Topics":
+  =>"Architecture"
+  =>"Context"
+  =>"Practice"
+  "More coming soon.."
+
+=>"By Learning Levels":
+  =>"1: Survival"
+  =>"2*: Explorer"
+  =>"3*: Collaborator"
+  =>"4*: Time Traveler"
+  =>"5: Sage"
+
+=>"1: Survival":
+  "git add"
+  "Staging Area
+(Index)"
+  "Working Directory"
+  "Snapshot"
+  "Staging Area"
+  "Commit Object"
+  "Repository (.git)"
+  "user.name"
+  "user.email"
+  "git init"
+  "git commit"
+  "git status"
+  "git log"
+
+=>"2*: Explorer":
+  "More coming soon.."
+
+=>"3*: Collaborator":
+  "More coming soon.."
+
+=>"4*: Time Traveler":
+  "More coming soon.."
+
+=>"5: Sage":
+  "Blob Object"
+  "Cache"
+  ".git/index (Index)"
+  "Tree Object"
+  "Tree"
+
+"git add" -"promotes changes from"-> "Working Directory"
+"git add" -"updates"-> "Staging Area
+(Index)"
+"git add" -"calculates the"-> "Blob Object"
+"git add" -"add Blob and file path in"-> "Staging Area
+(Index)"
+".git/index (Index)" -"formerly known as"-> "Cache"
+"Staging Area" -"stored in"-> ".git/index (Index)"
+".git/index (Index)" -"represents proposed"-> "Snapshot"
+"git init" -"creates"-> "Repository (.git)"
+"git commit" -"creates"-> "Commit Object"
+"Commit Object" -"contains"-> "Snapshot"
+"Commit Object" -"requires"-> "user.name"
+"Commit Object" -"requires"-> "user.email"
+"git status" -"inspects"-> "Working Directory"
+"git status" -"inspects"-> "Staging Area"
+"git log" -"reads"-> "Commit Object"
+"Snapshot" -"is represented by"-> "Tree Object"
+"Tree" -"implemented by"-> "Tree Object"
+"Staging Area" -"concept of"-> "Staging Area
+(Index)"
+"Commit Object" -"contains"-> "Tree Object"
+"Repository (.git)" -"stored in"-> "Working Directory"
+"Commit Object" -"stored in"-> ".git/objects"
+"Local Config" -"stored in"-> ".git/config"
+"HEAD" -"stored in"-> ".git/HEAD"
+".git/HEAD" -"stored in"-> "Repository (.git)"
+".git/config" -"stored in"-> "Repository (.git)"
+".git/objects" -"stored in"-> "Repository (.git)"
+".git/index (Index)" -"stored in"-> "Repository (.git)"
+
+"More coming soon.." {:position {"x" -29, "y" -49}, :hidden? true}
+=>"By Learning Levels" {:opened? true, :position {"x" 20.601253040768086, "y" -36.00953707163726}, :hidden? true}
+=>"Storage" {:position {"x" -57, "y" 107}, :hidden? true, :opened? false}
+=>"2*: Explorer" {:position {"x" -31, "y" 155}, :hidden? true, :opened? true}
+".git/config" {:position {"x" 19, "y" 60}}
+"Repository (.git)" {:position {"x" -56, "y" -223}, :hidden? false}
+=>"Context" {:position {"x" 19, "y" 54}, :hidden? true, :opened? false}
+=>"Core Loop" {:position {"x" -4, "y" 69}, :hidden? true, :opened? true}
+"Local Config" {:position {"x" 66, "y" -337}}
+=>"Navigation" {:position {"x" 69, "y" -1}, :hidden? true, :opened? true}
+"git add" {:position {"x" 403, "y" -8}, :hidden? false, :opened? true}
+=>"By Topics" {:position {"x" -72, "y" 59}, :opened? false, :hidden? true}
+"git init" {:position {"x" -154, "y" 16}}
+=>"4*: Time Traveler" {:position {"x" 161, "y" 3}, :hidden? true, :opened? false}
+"Staging Area" {:position {"x" 252, "y" 57}}
+"git commit" {:position {"x" -429, "y" 143}, :opened? true}
+=>"Commands" {:position {"x" 13, "y" -157}, :hidden? true, :opened? true}
+".git/HEAD" {:position {"x" 121, "y" -3}}
+=>"Strategy" {:position {"x" 158, "y" -86}, :hidden? true}
+=>"History" {:position {"x" 19, "y" -62}, :opened? true}
+=>"References" {:position {"x" 22, "y" -3}, :hidden? true, :opened? false}
+"Tree Object" {:position {"x" -121, "y" 363}, :opened? true}
+=>"Plumbing" {:position {"x" -36, "y" -24}, :hidden? true}
+"Staging Area
+(Index)" {:position {"x" 291, "y" 219}}
+".git/objects" {:position {"x" 22, "y" -7}}
+=>"3*: Collaborator" {:position {"x" -49, "y" 207}, :hidden? true, :opened? false}
+=>"Data Zones" {:position {"x" 46, "y" -97}, :hidden? true, :opened? false}
+=>"Philosophy" {:position {"x" -64, "y" -5}, :opened? true}
+"Snapshot" {:position {"x" -89, "y" 239}}
+=>"5: Sage" {:position {"x" 138, "y" -140}, :hidden? true, :opened? false}
+"HEAD" {:position {"x" -78, "y" -331}}
+=>"1: Survival" {:position {"x" -181, "y" -195}, :hidden? true, :opened? true}
+=>"Architecture" {:position {"x" 57, "y" 7}, :opened? true, :hidden? true}
+"Working Directory" {:position {"x" 167, "y" -195}, :opened? true}
+"user.email" {:position {"x" -284, "y" -115}}
+"Commit Object" {:position {"x" -263, "y" 61}}
+=>"Setup" {:position {"x" -19, "y" -67}, :hidden? true, :opened? false}
+"Tree" {:position {"x" 112, "y" 209}, :opened? false}
+=>"Inspection" {:position {"x" 51, "y" 111}, :hidden? true}
+=>"Practice" {:position {"x" -6, "y" -97}, :opened? false, :hidden? true}
+"git status" {:position {"x" 170, "y" -45}, :hidden? false}
+".git/index (Index)" {:position {"x" 52, "y" 102}}
+=>"Object Model" {:position {"x" 10, "y" 114}, :opened? false, :hidden? true}
+"Blob Object" {:position {"x" 527, "y" -158}, :hidden? false}
+"Cache" {:position {"x" 27, "y" -73}}
+=>"Configuration" {:position {"x" -141, "y" -149}, :hidden? true, :opened? false}
+"git log" {:position {"x" -312, "y" 247}}
+"user.name" {:position {"x" -364, "y" -27}}
