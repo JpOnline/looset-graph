@@ -29,6 +29,8 @@
 ;; another.
 (def FEATURE_SYNC_OPEN_STATE true)
 
+(def secret-sequence ["c""o""n""s""c""i""e""n""c""i""a"])
+
 ;; -- Util ----
 
 (when ^boolean js/goog.DEBUG ;; Code removed in production
@@ -369,6 +371,11 @@
   (assoc-in app-state [:ui :panels :right-active?] false))
 (re-frame/reg-event-db ::close-right-panel close-right-panel)
 
+(defn super-user-options? ;; i.e. show the eye svg so the visibility can be toggled.
+  [app-state]
+  (get-in app-state [:ui :super-user-options?] false))
+(re-frame/reg-sub ::super-user-options? super-user-options?)
+
 ;; --- Edge Calculation --------------------------------------------------------
 
 (defn f-edges
@@ -488,7 +495,7 @@
 
 (defn left-panel-size
   [app-state]
-  (get-in app-state [:ui :panels :left-panel-size] "70vw"))
+  (get-in app-state [:ui :panels :left-panel-size] "20vw"))
 (re-frame/reg-sub ::left-panel-size left-panel-size)
 
 (defn middle-panel-size
@@ -970,13 +977,21 @@
 ;; ---
 
 (defn keypress ;; Actually keydown.
-  [app-state [_event keypressed]]
-  (case keypressed
-    "v" (assoc-in app-state [:ui :mouse-select-mode] false)
-    "s" (assoc-in app-state [:ui :mouse-select-mode] true)
-    " " (assoc-in app-state [:ui :mouse-drag-mode] true)))
+  [{app-state :db} [_event keypressed]]
+  (let [current-buffer (get-in app-state [:ui :secret-buffer] [])
+        next-buffer (-> (conj current-buffer keypressed)
+                      (subvec (max 0 (- (count current-buffer) (dec (count secret-sequence))))))
+        secret-triggered? (= next-buffer secret-sequence)]
+    (cond-> {:db app-state}
+      true (assoc-in [:db :ui :secret-buffer] next-buffer)
+      secret-triggered? (-> (assoc-in [:db :ui :secret-buffer] [])
+                            (assoc-in [:fx] [[:dispatch [::toggle-edit-graph-text-area]]
+                                             [:dispatch [::toggle-super-user-options]]]))
+      (= "v" keypressed) (assoc-in [:db :ui :mouse-select-mode] false)
+      (= "s" keypressed) (assoc-in [:db :ui :mouse-select-mode] true)
+      (= " " keypressed) (assoc-in [:db :ui :mouse-drag-mode] true))))
     ;; (js/console.log keypress)))
-(re-frame/reg-event-db ::keypress keypress)
+(re-frame/reg-event-fx ::keypress keypress)
 
 (defn keyup
   [app-state [_event key]]
@@ -1244,6 +1259,11 @@
   (update-in app-state [:ui :editing-graph-text] not))
 (re-frame/reg-event-db ::toggle-edit-graph-text-area #_[event-to-analytics] toggle-edit-graph-text-area)
 
+(defn toggle-super-user-options
+  [app-state]
+  (update-in app-state [:ui :super-user-options?] not))
+(re-frame/reg-event-db ::toggle-super-user-options #_[event-to-analytics] toggle-super-user-options)
+
 (defn select-source
   [{app-state :db}]
   (let [selected-nodes (-> app-state :ui :f-selected-nodes)
@@ -1327,10 +1347,9 @@
 (re-frame/reg-event-fx
   ::fetch-markdown-explanation-content
   (fn [{:keys [app-state]} _]
-    (xhr/send "/explanations.md"
+    (xhr/send "explanations.md"
               (fn [e]
                 (let [xhr (.-target e)]
-                  (js/console.log "abc")
                   (if ^js(.isSuccess xhr)
                     (let [text ^js(.getResponseText xhr)
                           parsed (parse-custom-markdown text)]
@@ -1879,7 +1898,7 @@
   (let [node-name (<sub [::nodes-map-name node-id])]
     [node-view
      {:node node-item
-      :show-eye-toggle? false
+      :show-eye-toggle? (<sub [::super-user-options?])
       :class "label-style"
       :style {:color color}}
      [:<>
@@ -2473,9 +2492,11 @@
        [util/error-boundary
         {:if-error [:h2 "erro"]}
         [nodes-list-view]]
-       (when @(re-frame/sub :flow {:id :f-editing-graph-text})
-         [edit-raw-graph-text])]]
-     ; [botton-buttons]]
+       (when (or @(re-frame/sub :flow {:id :f-editing-graph-text})
+                 (<sub [::super-user-options?]))
+         [edit-raw-graph-text])]
+     (when (<sub [::super-user-options?])
+       [botton-buttons])]
     [left-panel-splitter]
     [:div#middle-panel
      {:class (when (<sub [::mouse-drag-mode])
@@ -2537,6 +2558,7 @@
                  :left-panel-size "20vw"
                  :right-panel-size "25vw"}
         :editing-graph-text false
+        :super-user-options? false
         :fold {}}})
 
 (defn gzip [cs-mode b-array]
@@ -2631,24 +2653,44 @@
   (fn [_ [event graph-text]]
     (set-graph-text initial-state [event graph-text])))
 
-(defn init-state []
-  (let [compressed-graph (.get (js/URLSearchParams. js/window.location.search) "graph")
-        example-graph    (.get (js/URLSearchParams. js/window.location.search) "example")
-        default-graph (get-in initial-state [:domain :graph-text])]
-    (cond
-      compressed-graph
-      (.then (gzip-decompress (js/atob compressed-graph))
-             #(re-frame/dispatch-sync [::set-app-state %]))
-      example-graph
-      ;; How to make it work locally or in production? The "looset-graph" path
-      ;; in Github makes it difficult. Note that with "looset-graph" path, it
-      ;; won't work locally.
-      (xhr/send "/looset-graph/graph-examples/maths"
-                #(if (-> % (.-target) ^js(.-isSuccess))
-                   (re-frame/dispatch-sync [::set-app-state (-> % (.-target) ^js(.getResponseText))])
-                   (re-frame/dispatch-sync [::set-app-state default-graph])))
-      :else
-      (re-frame/dispatch-sync [::set-app-state default-graph]))))
+(defn init-state
+  ([] (init-state :load-graph-text))
+  ([action-to-try]
+   (let [compressed-graph (.get (js/URLSearchParams. js/window.location.search) "graph")
+         example-graph    (.get (js/URLSearchParams. js/window.location.search) "example")
+         default-graph (get-in initial-state [:domain :graph-text])]
+     (cond
+       (= action-to-try :default)
+       (re-frame/dispatch-sync [::set-app-state default-graph])
+       compressed-graph
+       (.then (gzip-decompress (js/atob compressed-graph))
+              #(re-frame/dispatch-sync [::set-app-state %]))
+       ; (and example-graph (not= action-to-try :load-graph-example-math-locally))
+       ; (xhr/send "looset-graph/graph-examples/maths" ;; Address for Github Pages.
+       ;           #(if (-> % (.-target) ^js(.isSuccess))
+       ;              (re-frame/dispatch-sync [::set-app-state (-> % (.-target) ^js(.getResponseText))])
+       ;              (init-state :load-graph-example-math-locally)))
+       example-graph
+       (xhr/send "graph-examples/maths"
+                 #(if (-> % (.-target) ^js(.isSuccess))
+                    (do
+                      (re-frame/dispatch-sync [::set-app-state (-> % (.-target) ^js(.getResponseText))])
+                      (re-frame/dispatch [::fetch-markdown-explanation-content]))
+                    (init-state :default)))
+       ; (= action-to-try :load-graph-text)
+       ; (xhr/send "looset-graph/graph-text" ;; Address for Github Pages. I probabbly want to do in a way I can load depending on the folder it was uploaded, e.g. looset-graph/git or looset-graph/xyz.
+       ;           #(if (-> % (.-target) ^js(.isSuccess))
+       ;              (re-frame/dispatch-sync [::set-app-state (-> % (.-target) ^js(.getResponseText))])
+       ;              (init-state :load-graph-text-locally)))
+       (= action-to-try :load-graph-text)
+       (xhr/send "graph-text"
+                 #(if (-> % (.-target) ^js(.isSuccess))
+                    (do
+                      (re-frame/dispatch-sync [::set-app-state (-> % (.-target) ^js(.getResponseText))])
+                      (re-frame/dispatch [::fetch-markdown-explanation-content]))
+                    (init-state :default)))
+       :else
+       (re-frame/dispatch-sync [::set-app-state default-graph])))))
 
 ;; Snippets about mouse-up event
 (defn mouse-up
@@ -2689,5 +2731,4 @@
   (init-url-history-observer)
   (init-keyboard-events)
   ;; (init-style-observer))
-  (init-url-state-timer)
-  (re-frame/dispatch [::fetch-markdown-explanation-content]))
+  (init-url-state-timer))
