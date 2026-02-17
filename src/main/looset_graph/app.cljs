@@ -2077,13 +2077,55 @@
        :lix   [:span.ml-1 {:style {:color "#4a484a" :font-size "x-large"}} node-id]
        [:span node-id])])) ;; Fallback
 
+(defn markdown-view [content node-name]
+  (let [custom-components
+        {:img (fn [js-props]
+                (let [src (.-src js-props)
+                      alt (.-alt js-props)]
+                  (if (= src "meta:this")
+                    ;; Intercept Image for Metadata
+                    (reagent/as-element
+                     [:div.meta-box {:style {:border "2px solid #ccc"
+                                             :padding "10px"
+                                             :background "#f9f9f9"}}
+                      [:strong "My Node is called: "] node-name])
+
+                    ;; Fallback: Default Image
+                    (reagent/as-element [:img {:src src :alt alt}]))))
+
+         :a (fn [js-props]
+              (let [href (-> js-props .-node .-properties .-href)
+                    children (.-children js-props)]
+                (if (and href (clojure.string/starts-with? href "node:"))
+                  ;; Intercept Link for Internal Navigation
+                  (reagent/as-element
+                   [:span.internal-link
+                    {:style {:color "red"
+                             :text-decoration "underline"
+                             :cursor "pointer"}
+                     :on-click (fn [e]
+                                 (.preventDefault e)
+                                 ;; Extract ID (remove 'node:') and log
+                                 (js/console.log "Clicked internal node:" (subs href 5)))}
+                    children])
+
+                  ;; Fallback: Default External Link
+                  (reagent/as-element [:a {:href href :target "_blank"} children]))))}]
+
+    ;; Render the ReactMarkdown component
+    [:> ReactMarkdown
+     {:components (clj->js custom-components)
+      :children content}]))
+
 (defn- explanation-block [title-comp content]
   [:div.mb-12
    [:div.mb-3 title-comp]
    (when content
      [:div.prose.prose-sm.max-w-none
       {:style {:font-family "Proza Libre, sans-serif" :color "#4a484a"}}
-      [:> ReactMarkdown {:children content}]])])
+      [markdown-view
+       (str "Here is a concept. \n\n ![meta](meta:this) \n\n See also [Staging Area](node:concept/staging-area)." content)
+       "some node"]])])
 
 (defn node-display-row [{:keys [node-id with-controls?]}]
   (let [visible-nodes @(re-frame/sub :flow {:id :f-visible-nodes})]
