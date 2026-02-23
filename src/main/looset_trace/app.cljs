@@ -1,9 +1,13 @@
 (ns looset-trace.app
   (:require
-    [reagent.core :as reagent]
+    [clojure.string :as str]
+    [looset-graph.util :as util :refer [<sub >evt]]
     [re-frame.alpha :as re-frame]
-    [clojure.string :as str]))
+    [reagent.core :as reagent]))
 
+;; ---------------------------------------------------------
+;; STYLES
+;; ---------------------------------------------------------
 (defn trace-styles []
   [:style "
     /* Global App Container */
@@ -75,6 +79,7 @@
       justify-content: center;
       transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1);
       position: relative;
+      overflow: hidden;
     }
 
     .state-trace .problem-panel {
@@ -88,11 +93,9 @@
     .knowledge-panel {
       width: 0%;
       opacity: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      /* Delay opacity to let the slide start first */
       transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease 0.3s;
+      position: relative;
+      overflow: hidden;
     }
 
     .state-trace .knowledge-panel {
@@ -120,19 +123,30 @@
       position: absolute; /* Takes it out of flow so Trace UI can center */
     }
 
-    .trace-logo { font-size: 2.5rem; font-weight: 600; letter-spacing: -0.05rem; margin-bottom: 2rem; color: #1a1a1a; }
-
     .search-container { position: relative; width: 100%; max-width: 650px; z-index: 50; }
 
     .search-box {
-      display: flex; align-items: center; width: 100%;
-      background: #ffffff; border: 1px solid #dfe1e5;
-      box-shadow: 0 1px 5px rgba(32,33,36,0.1); border-radius: 24px;
-      padding: 14px 24px; transition: all 0.2s ease-in-out;
+      display: flex;
+      align-items: center;
+      width: 100%;
+      background: #ffffff;
+      border: 1px solid #dfe1e5;
+      box-shadow: 0 1px 5px rgba(32,33,36,0.1);
+      border-radius: 24px;
+      padding: 14px 24px;
+      transition: all 0.2s ease-in-out;
     }
     .search-box.has-dropdown { border-bottom-left-radius: 0; border-bottom-right-radius: 0; box-shadow: 0 4px 6px rgba(32,33,36,0.1); border-bottom-color: transparent; }
     .search-box:hover, .search-box:focus-within { box-shadow: 0 1px 8px rgba(32,33,36,0.2); border-color: #dcdcdc; }
-    .search-input { flex-grow: 1; border: none; outline: none; font-size: 1.1rem; padding-left: 12px; color: #202124; background: transparent; }
+    .search-input {
+      flex-grow: 1;
+      border: none;
+      outline: none;
+      font-size: 1.1rem;
+      padding-left: 12px;
+      color: #202124;
+      background: transparent;
+    }
 
     .dropdown-menu {
       position: absolute; top: 100%; left: 0; right: 0;
@@ -152,28 +166,89 @@
     .trace-card { padding: 10px 16px; border-radius: 16px; border: 1px solid #e5e7eb; background: #ffffff; color: #4b5563; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.15s ease; }
     .trace-card:hover { background: #f9fafb; border-color: #d1d5db; }
     .trace-card.highlight { border-color: #3b82f6; color: #1d4ed8; background: #eff6ff; font-weight: 500; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1); }
+    /* -----------------------------------------
+       QUIZ PANELS & WATERMARKS
+       ----------------------------------------- */
+    .quiz-container {
+      width: 100%; height: 100%; padding: 24px 40px; display: flex; flex-direction: column;
+      justify-content: center; transition: background-color 0.4s ease; z-index: 2; position: relative;
+    }
+
+    /* Background feedback colors */
+    .panel-correct { background-color: rgba(220, 252, 231, 0.6); } /* Light Green */
+    .panel-wrong { background-color: rgba(254, 226, 226, 0.6); }   /* Light Red */
+
+    /* The Watermark Emoji */
+    .panel-watermark {
+      position: absolute;
+      bottom: 11%;
+      font-size: 10rem;
+      opacity: 0.18;
+      filter: grayscale(100%);
+      pointer-events: none;
+      user-select: none;
+      z-index: 3;
+    }
+    .panel-watermark.left{
+      left: -66px;
+    }
+    .panel-watermark.right{
+      right: 0px;
+    }
+
+    .question-text { font-size: 1.25rem; font-weight: 600; color: #1f2937; margin-bottom: 20px; z-index: 2; position: relative; }
+
+    .options-list { display: flex; flex-direction: column; gap: 10px; z-index: 2; position: relative; }
+
+    .quiz-option {
+      padding: 12px 20px; border-radius: 12px; border: 1px solid #e5e7eb; background: #fff;
+      text-align: left; font-size: 1rem; color: #4b5563; cursor: pointer; transition: all 0.2s ease;
+    }
+
+    /* Option States */
+    .quiz-option.option-default:hover { background: #f9fafb; border-color: #d1d5db; }
+    .quiz-option.option-correct { background: #10b981; color: #fff; border-color: #10b981; font-weight: 500; }
+    .quiz-option.option-wrong { background: #ef4444; color: #fff; border-color: #ef4444; font-weight: 500; }
+    .quiz-option.option-correct-highlight { border: 2px solid #10b981; background: #ecfdf5; color: #065f46; font-weight: 500; }
+    .quiz-option.option-disabled { opacity: 0.6; cursor: default; }
 
     /* -----------------------------------------
-       Trace UI (The placeholders)
+       RIGHT PANEL (Node Details & Resources)
        ----------------------------------------- */
-    .trace-ui {
-      opacity: 0;
-      position: absolute;
-      pointer-events: none;
-      transition: opacity 0.3s ease 0.3s; /* Delay fade in until slide finishes */
-      font-size: 1.5rem;
-      font-weight: 600;
-      color: #374151;
+    .node-details-panel {
+      position: absolute; top: 0; right: 0; width: 380px; height: 100%;
+      background: #ffffff; border-left: 1px solid #e5e7eb;
+      box-shadow: -4px 0 15px rgba(0,0,0,0.03); z-index: 5;
+      padding: 30px 24px; display: flex; flex-direction: column;
+      transform: translateX(100%); transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
     }
+    .state-trace .node-details-panel { transform: translateX(0); } /* Slides in when trace starts */
 
-    .state-trace .trace-ui {
-      opacity: 1;
-      position: relative;
-      pointer-events: auto;
+    .node-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
+    .node-desc { color: #6b7280; font-size: 0.95rem; line-height: 1.5; margin-bottom: 30px; }
+
+    /* Resource Cards */
+    .resource-list { display: flex; flex-direction: column; gap: 12px; }
+    .resource-card {
+      position: relative; padding: 12px 16px 12px 24px; border-radius: 8px;
+      background: #f9fafb; border: 1px solid #f3f4f6;
+      display: flex; flex-direction: column; overflow: hidden;
     }
+    .resource-card:hover { background: #f3f4f6; }
+
+    /* The Depth Gradient Indicator */
+    .depth-indicator {
+      position: absolute; left: 0; top: 0; bottom: 0; width: 6px;
+    }
+    .res-title { font-weight: 600; color: #374151; font-size: 0.95rem; }
+    .res-meta { font-size: 0.8rem; color: #9ca3af; margin-top: 4px; }
+
+
   "])
 
-;; Mock Data
+;; ---------------------------------------------------------
+;; MOCK DATA
+;; ---------------------------------------------------------
 (def featured-questions
   [{:id :undo :label "Undo the most recent local commits" :highlight? true :icon "🔥"}
    {:id :pull-fetch :label "Difference between 'pull' and 'fetch'"}
@@ -187,20 +262,154 @@
    {:id :undo-add :label "Undo 'git add' before commit"}
    {:id :rebase :label "How to resolve a merge conflict during rebase"}])
 
-;; Utilities
+(def mock-problem-data
+  {:text "Why do you want to undo your recent commits?"
+   :options [{:id :a :text "I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message."}
+             {:id :b :text "I forgot to add a file to the commit."}
+             {:id :c :text "I want to completely wipe the code and start over."}]
+   :correct-id :c}) ;; Assuming this specific trace targets the 'hard reset' scenario
+
+(def mock-knowledge-data
+  {:text "What happens to your changes when you execute 'git reset --soft'?"
+   :options [{:id :a :text "The files are permanently deleted."}
+             {:id :b :text "The files remain in the Staging Area."}
+             {:id :c :text "The files are moved to the Working Directory (unstaged)."}]
+   :correct-id :b})
+
+(def mock-resources
+  [{:id 1 :title "Git Reset in 100 Seconds" :type "Video" :depth 0}
+   {:id 2 :title "Understanding the 3 Trees of Git" :type "Article" :depth 40}
+   {:id 3 :title "Git Reset vs Revert vs Checkout" :type "Article" :depth 60}
+   {:id 5 :title "2 Git Reset vs Revert vs Checkout" :type "Article" :depth 60}
+   {:id 6 :title "2 Git Reset vs Revert vs Checkout" :type "Article" :depth 60}
+   {:id 4 :title "Pro Git: Reset Demystified" :type "Reference" :depth 100}])
+
+;; ---------------------------------------------------------
+;; UTILITIES
+;; ---------------------------------------------------------
+;; Calculates an HSL color based on depth (0-100).
+;; 0 = "Light Blue"/white, 100 = "Dark Navy"/black.
+(defn depth->color [depth]
+  (let [top-brightness 100
+        lowest-brightness 0
+        lightness (- top-brightness (* (/ depth 100) (- top-brightness lowest-brightness)))]
+    (str "hsl(215, 80%, " lightness "%)")))
+
+(defn get-gradient-style [start-depth end-depth]
+  (let [color-start (depth->color start-depth)
+        color-end   (depth->color end-depth)]
+    {:background (str "linear-gradient(to bottom, " color-start ", " color-end ")")}))
+
+(defn calculate-depth-gradients [resources]
+  (if (empty? resources)
+    []
+    (let [sorted-resources (sort-by :depth resources)
+          total-count      (count sorted-resources)]
+      (if (= 1 total-count)
+        ;; Fallback if there is only 1 resource
+        (let [d (:depth (first sorted-resources))]
+          [(assoc (first sorted-resources) :start-depth d :end-depth d)])
+
+        ;; Calculate uniform steps for 2 or more resources
+        (let [min-depth (:depth (first sorted-resources))
+              max-depth (:depth (last sorted-resources))
+              step      (/ (- max-depth min-depth) total-count)]
+
+          (map-indexed
+           (fn [idx res]
+             (assoc res
+                    :start-depth (+ min-depth (* idx step))
+                    :end-depth   (+ min-depth (* (inc idx) step))))
+           sorted-resources))))))
+
 (defn fuzzy-match? [query target]
   (str/includes? (str/lower-case target) (str/lower-case query)))
 
 (defn search-questions [query]
   (if (str/blank? query) [] (filter #(fuzzy-match? query (:label %)) mapped-questions)))
 
-;; Main View
+;; ---------------------------------------------------------
+;; COMPONENTS
+;; ---------------------------------------------------------
+
+;; Reusable Quiz Component for both Problem and Knowledge panels
+(defn quiz-component [panel-type data state-atom]
+  (let [selected-id @state-atom
+        answered?   (some? selected-id)
+        is-correct? (= selected-id (:correct-id data))
+        watermark-el (if (= panel-type :problem)
+                       [:div.panel-watermark.left "❓"]
+                       [:div.panel-watermark.right "🧠"])]
+
+    [:div.quiz-container
+     {:class (when answered? (if is-correct? "panel-correct" "panel-wrong"))}
+
+     watermark-el
+
+     [:div.quiz-content
+      [:h3.question-text (:text data)]
+      [:div.options-list
+       (for [{:keys [id text]} (:options data)]
+         (let [is-this-selected (= id selected-id)
+               is-this-correct  (= id (:correct-id data))
+
+               ;; Determine CSS class based on quiz state
+               opt-class (cond
+                           (not answered?) "option-default"
+                           (and is-this-selected is-this-correct) "option-correct"
+                           (and is-this-selected (not is-this-correct)) "option-wrong"
+                           (and answered? is-this-correct) "option-correct-highlight"
+                           :else "option-disabled")]
+           ^{:key id}
+           [:button.quiz-option
+            {:class opt-class
+             ;; Only allow clicking if not answered yet
+             :on-click #(when-not answered? (reset! state-atom id))}
+            text]))]]]))
+
+(defn right-panel-view []
+  (let [resources-with-gradient (calculate-depth-gradients mock-resources)]
+    [:div.node-details-panel
+     [:h2.node-title "git reset"]
+     [:p.node-desc "Reset current HEAD to the specified state. This command modifies the index and/or the working tree depending on the flags used."]
+
+     [:h3 {:style {:font-size "1.1rem" :margin-bottom "12px" :color "#374151"}} "Curated Resources"]
+     [:div.resource-list
+      (for [{:keys [id title type start-depth end-depth]} resources-with-gradient]
+        ^{:key id}
+        [:div.resource-card
+         ;; The Visual Depth Gradient
+         [:div.depth-indicator {:style (get-gradient-style start-depth end-depth)}]
+         [:div.res-title title]
+         [:div.res-meta (str type " • Depth: " start-depth "% - " end-depth "%")]])]]))
+
+;; ---------------------------------------------------------
+;; Main
+;; ---------------------------------------------------------
+
+(defn active-trace ;; Holds the ID of the selected question
+  [app-state _]
+  (get-in app-state [:trace-ui :active-trace] nil))
+(re-frame/reg-sub ::active-trace active-trace)
+
+(defn set-problem-node [app-state [_e id]]
+  (assoc-in app-state [:trace-ui :active-trace] id))
+(re-frame/reg-event-db ::set-problem-node set-problem-node)
+
+(defn reset-problem-node [app-state]
+  (assoc-in app-state [:trace-ui :active-trace] nil))
+(re-frame/reg-event-db ::reset-problem-node reset-problem-node)
+
+;; fn to quickly change app-modes in the repl.
+; (re-frame/dispatch-sync [::reset-problem-node])
+
 (defn main []
-  (let [active-trace (reagent/atom nil) ;; Holds the ID of the selected question
+  (let [active-trace (reagent/atom nil) ;(<sub [::active-trace])
         search-text  (reagent/atom "")
         is-focused?  (reagent/atom false)
-        vote-timer   (atom nil)]
-
+        vote-timer   (atom nil)
+        problem-answer   (reagent/atom nil)
+        knowledge-answer (reagent/atom nil)]
     (fn []
       (let [query          @search-text
             matches        (search-questions query)
@@ -214,6 +423,7 @@
             start-trace!   (fn [id]
                              (js/console.log "Starting trace for:" id)
                              (reset! active-trace id)
+                             ; (>evt [::set-problem-node id])
                              (reset! search-text ""))]
 
         ;; Add .state-trace class conditionally to trigger all CSS animations
@@ -221,16 +431,19 @@
          [trace-styles]
 
          ;; === BACKGROUND GRAPH LAYER ===
-         [:div.graph-bg
-          [:span "graph"]]
+         [:div.graph-bg "graph"]
+
+         ;; --- Right Panel (Node Details) ---
+         ;; Sits behind the interaction layer due to z-index (5 vs 10)
+         [right-panel-view]
 
          ;; === INTERACTION LAYER (Moves from Full Screen to Bottom) ===
          [:div.interaction-layer
 
-          ;; -- LEFT: PROBLEM PANEL --
-          [:div.problem-panel
+          ; Left: Initially search-ui, later problem-quiz
+          [:div.problem-panel ;; TODO: Maybe rename to bottom panel.
 
-           ;; View A: Search UI (Visible initially, fades out on trace)
+           ;; Search UI (Visible initially, fades out on trace)
            [:div.search-ui
             [:h1.trace-logo "Looset Trace"]
 
@@ -302,9 +515,10 @@
                   (when icon [:span {:style {:font-size "1.1em"}} icon])
                   label])])]
 
-           ;; View B: Active Trace UI (Fades in when trace starts)
-           [:div.trace-ui "Problem"]]
+           ;; Problem Quiz (Visible during trace)
+           (when is-tracing?
+             [quiz-component :problem mock-problem-data problem-answer])]
 
-          ;; -- RIGHT: KNOWLEDGE PANEL (Expands on trace) --
+          ;; Right: Knowledge Panel (Visible during trace)
           [:div.knowledge-panel
-           [:div.trace-ui "User knowledge"]]]]))))
+           [quiz-component :knowledge mock-knowledge-data knowledge-answer]]]]))))

@@ -1,5 +1,6 @@
 (ns looset-graph.util
   (:require
+    [re-frame.alpha :as re-frame]
     [reagent.core :as reagent]))
 
 (defn with-mount-fn
@@ -28,3 +29,6 @@
                          (if @error
                            [:<> if-error]
                            [:<> (map-indexed #(with-meta %2 {:key %1}) children)]))})))
+
+(def <sub (comp deref re-frame/subscribe))
+(def >evt re-frame/dispatch)
