@@ -166,43 +166,86 @@
     .trace-card { padding: 10px 16px; border-radius: 16px; border: 1px solid #e5e7eb; background: #ffffff; color: #4b5563; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.15s ease; }
     .trace-card:hover { background: #f9fafb; border-color: #d1d5db; }
     .trace-card.highlight { border-color: #3b82f6; color: #1d4ed8; background: #eff6ff; font-weight: 500; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1); }
+
     /* -----------------------------------------
        QUIZ PANELS & WATERMARKS
        ----------------------------------------- */
     .quiz-container {
-      width: 100%; height: 100%; padding: 24px 40px; display: flex; flex-direction: column;
-      justify-content: center; transition: background-color 0.4s ease; z-index: 2; position: relative;
+      width: 100%;
+      height: 100%;
+      padding: 24px 10px;
+      padding-top: 4px;
+      display: flex;
+      flex-direction: column;
+      transition: background-color 0.4s ease;
+      z-index: 2; position: relative;
+      overflow: hidden; /* Hide outer overflow so the inner scroll works perfectly */
     }
 
     /* Background feedback colors */
-    .panel-correct { background-color: rgba(220, 252, 231, 0.6); } /* Light Green */
-    .panel-wrong { background-color: rgba(254, 226, 226, 0.6); }   /* Light Red */
+    .panel-correct { background-color: rgba(220, 252, 231, 0.6); }
+    .panel-wrong { background-color: rgba(254, 226, 226, 0.6); }
 
     /* The Watermark Emoji */
     .panel-watermark {
-      position: absolute;
-      bottom: 11%;
-      font-size: 10rem;
-      opacity: 0.18;
-      filter: grayscale(100%);
-      pointer-events: none;
-      user-select: none;
-      z-index: 3;
+      position: absolute; bottom: 11%; font-size: 10rem; opacity: 0.18;
+      filter: grayscale(100%); pointer-events: none; user-select: none; z-index: 3;
     }
-    .panel-watermark.left{
-      left: -66px;
-    }
-    .panel-watermark.right{
-      right: 0px;
+    .panel-watermark.left { left: -66px; }
+    .panel-watermark.right { right: 0px; }
+
+    /* Scrollable Content Area */
+    .quiz-content {
+      height: 100%;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      z-index: 4; /* Above the watermark */
+      position: relative;
+      padding-right: 8px; /* Room for scrollbar */
     }
 
-    .question-text { font-size: 1.25rem; font-weight: 600; color: #1f2937; margin-bottom: 20px; z-index: 2; position: relative; }
+    /* Custom Webkit Scrollbar for a clean, modern look */
+    .quiz-content::-webkit-scrollbar { width: 6px; }
+    .quiz-content::-webkit-scrollbar-track { background: transparent; }
+    .quiz-content::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
+    .quiz-content::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
 
-    .options-list { display: flex; flex-direction: column; gap: 10px; z-index: 2; position: relative; }
+    /* Inner wrapper uses auto margins to center content safely without cutting off the top when scrolling */
+    .quiz-inner {
+      margin: auto 0;
+      padding-top: 4px;
+      padding-bottom: 20px;
+      padding-right: 6px;
+      padding-left: 8px;
+    }
+
+    /* Text Formatting */
+    .question-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 12px;
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+    .question-desc { font-size: 1.05rem; color: #4b5563; margin-bottom: 24px; line-height: 1.6; }
+
+    .options-list { display: flex; flex-direction: column; gap: 10px; }
 
     .quiz-option {
-      padding: 12px 20px; border-radius: 12px; border: 1px solid #e5e7eb; background: #fff;
-      text-align: left; font-size: 1rem; color: #4b5563; cursor: pointer; transition: all 0.2s ease;
+      padding: 14px 20px;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff10;
+      backdrop-filter: blur(5px);
+      text-align: left;
+      font-size: 0.95rem;
+      color: #4b5563;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      line-height: 1.5; /* Crucial for wrapped text readability */
+      word-wrap: break-word;
     }
 
     /* Option States */
@@ -263,17 +306,24 @@
    {:id :rebase :label "How to resolve a merge conflict during rebase"}])
 
 (def mock-problem-data
-  {:text "Why do you want to undo your recent commits?"
-   :options [{:id :a :text "I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message. I made a typo in the commit message."}
-             {:id :b :text "I forgot to add a file to the commit."}
-             {:id :c :text "I want to completely wipe the code and start over."}]
-   :correct-id :c}) ;; Assuming this specific trace targets the 'hard reset' scenario
+  {:title "Why do you want to undo your recent commits?Why do you want to undo your recent commits?Why do you want to undo your recent commits?Why do you want to undo your recent commits?"
+   :description "Git provides several ways to undo changes, but the best approach depends entirely on what you are trying to achieve and whether your changes have been shared with others.Git provides several ways to undo changes, but the best approach depends entirely on what you are trying to achieve and whether your changes have been shared with others.Git provides several ways to undo changes, but the best approach depends entirely on what you are trying to achieve and whether your changes have been shared with others."
+   :options [{:id :a :text "I made a typo in the commit message. I want to rewrite the message without changing any of the files."}
+             {:id :b :text "I forgot to add a file to the commit, so I need to amend the previous commit to include it.I forgot to add a file to the commit, so I need to amend the previous commit to include it.I forgot to add a file to the commit, so I need to amend the previous commit to include it."}
+             {:id :b :text "I forgot to add a file to the commit, so I need to amend the previous commit to include it.I forgot to add a file to the commit, so I need to amend the previous commit to include it.I forgot to add a file to the commit, so I need to amend the previous commit to include it."}
+             {:id :b :text "I forgot to add a file to the commit, so I need to amend the previous commit to include it.I forgot to add a file to the commit, so I need to amend the previous commit to include it.I forgot to add a file to the commit, so I need to amend the previous commit to include it."}
+             {:id :c :text "I want to completely wipe the code and start over because the recent changes broke my application."}]
+   :correct-id :c})
 
 (def mock-knowledge-data
-  {:text "What happens to your changes when you execute 'git reset --soft'?"
-   :options [{:id :a :text "The files are permanently deleted."}
-             {:id :b :text "The files remain in the Staging Area."}
-             {:id :c :text "The files are moved to the Working Directory (unstaged)."}]
+  {;; We omit the :title here to test the optionality, relying only on the :description
+   :title "Why do you want to undo your recent commits?Why do you want to undo your recent commits?Why do you want to undo your recent commits?Why do you want to undo your recent commits?"
+   :description "What happens to your changes when you execute 'git reset --soft HEAD~1' in your terminal? Consider the state of the Staging Area and the Working Directory.What happens to your changes when you execute 'git reset --soft HEAD~1' in your terminal? Consider the state of the Staging Area and the Working Directory.What happens to your changes when you execute 'git reset --soft HEAD~1' in your terminal? Consider the state of the Staging Area and the Working Directory."
+   :options [{:id :a :text "The files are permanently deleted and cannot be recovered from the local history."}
+             {:id :b :text "The files remain in the Staging Area, ready to be committed again immediately."}
+             {:id :b :text "I forgot to add a file to the commit, so I need to amend the previous commit to include it.I forgot to add a file to the commit, so I need to amend the previous commit to include it.I forgot to add a file to the commit, so I need to amend the previous commit to include it."}
+             {:id :b :text "I forgot to add a file to the commit, so I need to amend the previous commit to include it.I forgot to add a file to the commit, so I need to amend the previous commit to include it.I forgot to add a file to the commit, so I need to amend the previous commit to include it."}
+             {:id :c :text "The files are moved to the Working Directory (unstaged) and must be re-added.The files are moved to the Working Directory (unstaged) and must be re-added.The files are moved to the Working Directory (unstaged) and must be re-added.The files are moved to the Working Directory (unstaged) and must be re-added."}]
    :correct-id :b})
 
 (def mock-resources
@@ -347,25 +397,31 @@
      watermark-el
 
      [:div.quiz-content
-      [:h3.question-text (:text data)]
-      [:div.options-list
-       (for [{:keys [id text]} (:options data)]
-         (let [is-this-selected (= id selected-id)
-               is-this-correct  (= id (:correct-id data))
+      [:div.quiz-inner
+       (when-let [title (:title data)]
+         [:h3.question-title title])
 
-               ;; Determine CSS class based on quiz state
-               opt-class (cond
-                           (not answered?) "option-default"
-                           (and is-this-selected is-this-correct) "option-correct"
-                           (and is-this-selected (not is-this-correct)) "option-wrong"
-                           (and answered? is-this-correct) "option-correct-highlight"
-                           :else "option-disabled")]
-           ^{:key id}
-           [:button.quiz-option
-            {:class opt-class
-             ;; Only allow clicking if not answered yet
-             :on-click #(when-not answered? (reset! state-atom id))}
-            text]))]]]))
+       (when-let [desc (:description data)]
+         [:p.question-desc desc])
+
+       [:div.options-list
+        (for [{:keys [id text]} (:options data)]
+          (let [is-this-selected (= id selected-id)
+                is-this-correct  (= id (:correct-id data))
+
+                ;; Determine CSS class based on quiz state
+                opt-class (cond
+                            (not answered?) "option-default"
+                            (and is-this-selected is-this-correct) "option-correct"
+                            (and is-this-selected (not is-this-correct)) "option-wrong"
+                            (and answered? is-this-correct) "option-correct-highlight"
+                            :else "option-disabled")]
+            ^{:key id}
+            [:button.quiz-option
+             {:class opt-class
+              ;; Only allow clicking if not answered yet
+              :on-click #(when-not answered? (reset! state-atom id))}
+             text]))]]]]))
 
 (defn right-panel-view []
   (let [resources-with-gradient (calculate-depth-gradients mock-resources)]
