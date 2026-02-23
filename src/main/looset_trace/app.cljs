@@ -384,7 +384,104 @@
          [:div.res-meta (str type " • Depth: " start-depth "% - " end-depth "%")]])]]))
 
 ;; ---------------------------------------------------------
-;; Main
+;; Search UI Component
+;; ---------------------------------------------------------
+(defn search-ui []
+  ;; Local state for the search input behavior
+  (let [search-text (reagent/atom "")
+        is-focused? (reagent/atom false)
+        vote-timer  (atom nil)]
+    (fn []
+      (let [query          @search-text
+            matches        (search-questions query)
+            has-query?     (not (str/blank? query))
+            no-matches?    (and has-query? (empty? matches))
+
+            ;; Fetch active trace from re-frame to hide dropdown if tracing
+            active-trace   (<sub [::active-trace])
+            is-tracing?    (some? active-trace)
+            show-dropdown? (and @is-focused? has-query? (not is-tracing?))
+
+            ;; Handler to start the trace using Re-frame
+            start-trace!   (fn [id]
+                             (js/console.log "Starting trace for:" id)
+                             (>evt [::set-problem-node id])
+                             (reset! search-text ""))]
+
+        [:div.search-ui
+         [:h1.trace-logo "Looset Trace"]
+
+         [:div.search-container
+          [:div.search-box {:class (when show-dropdown? "has-dropdown")}
+           [:svg {:width "20" :height "20" :viewBox "0 0 24 24" :fill "none" :stroke "#9aa0a6" :stroke-width "2" :stroke-linecap "round" :stroke-linejoin "round"}
+            [:circle {:cx "11" :cy "11" :r "8"}] [:line {:x1 "21" :y1 "21" :x2 "16.65" :y2 "16.65"}]]
+
+           [:input.search-input
+            {:type "text"
+             :placeholder "Problem, goal or subject related to Git."
+             :value query
+             :on-focus #(reset! is-focused? true)
+             :on-blur #(reset! is-focused? false)
+
+             ;; Keyboard interaction (Enter to select)
+             :on-key-down (fn [e]
+                            (when (= (.-key e) "Enter")
+                              (.preventDefault e)
+                              (if no-matches?
+                                (js/console.log "[AUTO-VOTE] Enter pressed on unmapped:" query)
+                                (let [target-id (if has-query?
+                                                  (:id (first matches))
+                                                  (:id (first featured-questions)))]
+                                  (when target-id (start-trace! target-id))))))
+
+             :on-change (fn [e]
+                          (let [v (-> e .-target .-value)]
+                            (reset! search-text v) ;; Auto-Vote (1.5s debounce)
+                            (when @vote-timer (js/clearTimeout @vote-timer))
+                            (when (not (str/blank? v))
+                              (reset! vote-timer
+                                      (js/setTimeout
+                                       (fn []
+                                         (when (empty? (search-questions @search-text))
+                                           (js/console.log "[AUTO-VOTE] User finished typing:" @search-text)))
+                                       1500)))))}]]
+
+          ;; Dropdown Menu
+          (when show-dropdown?
+            [:div.dropdown-menu
+             ;; Scenario 1: No results (show vote + featured)
+             (if no-matches?
+               [:<> ;; Manual vote option on top
+                [:div.dropdown-item.not-found-item
+                 {:on-mouse-down (fn [e] (.preventDefault e) (js/console.log "[MANUAL VOTE]:" query))}
+                 [:div.item-icon [:svg {:width "18" :height "18" :viewBox "0 0 24 24" :fill "none" :stroke "currentColor" :stroke-width "2"} [:path {:d "M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"}]]]
+                 [:div [:div.item-text (str "\"" query "\"")] [:div.item-subtext "Not mapped yet. Click to vote to map this next."]]]
+                (for [{:keys [id label]} featured-questions] ;; featured list as fallback
+                  ^{:key (str "feat-" id)}
+                  [:div.dropdown-item {:on-mouse-down (fn [e] (.preventDefault e) (start-trace! id))}
+                   [:div.item-icon [:svg {:width "16" :height "16" :viewBox "0 0 24 24" :fill "none" :stroke "currentColor" :stroke-width "2"} [:polyline {:points "20 6 9 17 4 12"}]]]
+                   [:div.item-text label]])]
+
+               ;; Scenario 2: With matches
+               (for [{:keys [id label]} matches]
+                 ^{:key id}
+                 [:div.dropdown-item {:on-mouse-down (fn [e] (.preventDefault e) (start-trace! id))}
+                  [:div.item-icon [:svg {:width "16" :height "16" :viewBox "0 0 24 24" :fill "none" :stroke "currentColor" :stroke-width "2"} [:circle {:cx "11" :cy "11" :r "8"}]]]
+                  [:div.item-text label]]))]
+            )]
+
+         (when (not show-dropdown?)
+           [:div.cards-container
+            (for [{:keys [id label highlight? icon]} featured-questions]
+              ^{:key id}
+              [:div.trace-card
+               {:class (when highlight? "highlight")
+                :on-click #(start-trace! id)}
+               (when icon [:span {:style {:font-size "1.1em"}} icon])
+               label])])]))))
+
+;; ---------------------------------------------------------
+;; Re-frame Event/Sub Registration
 ;; ---------------------------------------------------------
 
 (defn active-trace ;; Holds the ID of the selected question
@@ -400,31 +497,19 @@
   (assoc-in app-state [:trace-ui :active-trace] nil))
 (re-frame/reg-event-db ::reset-problem-node reset-problem-node)
 
-;; fn to quickly change app-modes in the repl.
-; (re-frame/dispatch-sync [::reset-problem-node])
+;; (re-frame/dispatch-sync [::reset-problem-node])
+
+;; ---------------------------------------------------------
+;; Main Panel
+;; ---------------------------------------------------------
 
 (defn main []
-  (let [active-trace (reagent/atom nil) ;(<sub [::active-trace])
-        search-text  (reagent/atom "")
-        is-focused?  (reagent/atom false)
-        vote-timer   (atom nil)
-        problem-answer   (reagent/atom nil)
+  ;; Local state for quiz answers stays in main (or could be moved to their own components later)
+  (let [problem-answer   (reagent/atom nil)
         knowledge-answer (reagent/atom nil)]
     (fn []
-      (let [query          @search-text
-            matches        (search-questions query)
-            has-query?     (not (str/blank? query))
-            no-matches?    (and has-query? (empty? matches))
-            is-tracing?    (some? @active-trace)
-            ;; Only show dropdown if focused, has query, and NOT tracing yet
-            show-dropdown? (and @is-focused? has-query? (not is-tracing?))
-
-            ;; Handler to start the trace
-            start-trace!   (fn [id]
-                             (js/console.log "Starting trace for:" id)
-                             (reset! active-trace id)
-                             ; (>evt [::set-problem-node id])
-                             (reset! search-text ""))]
+      (let [active-trace (<sub [::active-trace])
+            is-tracing?  (some? active-trace)]
 
         ;; Add .state-trace class conditionally to trigger all CSS animations
         [:div.app-container {:class (when is-tracing? "state-trace")}
@@ -441,79 +526,10 @@
          [:div.interaction-layer
 
           ; Left: Initially search-ui, later problem-quiz
-          [:div.problem-panel ;; TODO: Maybe rename to bottom panel.
+          [:div.problem-panel
 
-           ;; Search UI (Visible initially, fades out on trace)
-           [:div.search-ui
-            [:h1.trace-logo "Looset Trace"]
-
-            [:div.search-container
-             [:div.search-box {:class (when show-dropdown? "has-dropdown")}
-              [:svg {:width "20" :height "20" :viewBox "0 0 24 24" :fill "none" :stroke "#9aa0a6" :stroke-width "2" :stroke-linecap "round" :stroke-linejoin "round"}
-               [:circle {:cx "11" :cy "11" :r "8"}] [:line {:x1 "21" :y1 "21" :x2 "16.65" :y2 "16.65"}]]
-
-              [:input.search-input
-               {:type "text"
-                :placeholder "Problem, goal or subject related to Git."
-                :value query
-                :on-focus #(reset! is-focused? true)
-                :on-blur #(reset! is-focused? false)
-
-                ;; Keyboard interaction (Enter to select)
-                :on-key-down (fn [e]
-                               (when (= (.-key e) "Enter")
-                                 (.preventDefault e)
-                                 (if no-matches?
-                                   (js/console.log "[AUTO-VOTE] Enter pressed on unmapped:" query)
-                                   (let [target-id (if has-query?
-                                                     (:id (first matches))
-                                                     (:id (first featured-questions)))]
-                                     (when target-id (start-trace! target-id))))))
-
-                :on-change (fn [e]
-                             (let [v (-> e .-target .-value)]
-                               (reset! search-text v) ;; Auto-Vote (1.5s debounce)
-                               (when @vote-timer (js/clearTimeout @vote-timer))
-                               (when (not (str/blank? v))
-                                 (reset! vote-timer
-                                         (js/setTimeout
-                                          (fn []
-                                            (when (empty? (search-questions @search-text))
-                                              (js/console.log "[AUTO-VOTE] User finished typing:" @search-text)))
-                                          1500)))))}]]
-
-             ;; Dropdown Menu
-             (when show-dropdown?
-               [:div.dropdown-menu ;; Scenario 1: No results (show vote + featured)
-                (if no-matches?
-                  [:<> ;; Manual vote option on top
-                   [:div.dropdown-item.not-found-item
-                    {:on-mouse-down (fn [e] (.preventDefault e) (js/console.log "[MANUAL VOTE]:" query))}
-                    [:div.item-icon [:svg {:width "18" :height "18" :viewBox "0 0 24 24" :fill "none" :stroke "currentColor" :stroke-width "2"} [:path {:d "M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"}]]]
-                    [:div [:div.item-text (str "\"" query "\"")] [:div.item-subtext "Not mapped yet. Click to vote to map this next."]]]
-                   (for [{:keys [id label]} featured-questions] ;; featured list as fallback
-                     ^{:key (str "feat-" id)}
-                     [:div.dropdown-item {:on-mouse-down (fn [e] (.preventDefault e) (start-trace! id))}
-                      [:div.item-icon [:svg {:width "16" :height "16" :viewBox "0 0 24 24" :fill "none" :stroke "currentColor" :stroke-width "2"} [:polyline {:points "20 6 9 17 4 12"}]]]
-                      [:div.item-text label]])]
-
-                  ;; Scenario 2: With matches
-                  (for [{:keys [id label]} matches]
-                    ^{:key id}
-                    [:div.dropdown-item {:on-mouse-down (fn [e] (.preventDefault e) (start-trace! id))}
-                     [:div.item-icon [:svg {:width "16" :height "16" :viewBox "0 0 24 24" :fill "none" :stroke "currentColor" :stroke-width "2"} [:circle {:cx "11" :cy "11" :r "8"}]]]
-                     [:div.item-text label]]))])]
-
-
-            (when (not show-dropdown?)
-              [:div.cards-container
-               (for [{:keys [id label highlight? icon]} featured-questions]
-                 ^{:key id}
-                 [:div.trace-card
-                  {:class (when highlight? "highlight")
-                   :on-click #(start-trace! id)}
-                  (when icon [:span {:style {:font-size "1.1em"}} icon])
-                  label])])]
+           ;; Search UI (Visible initially, fades out on trace via CSS opacity/transform)
+           [search-ui]
 
            ;; Problem Quiz (Visible during trace)
            (when is-tracing?
