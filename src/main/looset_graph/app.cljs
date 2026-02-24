@@ -7,7 +7,7 @@
     [clojure.string]
     [goog.net.XhrIo :as xhr]
     [looset-graph.graph-parser :as graph-parser]
-    [looset-graph.util :as util]
+    [looset-graph.util :as util :refer [<sub >evt]]
     [looset-trace.app :as looset-trace]
     [quadtree-cljc.core :as quad]
     [re-frame.alpha :as re-frame]
@@ -39,8 +39,6 @@
   (js/console.log "Debugger mode!"))
 
 ;; Redef re-frame subscribe and dispatch for brevity
-(def <sub (comp deref re-frame/subscribe))
-(def >evt re-frame/dispatch)
 
 (defn with-defaults
   "Meant to be used with `reg-flow` :output. Define default values
@@ -2173,8 +2171,8 @@
 
               :let [src (if (= direction :outgoing) node-id other-node)
                     target (if (= direction :outgoing) other-node node-id)
-                    expl (get explanations {:type :edge :src src :edge-string edge-string :target target})]
-              :when expl]
+                    expl (get explanations {:type :edge :src src :edge-string edge-string :target target})]]
+              ; :when expl]  ;; comment this line to always show Nodes with connection.
           {:src src :edge-string edge-string :target target :expl expl :selected-node-id node-id})]
 
     (when (seq relevant-edges)

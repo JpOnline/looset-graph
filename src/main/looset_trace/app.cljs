@@ -123,6 +123,14 @@
       position: absolute; /* Takes it out of flow so Trace UI can center */
     }
 
+    .trace-logo {
+      font-family: Quattrocento, serif;
+      font-size: 2.5em;
+      font-weight: normal;
+      letter-spacing: -0.05rem;
+      margin-bottom: 2rem;
+    }
+
     .search-container { position: relative; width: 100%; max-width: 650px; z-index: 50; }
 
     .search-box {
