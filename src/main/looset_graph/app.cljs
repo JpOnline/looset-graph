@@ -8,7 +8,6 @@
     [goog.net.XhrIo :as xhr]
     [looset-graph.graph-parser :as graph-parser]
     [looset-graph.util :as util :refer [<sub >evt]]
-    [looset-trace.app :as looset-trace]
     [quadtree-cljc.core :as quad]
     [re-frame.alpha :as re-frame]
     [re-frame.std-interceptors]
@@ -2767,25 +2766,3 @@
 
 ;; fn to quickly change app-modes in the repl.
 ; (re-frame/dispatch-sync [::toggle-app-mode])
-
-(defn root-component []
-  (let [mode (<sub [::app-mode])]
-    (if (= mode :trace)
-      [looset-trace/main]
-      [main])))
-
-(defn ^:dev/after-load mount-app-element []
-  (when ^boolean js/goog.DEBUG ;; Code removed in production
-    (re-frame/clear-subscription-cache!))
-  (when-let [el (.getElementById js/document "root")]
-    (reagent.dom/render [root-component] el)))
-
-(defn init []
-  (init-state)
-  (init-mousemove)
-  (mount-app-element)
-  (init-mouseup)
-  (init-url-history-observer)
-  (init-keyboard-events)
-  ;; (init-style-observer))
-  (init-url-state-timer))

@@ -1,6 +1,7 @@
 (ns looset-trace.app
   (:require
     [clojure.string :as str]
+    [looset-graph.app :as looset-graph]
     [looset-graph.util :as util :refer [<sub >evt]]
     [re-frame.alpha :as re-frame]
     [reagent.core :as reagent]))
@@ -584,7 +585,10 @@
          [trace-styles]
 
          ;; === BACKGROUND GRAPH LAYER ===
-         [:div.graph-bg "graph"]
+         [:div.graph-bg "graph"
+           [util/error-boundary
+            {:if-error [:h2 "erro"]}
+            [looset-graph/graph-component]]]
 
          ;; --- Right Panel (Node Details) ---
          ;; Sits behind the interaction layer due to z-index (5 vs 10)
