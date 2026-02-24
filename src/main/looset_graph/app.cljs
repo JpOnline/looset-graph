@@ -453,14 +453,14 @@
   (let [->node
         (fn [[node-id
               {{:strs [x y]} :position
-               :keys [type name]
+               :keys [type name color]
                :or {name node-id}}]]
           {:id node-id
            :label (if (= type :label)
                     (str "<b>"name"</b>")
                     name)
            :shape "box"
-           :color {:background "white" :border "gray"}
+           :color {:background (or color "white") :border "gray"}
                    ;; :highlight {:border "#ff0000"}}
            :x x :y y
            :margin 7
@@ -834,7 +834,7 @@
           node-children (seq (map rename-if-label (:children node-v)))
           edges-to (->> node-v :edges-to vals (map vec) flatten (map rename-if-label) seq)
           custom-props (dissoc node-v :type :edges-to :edges-from :label :children :foldable :parent)
-          custom-props* (select-keys node-v [:name :position :hidden? :opened?])
+          custom-props* (select-keys node-v [:name :position :hidden? :opened? :color])
           _ (assert (= custom-props custom-props*)
                     (str "Some new node property was added, so should it be included in the text model or not?\nThe difference was "(clojure.data/diff custom-props custom-props*)))]
       [(if node-children

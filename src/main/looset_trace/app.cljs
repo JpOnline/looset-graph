@@ -301,7 +301,7 @@
 ;; MOCK DATA
 ;; ---------------------------------------------------------
 (def featured-questions
-  [{:id :undo :label "Undo the most recent local commits" :highlight? true :icon "🔥"}
+  [{:id :undo :label "Undo last commits" :highlight? true :icon "🔥"}
    {:id :pull-fetch :label "Difference between 'pull' and 'fetch'"}
    {:id :delete-branch :label "Delete a branch locally and remotely"}
    {:id :undo-add :label "Undo 'git add' before commit"}])
@@ -545,7 +545,11 @@
                label])])]))))
 
 ;; ---------------------------------------------------------
-;; Re-frame Event/Sub Registration
+;; -- Main ---------------------------------------------------------
+;; ---------------------------------------------------------
+
+;; ---------------------------------------------------------
+;; ---Re-frame Event/Sub Registration---------------------------------------------------------
 ;; ---------------------------------------------------------
 
 (defn active-trace ;; Holds the ID of the selected question
@@ -564,7 +568,7 @@
 ;; (re-frame/dispatch-sync [::reset-problem-node])
 
 ;; ---------------------------------------------------------
-;; Main Panel
+;; --- Main view ---------------------------------------------------------
 ;; ---------------------------------------------------------
 
 (defn main []
