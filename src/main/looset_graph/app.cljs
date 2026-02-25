@@ -125,7 +125,6 @@
 
 (defmethod extract-nodes-from-edge-rule "edgeString"
   [edge]
-  (tap> {:edge edge})
   (let [node-from-id (clean-surrounding-quotes (get-in edge [1 1 1 1]))
         node-from-type (type-str->type (get-in edge [1 1 0]))
         edge-string (clean-surrounding-quotes (get-in edge [3 1 1]))
@@ -2567,7 +2566,8 @@
      [:div {:style {:font-family quattrocento-font
                     :font-size "2em"
                     :padding "10px"
-                    :border-bottom "1px solid gray"}}
+                    :border-bottom "1px solid gray"}
+            :on-click #(>evt [:looset-trace.app/next-node])}
       "Looset Graph"]
      [left-buttons]
      [util/error-boundary
@@ -2606,7 +2606,8 @@
 ;; -- Lifecycle & Initialization -----------------------------------------------
 
 (def initial-state
-  {:domain {:graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label2:\n  node5\n\nnode3:\n  node4\n  node5\n\nnode1 -> node2\nnode4 -> node1\nnodeA -> nodeB"
+  {:app-mode :graph ;; TODO: this is only temporary for dev time.
+   :domain {:graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label2:\n  node5\n\nnode3:\n  node4\n  node5\n\nnode1 -> node2\nnode4 -> node1\nnodeA -> nodeB"
             :nodes-map {}}
    :ui {:panels {:resizing-panels nil
                  :left-open? true
@@ -2707,17 +2708,35 @@
   ::set-app-state
   [event-to-analytics]
   (fn [_ [event graph-text]]
-    (set-graph-text initial-state [event graph-text])))
+    (set-graph-text {:db initial-state} [event graph-text])))
+
+(defn load-graph-text ;; TODO: Used only for dev.
+  ([] (load-graph-text "graph-text"))
+  ([file-name]
+   (xhr/send file-name
+             #(if (-> % (.-target) ^js(.isSuccess))
+                (do
+                  (re-frame/dispatch-sync [::set-graph-text (-> % (.-target) ^js(.getResponseText))])
+                  (re-frame/dispatch [::fetch-markdown-explanation-content]))
+                (js/alert "Não deu pra carregar graph-text.")))))
 
 (defn init-state
   ([] (init-state :load-graph-text))
   ([action-to-try]
    (let [compressed-graph (.get (js/URLSearchParams. js/window.location.search) "graph")
          example-graph    (.get (js/URLSearchParams. js/window.location.search) "example")
-         default-graph (get-in initial-state [:domain :graph-text])]
+         default-graph (get-in initial-state [:domain :graph-text])
+         load-graph-text (fn []
+                           (xhr/send "graph-text"
+                                     #(if (-> % (.-target) ^js(.isSuccess))
+                                        (do
+                                          (re-frame/dispatch-sync [::set-app-state (-> % (.-target) ^js(.getResponseText))])
+                                          (re-frame/dispatch [::fetch-markdown-explanation-content]))
+                                        (init-state :default))))]
      (cond
        (= action-to-try :default)
        (re-frame/dispatch-sync [::set-app-state default-graph])
+
        compressed-graph
        (.then (gzip-decompress (js/atob compressed-graph))
               #(re-frame/dispatch-sync [::set-app-state %]))
@@ -2739,12 +2758,8 @@
        ;              (re-frame/dispatch-sync [::set-app-state (-> % (.-target) ^js(.getResponseText))])
        ;              (init-state :load-graph-text-locally)))
        (= action-to-try :load-graph-text)
-       (xhr/send "graph-text"
-                 #(if (-> % (.-target) ^js(.isSuccess))
-                    (do
-                      (re-frame/dispatch-sync [::set-app-state (-> % (.-target) ^js(.getResponseText))])
-                      (re-frame/dispatch [::fetch-markdown-explanation-content]))
-                    (init-state :default)))
+       (load-graph-text)
+
        :else
        (re-frame/dispatch-sync [::set-app-state default-graph])))))
 

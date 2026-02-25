@@ -9,6 +9,9 @@
 ;; ---------------------------------------------------------
 ;; STYLES
 ;; ---------------------------------------------------------
+(def light-red "#ffd7d7")
+(def light-yellow "#fff6c4")
+
 (defn trace-styles []
   [:style "
     /* Global App Container */
@@ -194,6 +197,7 @@
     /* Background feedback colors */
     .panel-correct { background-color: rgba(220, 252, 231, 0.6); }
     .panel-wrong { background-color: rgba(254, 226, 226, 0.6); }
+    .panel-info-gathered { background-color: rgba(243, 244, 246, 0.8); }
 
     /* The Watermark Emoji */
     .panel-watermark {
@@ -263,6 +267,8 @@
     .quiz-option.option-wrong { background: #ef4444; color: #fff; border-color: #ef4444; font-weight: 500; }
     .quiz-option.option-correct-highlight { border: 2px solid #10b981; background: #ecfdf5; color: #065f46; font-weight: 500; }
     .quiz-option.option-disabled { opacity: 0.6; cursor: default; }
+    .quiz-option.option-assumed { border: 2px dashed #9ca3af; background: #f3f4f6; color: #374151; font-weight: 500; }
+    .quiz-option.option-selected { background: #4b5563; color: #fff; border-color: #4b5563; font-weight: 500; }
 
     /* -----------------------------------------
        RIGHT PANEL (Node Details & Resources)
@@ -294,8 +300,6 @@
     }
     .res-title { font-weight: 600; color: #374151; font-size: 0.95rem; }
     .res-meta { font-size: 0.8rem; color: #9ca3af; margin-top: 4px; }
-
-
   "])
 
 ;; ---------------------------------------------------------
@@ -315,14 +319,13 @@
    {:id :rebase :label "How to resolve a merge conflict during rebase"}])
 
 (def mock-problem-data
-  {:title "Why do you want to undo your recent commits?Why do you want to undo your recent commits?Why do you want to undo your recent commits?Why do you want to undo your recent commits?"
-   :description "Git provides several ways to undo changes, but the best approach depends entirely on what you are trying to achieve and whether your changes have been shared with others.Git provides several ways to undo changes, but the best approach depends entirely on what you are trying to achieve and whether your changes have been shared with others.Git provides several ways to undo changes, but the best approach depends entirely on what you are trying to achieve and whether your changes have been shared with others."
-   :options [{:id :a :text "I made a typo in the commit message. I want to rewrite the message without changing any of the files."}
-             {:id :b :text "I forgot to add a file to the commit, so I need to amend the previous commit to include it.I forgot to add a file to the commit, so I need to amend the previous commit to include it.I forgot to add a file to the commit, so I need to amend the previous commit to include it."}
-             {:id :b :text "I forgot to add a file to the commit, so I need to amend the previous commit to include it.I forgot to add a file to the commit, so I need to amend the previous commit to include it.I forgot to add a file to the commit, so I need to amend the previous commit to include it."}
-             {:id :b :text "I forgot to add a file to the commit, so I need to amend the previous commit to include it.I forgot to add a file to the commit, so I need to amend the previous commit to include it.I forgot to add a file to the commit, so I need to amend the previous commit to include it."}
-             {:id :c :text "I want to completely wipe the code and start over because the recent changes broke my application."}]
-   :correct-id :c})
+  {:title "Which of the following best describes your goal?"
+   ; :description "Git provides several ways to undo changes, but the best approach depends entirely on what you are trying to achieve and whether your changes have been shared with others.Git provides several ways to undo changes, but the best approach depends entirely on what you are trying to achieve and whether your changes have been shared with others.Git provides several ways to undo changes, but the best approach depends entirely on what you are trying to achieve and whether your changes have been shared with others."
+   :options [[:span [:strong "Keep the changes: "] "I want to undo the commit but keep all the work I did as \"unstaged\" changes in my folder."]
+             [:span [:strong "Delete the changes: "] "I want to completely delete the last commits and the work inside them (reset to a clean previous state)."]
+             [:span [:strong "Fix a mistake: "] "I just want to modify the last commit (e.g., fix a typo or add a forgotten file) without creating a new one."]
+             [:span [:strong "Undo a push: "] "I already pushed these commits to a remote server (GitHub/GitLab) and need to fix it there too."]]
+   :assumed-id 3})
 
 (def mock-knowledge-data
   {;; We omit the :title here to test the optionality, relying only on the :description
@@ -388,37 +391,60 @@
   (if (str/blank? query) [] (filter #(fuzzy-match? query (:label %)) mapped-questions)))
 
 ;; ---------------------------------------------------------
-;; COMPONENTS
+;; -- COMPONENTS---------------------------------------------------------
 ;; ---------------------------------------------------------
 
-;; Reusable Quiz Component for both Problem and Knowledge panels
-(defn quiz-component [panel-type data state-atom]
+;; --- PROBLEM QUIZ COMPONENT ---
+(defn quiz-problem [data state-atom]
   (let [selected-id @state-atom
-        answered?   (some? selected-id)
-        is-correct? (= selected-id (:correct-id data))
-        watermark-el (if (= panel-type :problem)
-                       [:div.panel-watermark.left "❓"]
-                       [:div.panel-watermark.right "🧠"])]
-
+        answered?   (some? selected-id)]
     [:div.quiz-container
-     {:class (when answered? (if is-correct? "panel-correct" "panel-wrong"))}
+     ;; Info-gathered (light blue) background when answered
+     {:class (when answered? "panel-info-gathered")}
 
-     watermark-el
+     [:div.panel-watermark.left "❓"]
 
      [:div.quiz-content
       [:div.quiz-inner
-       (when-let [title (:title data)]
-         [:h3.question-title title])
+       (when-let [title (:title data)] [:h3.question-title title])
+       (when-let [desc (:description data)] [:p.question-desc desc])
 
-       (when-let [desc (:description data)]
-         [:p.question-desc desc])
+       [:div.options-list
+        (for [[id text] (map-indexed #(into [%1 %2]) (:options data))]
+          (let [is-this-selected (= id selected-id)
+                ;; Specific logic for Problem Mode (Assumed vs Selected)
+                opt-class (cond
+                            is-this-selected "option-selected"
+                            answered? "option-disabled"
+                            (= id (:assumed-id data)) "option-assumed"
+                            :else "option-default")]
+            ^{:key id}
+            [:button.quiz-option
+             {:class opt-class
+              :on-click #(when-not answered? (reset! state-atom id))}
+             text]))]]]]))
+
+;; --- KNOWLEDGE QUIZ COMPONENT ---
+(defn quiz-knowledge [data state-atom]
+  (let [selected-id @state-atom
+        answered?   (some? selected-id)
+        is-correct? (= selected-id (:correct-id data))]
+    [:div.quiz-container
+     ;; Correct/Wrong (green/red) background when answered
+     {:class (when answered? (if is-correct? "panel-correct" "panel-wrong"))}
+
+     [:div.panel-watermark.right "🧠"]
+
+     [:div.quiz-content
+      [:div.quiz-inner
+       (when-let [title (:title data)] [:h3.question-title title])
+       (when-let [desc (:description data)] [:p.question-desc desc])
 
        [:div.options-list
         (for [{:keys [id text]} (:options data)]
           (let [is-this-selected (= id selected-id)
                 is-this-correct  (= id (:correct-id data))
-
-                ;; Determine CSS class based on quiz state
+                ;; Specific logic for Knowledge Mode (Right/Wrong evaluation)
                 opt-class (cond
                             (not answered?) "option-default"
                             (and is-this-selected is-this-correct) "option-correct"
@@ -428,7 +454,6 @@
             ^{:key id}
             [:button.quiz-option
              {:class opt-class
-              ;; Only allow clicking if not answered yet
               :on-click #(when-not answered? (reset! state-atom id))}
              text]))]]]]))
 
@@ -550,7 +575,7 @@
 ;; ---------------------------------------------------------
 
 ;; ---------------------------------------------------------
-;; ---Re-frame Event/Sub Registration---------------------------------------------------------
+;; --- Re-frame Events/Subs
 ;; ---------------------------------------------------------
 
 (defn active-trace ;; Holds the ID of the selected question
@@ -566,7 +591,28 @@
   (assoc-in app-state [:trace-ui :active-trace] nil))
 (re-frame/reg-event-db ::reset-problem-node reset-problem-node)
 
-;; (re-frame/dispatch-sync [::reset-problem-node])
+;; this one doesn't belong here.. add to another Re-frame Events/Subs
+(defn add-node-props [app-state [_e [node props]]]
+  (update-in app-state [:domain :nodes-map node] merge props))
+(re-frame/reg-event-db ::add-node-props add-node-props)
+
+(defonce counter (atom 0))
+(def next-nodes
+  [{:delay 100 :node-prop ["❓ Undo last commits" {:color light-red :hidden? false}]}
+   {:delay 800 :node-prop ["git revert" {:name "🎯 git revert" :color light-red :hidden? false}]}
+   {:delay 1600 :node-prop ["Commit Object" {:name "🧠 Commit Object" :color light-yellow :hidden? false}]}
+   {:delay 1600 :node-prop ["Immutability" {:color light-yellow :hidden? false}]}])
+(defn next-node [_]
+  ; {:fx [[:dispatch-later {:ms 2000 :dispatch [::add-node-props ["git revert" {:color "#fff6c4"}]]}]]})
+  {:fx (map #(into [:dispatch-later {:ms (:delay %) :dispatch [::add-node-props (:node-prop %)]}]) next-nodes)})
+(re-frame/reg-event-fx ::next-node next-node)
+
+(comment
+  (do
+    (looset-graph.app/load-graph-text)
+    (re-frame/dispatch-sync [::reset-problem-node])))
+;; (re-frame/dispatch-sync [::add-node-props ["git reset" {:color nil}]])
+;; (re-frame/dispatch-sync [::add-node-props ["git revert" {:name "x git revert"}]])
 
 ;; ---------------------------------------------------------
 ;; --- Main view ---------------------------------------------------------
@@ -581,11 +627,12 @@
             is-tracing?  (some? active-trace)]
 
         ;; Add .state-trace class conditionally to trigger all CSS animations
-        [:div.app-container {:class (when is-tracing? "state-trace")}
+        [:div.app-container {:class (when is-tracing? "state-trace")
+                             :on-click #(>evt [::next-node])}
          [trace-styles]
 
          ;; === BACKGROUND GRAPH LAYER ===
-         [:div.graph-bg "graph"
+         [:div.graph-bg
            [util/error-boundary
             {:if-error [:h2 "erro"]}
             [looset-graph/graph-component]]]
@@ -605,8 +652,8 @@
 
            ;; Problem Quiz (Visible during trace)
            (when is-tracing?
-             [quiz-component :problem mock-problem-data problem-answer])]
+             [quiz-problem mock-problem-data problem-answer])]
 
           ;; Right: Knowledge Panel (Visible during trace)
           [:div.knowledge-panel
-           [quiz-component :knowledge mock-knowledge-data knowledge-answer]]]]))))
+           [quiz-knowledge mock-knowledge-data knowledge-answer]]]]))))
