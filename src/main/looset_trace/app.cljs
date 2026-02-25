@@ -1,5 +1,6 @@
 (ns looset-trace.app
   (:require
+    ["react-markdown" :default ReactMarkdown]
     [clojure.string :as str]
     [looset-graph.app :as looset-graph]
     [looset-graph.util :as util :refer [<sub >evt]]
@@ -14,6 +15,43 @@
 
 (defn trace-styles []
   [:style "
+    /* -----------------------------------------
+       Global scrollbar definitions
+       ----------------------------------------- */
+    * {
+      /* Firefox: thin scrollbar, semi-transparent thumb, transparent track */
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+    }
+
+    /* Webkit (Chrome, Edge, Safari): Make it thin */
+    *::-webkit-scrollbar {
+      width: 6px;
+      height: 6px; /* For horizontal scrollbars */
+    }
+
+    /* Track is always transparent */
+    *::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    /* Thumb is INVISIBLE by default (opacity 0) */
+    *::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0);
+      border-radius: 10px;
+      transition: background-color 0.3s ease; /* Smooth fade in */
+    }
+
+    /* When hovering ANY scrollable container, show the thumb faintly */
+    *:hover::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.15);
+    }
+
+    /* When hovering directly OVER the scrollbar, make it slightly darker */
+    *::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 0, 0, 0.3);
+    }
+
     /* Global App Container */
     .app-container {
       position: relative;
@@ -218,12 +256,6 @@
       padding-right: 8px; /* Room for scrollbar */
     }
 
-    /* Custom Webkit Scrollbar for a clean, modern look */
-    .quiz-content::-webkit-scrollbar { width: 6px; }
-    .quiz-content::-webkit-scrollbar-track { background: transparent; }
-    .quiz-content::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
-    .quiz-content::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
-
     /* Inner wrapper uses auto margins to center content safely without cutting off the top when scrolling */
     .quiz-inner {
       margin: auto 0;
@@ -279,6 +311,8 @@
       box-shadow: -4px 0 15px rgba(0,0,0,0.03); z-index: 5;
       padding: 30px 24px; display: flex; flex-direction: column;
       transform: translateX(100%); transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+      text-wrap-style: balance;
+      overflow-y: auto;
     }
     .state-trace .node-details-panel { transform: translateX(0); } /* Slides in when trace starts */
 
@@ -291,6 +325,9 @@
       position: relative; padding: 12px 16px 12px 24px; border-radius: 8px;
       background: #f9fafb; border: 1px solid #f3f4f6;
       display: flex; flex-direction: column; overflow: hidden;
+      text-decoration: none; /* Prevents the default link underline */
+      color: inherit;        /* Prevents the default link blue color */
+      cursor: pointer;       /* Ensures the mouse pointer turns into a hand */
     }
     .resource-card:hover { background: #f3f4f6; }
 
@@ -300,6 +337,28 @@
     }
     .res-title { font-weight: 600; color: #374151; font-size: 0.95rem; }
     .res-meta { font-size: 0.8rem; color: #9ca3af; margin-top: 4px; }
+
+    .internal-link {
+      display: inline-block;
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      padding: 0px 8px;
+      margin: 0 2px;
+      color: #374151;
+      font-weight: 500;
+      font-size: 0.9em;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .internal-link:hover {
+      background: #eff6ff;
+      border-color: #3b82f6;
+      color: #1d4ed8;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+    }
   "])
 
 ;; ---------------------------------------------------------
@@ -345,6 +404,84 @@
    {:id 5 :title "2 Git Reset vs Revert vs Checkout" :type "Article" :depth 60}
    {:id 6 :title "2 Git Reset vs Revert vs Checkout" :type "Article" :depth 60}
    {:id 4 :title "Pro Git: Reset Demystified" :type "Reference" :depth 100}])
+
+(def mock-resources-2
+  {"https://learngitbranching.js.org/?level=intro2"
+   {:title "Introduction to Git Branches"
+    :summary "Learn the fundamentals of creating and switching between lightweight branches in Git."
+
+    ;; Diátaxis Classification
+    :diataxis-type {:how-to 0.0
+                    :tutorial 0.6
+                    :explanation 0.4
+                    :reference 0.0}
+
+    ;; Content Format
+    :media-type #{:simulation :game}
+    :segment-info {:is-segment? true
+                   :segment-focus "Understanding branches as lightweight commit pointers and checking them out."}
+
+    ;; Concept Mapping
+    :concepts-matched ["Branch" "git branch" "git checkout / git switch"]
+    :concepts-new []
+    :commands-mentioned ["git branch" "git checkout" "git switch" "git checkout -b"]
+
+    :safety
+    {:level :safe
+     :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+     :mentions-reflog? false}
+
+    :interface-type :cli
+    :estimated-minutes 5
+    :straight-to-the-point :straight
+    :didactic-score 5
+    :experience-level :beginner
+    :visual-score 5
+    :production-quality 3
+
+    ;; Metadata specific to the game platform
+    :game-meta
+    {:game-name "Learn Git Branching"
+     :game-url "https://learngitbranching.js.org/"
+     :level-id "intro2"
+     :objective-summary "Make a new branch named bugFix and switch to that branch."
+     :required-commands ["git branch bugFix" "git checkout bugFix"]}}
+
+   "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ&t=2460"
+   {:title "Introduction to Git Branching: The Kitchen Analogy"
+    :summary "Explains the concept of branching as a safe environment for experimentation using a restaurant kitchen analogy, and demonstrates how to list and create branches."
+    :diataxis-type #{:tutorial :explanation}
+    :media-type :video
+    :segment-info {:is-segment? true
+                   :segment-focus "Branching conceptual model and basic creation"}
+    :concepts-matched ["Branch"
+                       "git branch"
+                       "git branch [name]"
+                       "git checkout / git switch"
+                       "git merge"
+                       "Feature Branching"]
+    :concepts-new ["Main vs Master Naming" "Kitchen Analogy"]
+    :commands-mentioned ["git branch" "git checkout"]
+    :safety {:level :safe
+             :reason "Operations are read-only (listing) or additive (creating). No destructive actions performed."
+             :mentions-reflog? false}
+    :interface-type :cli
+    :estimated-minutes 3
+    :straight-to-the-point :medium
+    :didactic-score 5
+    :experience-level :beginner
+    :visual-score 3
+    :production-quality 3
+
+    :youtube-data
+    {:title "Git & GitHub Crash Course for Beginners [2026]"
+     :channel-name "freeCodeCamp.org"
+     :channel-url "https://www.youtube.com/@freeCodeCamp"
+     :total-duration "1:21:14"
+     :chapter-name "Git Branching Explained"
+     :chapter-starts-at "0:40:58"
+     :chapter-duration "0:02:55"}}
+   })
 
 ;; ---------------------------------------------------------
 ;; UTILITIES
@@ -393,6 +530,52 @@
 ;; ---------------------------------------------------------
 ;; -- COMPONENTS---------------------------------------------------------
 ;; ---------------------------------------------------------
+
+(defn markdown-view [content node-name]
+  (let [custom-components
+        {:code (fn [js-props]
+                 (let [class-name (.-className js-props)
+                       ;; ReactMarkdown passes the text content as an array in children
+                       children (.-children js-props)
+                       raw-text (when (seq children) (first children))
+                       urls (some->> (clojure.string/split raw-text #"\n")
+                             (remove clojure.string/blank?))
+                       raw-resources (map #(into (get mock-resources-2 % {:title % :depth 100}) {:url %}) urls)
+                       resources-with-gradient (calculate-depth-gradients raw-resources)]
+                   (if (not= class-name "language-curated-resources")
+                     ;; Fallback: Default Code Block
+                     (reagent/as-element [:code {:class class-name} children])
+                     (reagent/as-element
+                       [:div.resource-list
+                        (for [{:keys [url title type start-depth end-depth]} resources-with-gradient]
+                          ^{:key url}
+                          [:a.resource-card
+                           {:href url :target "_blank" :rel "noopener noreferrer"}
+                           ;; The Visual Depth Gradient
+                           [:div.depth-indicator {:style (get-gradient-style start-depth end-depth)}]
+                           [:div.res-title title]
+                           [:div.res-meta (str type " • Depth: " start-depth "% - " end-depth "%")]])]))))
+
+           :a (fn [js-props]
+                (let [href (-> js-props .-node .-properties .-href)
+                      children (.-children js-props)]
+                  (if (and href (clojure.string/starts-with? href "node:"))
+                    ;; Intercept Link for Internal Navigation
+                    (reagent/as-element
+                     [:span.internal-link
+                      {:on-click (fn [e]
+                                   (.preventDefault e)
+                                   ;; Extract ID (remove 'node:') and log
+                                   (js/console.log "Clicked internal node:" (subs href 5)))}
+                      children])
+
+                    ;; Fallback: Default External Link
+                    (reagent/as-element [:a {:href href :target "_blank"} children]))))}]
+
+      ;; Render the ReactMarkdown component
+      [:> ReactMarkdown
+       {:components (clj->js custom-components)
+        :children content}]))
 
 ;; --- PROBLEM QUIZ COMPONENT ---
 (defn quiz-problem [data state-atom]
@@ -462,6 +645,7 @@
     [:div.node-details-panel
      [:h2.node-title "git reset"]
      [:p.node-desc "Reset current HEAD to the specified state. This command modifies the index and/or the working tree depending on the flags used."]
+     [:p.node-desc [markdown-view "## Some markdown\n\n```curated-resources\nhttps://learngitbranching.js.org/?level=intro2\nurl2\nsuper-long-url-that-has-a-huge-address-super-long-url-that-has-a-huge-address\nsuper-long-url-that-has-a-huge-address-super-long-url-that-has-a-huge-address\nsuper-long-url-that-has-a-huge-address-super-long-url-that-has-a-huge-address\nsuper-long-url-that-has-a-huge-address-super-long-url-that-has-a-huge-address\n```\n\n```traditional-code-block\nurl1\nurl2\n```\nMy custom link: [A node](<node:git reset>)\n\nA traditional link: [Google](www.google.com)"]]
 
      [:h3 {:style {:font-size "1.1rem" :margin-bottom "12px" :color "#374151"}} "Curated Resources"]
      [:div.resource-list
