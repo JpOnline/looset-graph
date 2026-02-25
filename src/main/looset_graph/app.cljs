@@ -2092,19 +2092,27 @@
 
 (defn markdown-view [content node-name]
   (let [custom-components
-        {:img (fn [js-props]
-                (let [src (.-src js-props)
-                      alt (.-alt js-props)]
-                  (if (= src "meta:this")
-                    ;; Intercept Image for Metadata
-                    (reagent/as-element
-                     [:div.meta-box {:style {:border "2px solid #ccc"
-                                             :padding "10px"
-                                             :background "#f9f9f9"}}
-                      [:strong "My Node is called: "] node-name])
+        {:code (fn [js-props]
+                 (let [class-name (.-className js-props)
+                       ;; ReactMarkdown passes the text content as an array in children
+                       children (.-children js-props)]
+                   (if (= class-name "language-meta")
+                     ;; 1. Intercept 'meta' code blocks
+                     (let [raw-text (first children)
+                           ;; Split by newline and remove empty lines
+                           urls (->> (clojure.string/split raw-text #"\n")
+                                  (remove clojure.string/blank?))]
+                       (reagent/as-element
+                         [:div.meta-box {:style {:border "2px solid #ccc"
+                                                 :padding "10px"
+                                                 :background "#f9f9f9"}}
+                          [:strong "My Node is called: "] node-name
+                          [:ul
+                           (for [url urls]
+                             ^{:key url} [:li url])]])) ; Here you can sort/reorder your URLs
 
-                    ;; Fallback: Default Image
-                    (reagent/as-element [:img {:src src :alt alt}]))))
+                     ;; 2. Fallback: Default Code Block
+                     (reagent/as-element [:code {:class class-name} children]))))
 
          :a (fn [js-props]
               (let [href (-> js-props .-node .-properties .-href)
@@ -2137,7 +2145,7 @@
      [:div.prose.prose-sm.max-w-none
       {:style {:font-family "Proza Libre, sans-serif" :color "#4a484a"}}
       [markdown-view
-       (str "Here is a concept. \n\n ![meta](meta:this) \n\n See also [Staging Area](node:concept/staging-area)." content)
+       (str "Here is a concept. \n\n ```meta\nurl1\nurl2\n``` \n\n See also [Staging Area](<node:Staging Area>)." content)
        "some node"]])])
 
 (defn node-display-row [{:keys [node-id with-controls?]}]
