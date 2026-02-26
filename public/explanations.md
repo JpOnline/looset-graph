@@ -9,8 +9,11 @@ Creates a **new commit** that does the exact opposite of the target commit. Best
 `git revert <commit_id>`
 
 ```curated-resources
-url1
-ur2
+https://git-scm.com/docs/git-revert
+https://git-scm.com/book/en/v2/Git-Tools-Advanced-Merging
+https://www.atlassian.com/git/tutorials/undoing-changes/git-revert
+https://youtu.be/mAFoROnOfHs?si=G-ibDDoKzriwO2hI&t=4191
+https://learngitbranching.js.org/?level=rampup4
 ```
 
 {{"Tag Object"}}

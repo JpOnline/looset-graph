@@ -527,6 +527,30 @@
 (defn search-questions [query]
   (if (str/blank? query) [] (filter #(fuzzy-match? query (:label %)) mapped-questions)))
 
+(defn calculate-depth
+  "Defines a first grade based on the :media-type, than sum more points.
+  But in general the order is
+    Game
+    Video
+    Q&A
+    Book
+    Reference
+  "
+  [resource]
+  (cond->
+    (condp some (:media-type resource)
+      #{:game :simulation} 20
+      #{:video}            30
+      #{:Q&A}              60
+      #{:book}             70
+      #{:reference}        80
+      #{:text}             50 ;; default texts depth
+      50) ;; default value
+    (= :advanced (:experience-level resource)) (+ 15)
+    (= :beginner (:experience-level resource)) (- 15)))
+;; To test the calculate-depth fn
+;; (map #(select-keys % [:depth :media-type :experience-level]) (sort-by :depth (map #(assoc % :depth (calculate-depth %)) (vals (:resources-meta (:domain @re-frame.db/app-db))))))
+
 ;; ---------------------------------------------------------
 ;; -- COMPONENTS---------------------------------------------------------
 ;; ---------------------------------------------------------
@@ -535,6 +559,10 @@
   [app-state [_ev node-id]]
   (assoc-in app-state [:ui :selected-nodes] #{node-id}))
 (re-frame/reg-event-db ::node-link-clicked node-link-clicked)
+
+(defn all-resources-meta [app-state]
+  (get-in app-state [:domain :resources-meta] {}))
+(re-frame/reg-sub ::all-resources-meta all-resources-meta)
 
 (defn markdown-view [content]
   (let [custom-components
@@ -546,21 +574,36 @@
                        raw-text (when (seq children) (first children))
                        urls (some->> (clojure.string/split raw-text #"\n")
                              (remove clojure.string/blank?))
-                       raw-resources (map #(into (get mock-resources-2 % {:title % :depth 100}) {:url %}) urls)
-                       resources-with-gradient (calculate-depth-gradients raw-resources)]
+                       resources (when (seq urls) (<sub [::all-resources-meta]))
+                       raw-resources (map #(into (get resources % {:title % :depth 50}) {:url %}) urls)
+                       resources-with-gradient (->> raw-resources
+                                                 (map #(assoc % :depth (calculate-depth %)))
+                                                 (calculate-depth-gradients))]
                    (if (not= class-name "language-curated-resources")
                      ;; Fallback: Default Code Block
                      (reagent/as-element [:code {:class class-name} children])
                      (reagent/as-element
                        [:div.resource-list
-                        (for [{:keys [url title type start-depth end-depth]} resources-with-gradient]
+                        (for [{:keys [url title media-type summary start-depth end-depth]} resources-with-gradient
+                              :let [type (condp some media-type
+                                           #{:game} "🎮 "
+                                           #{:video} "🎬 "
+                                           #{:tutorial} "🪜 "
+                                           #{:Q&A} "💡 "
+                                           #{:book} "📚 "
+                                           #{:reference} "🔍 "
+                                           #{:simulation} "⚙️ "
+
+                                           #{:text} "📄 "
+                                           #{:article} "🗞️ "
+                                           "")]]
                           ^{:key url}
                           [:a.resource-card
                            {:href url :target "_blank" :rel "noopener noreferrer"}
                            ;; The Visual Depth Gradient
                            [:div.depth-indicator {:style (get-gradient-style start-depth end-depth)}]
                            [:div.res-title title]
-                           [:div.res-meta (str type " • Depth: " start-depth "% - " end-depth "%")]])]))))}]
+                           [:div.res-meta (str type summary)]])]))))}]
 
     ;; Render the ReactMarkdown component
     [:> ReactMarkdown
@@ -637,21 +680,10 @@
                                     (or selected-node
                                         (util/get-pred #(clojure.string/starts-with? % "❓") visible-nodes)
                                         (first visible-nodes)))
-        resources-with-gradient (calculate-depth-gradients mock-resources)
         explanations (<sub [::looset-graph/explanation-content])]
     [:div.node-details-panel
      [:h2.node-title selected-or-fallback-node]
-     [:p.node-desc [markdown-view (get explanations {:type :node :id selected-or-fallback-node})]]
-
-     [:h3 {:style {:font-size "1.1rem" :margin-bottom "12px" :color "#374151"}} "Curated Resources"]
-     [:div.resource-list
-      (for [{:keys [id title type start-depth end-depth]} resources-with-gradient]
-        ^{:key id}
-        [:div.resource-card
-         ;; The Visual Depth Gradient
-         [:div.depth-indicator {:style (get-gradient-style start-depth end-depth)}]
-         [:div.res-title title]
-         [:div.res-meta (str type " • Depth: " start-depth "% - " end-depth "%")]])]]))
+     [:p.node-desc [markdown-view (get explanations {:type :node :id selected-or-fallback-node})]]]))
 
 ;; ---------------------------------------------------------
 ;; Search UI Component
