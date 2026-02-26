@@ -536,7 +536,7 @@
   (assoc-in app-state [:ui :selected-nodes] #{node-id}))
 (re-frame/reg-event-db ::node-link-clicked node-link-clicked)
 
-(defn markdown-view [content node-name]
+(defn markdown-view [content]
   (let [custom-components
         {:a looset-graph/markdown-view-node-link
          :code (fn [js-props]

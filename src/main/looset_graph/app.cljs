@@ -93,20 +93,6 @@
 ;; TODO: Replace all reg-subs for reg-flow? Maybe there's still usage for subs,
 ;; it also has the nice effect of defining default values in a single place.
 
-;; I'll want to abstract the subs, make a generic one and pass the path as an
-;; argument to subs. There are people doing that as in https://vvvvalvalval.github.io/posts/some-re-frame-patterns-for-composability.html#generic_subscriptions_and_events_for_app-db_paths
-;; but my was to follow official re-frame documentation and indeed create a lot
-;; of subs to extract data from app-state. Re-frame official documentation about it
-;; is in https://day8.github.io/re-frame/correcting-a-wrong/#a-final-faq
-
-;; Reviewing re-frame philosophy https://github.com/day8/re-frame/blob/master/docs/historical.md
-;; I can see how I that abstracting the subs doesn't hit the main philosophy,
-;; but might be more in sync with my philosophy of to not try to predict how the
-;; code will need to change, the point of not generalizing subs is that if I
-;; the structure of the app-state I'll need to change all the views, but maybe
-;; I won't need it, and if I need might not be such a problem. I might generalize
-;; the layer 2 subs and simple events and define defaults value in the initial-state.
-
 ;; (defn dot-graph
 ;;   [app-state]
 ;;   (get-in app-state [:domain :dot-graph] ""))
