@@ -26,4 +26,5 @@
   (looset-graph/init-url-history-observer)
   (looset-graph/init-keyboard-events)
   ;; (looset-graph/init-style-observer))
-  (looset-graph/init-url-state-timer))
+  (looset-graph/init-url-state-timer)
+  (re-frame/dispatch-sync [::looset-graph/fetch-markdown-explanation-content]))

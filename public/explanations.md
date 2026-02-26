@@ -1,3 +1,18 @@
+{{"❓ Undo last commits"}}
+Assuming you have already pushed these commits to a remote server in a branch others are working on, check the following node for a solution:
+
+[git revert](<node:git revert>)
+
+{{"git revert"}}
+Creates a **new commit** that does the exact opposite of the target commit. Best for teams because it doesn't break others' history.
+
+`git revert <commit_id>`
+
+```curated-resources
+url1
+ur2
+```
+
 {{"Tag Object"}}
 Lorem Ipsum balweoowj fiowjfowjfijowjfoiwej fojwofjoiwjfowj f
 owiej fowjfojwoifej oiwjfoijwe
@@ -24,6 +39,14 @@ Some explanation..
 Some other explanation...
 
 {{"Index"}}
+
+See also [Tag Object](node:Tag Object)
+
+```curated-resources
+https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ&t=2460
+https://stackoverflow.com/questions/927358/how-do-i-undo-the-most-recent-local-commits-in-git/927386#comment97845110_927358
+https://learngitbranching.js.org/?level=intro2
+```
 
 The **Index** is one of the three core pillars of Git's architecture (along with the Working Directory and the Repository). It acts as a **dynamic manifest** for the entire project.
 
@@ -132,7 +155,7 @@ This relationship describes the mechanics of a **Lightweight Tag**.
 * **No Metadata:** There is no separate "Tag Object" created. The tag is simply a label sticking directly to the commit.
 * **Efficiency:** It behaves exactly like a branch that never moves.
 
-{{Tag -"points_to"-> Tag Object}}
+{{"Tag" -"points_to"-> "Tag Object"}}
 
 This relationship describes the mechanics of an **Annotated Tag**.
 

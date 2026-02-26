@@ -32,3 +32,8 @@
 
 (def <sub (comp deref re-frame/subscribe))
 (def >evt re-frame/dispatch)
+
+(defn get-pred
+  "Returns the first element of coll that satisfies the predicate f."
+  [f coll]
+  (some #(when (f %) %) coll))
