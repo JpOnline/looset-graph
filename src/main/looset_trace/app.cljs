@@ -531,9 +531,15 @@
 ;; -- COMPONENTS---------------------------------------------------------
 ;; ---------------------------------------------------------
 
+(defn node-link-clicked
+  [app-state [_ev node-id]]
+  (assoc-in app-state [:ui :selected-nodes] #{node-id}))
+(re-frame/reg-event-db ::node-link-clicked node-link-clicked)
+
 (defn markdown-view [content node-name]
   (let [custom-components
-        {:code (fn [js-props]
+        {:a looset-graph/markdown-view-node-link
+         :code (fn [js-props]
                  (let [class-name (.-className js-props)
                        ;; ReactMarkdown passes the text content as an array in children
                        children (.-children js-props)
@@ -625,11 +631,17 @@
              text]))]]]]))
 
 (defn right-panel-view []
-  (let [resources-with-gradient (calculate-depth-gradients mock-resources)]
+  (let [selected-or-fallback-node (let [[selected-node & osn] @(re-frame/sub :flow {:id :f-selected-nodes})
+                                        _ (when (seq osn) (js/console.error "Mais de um Node selecionado:" (cons selected-node osn)))
+                                        visible-nodes (when-not selected-node @(re-frame/sub :flow {:id :f-visible-nodes}))]
+                                    (or selected-node
+                                        (util/get-pred #(clojure.string/starts-with? % "❓") visible-nodes)
+                                        (first visible-nodes)))
+        resources-with-gradient (calculate-depth-gradients mock-resources)
+        explanations (<sub [::looset-graph/explanation-content])]
     [:div.node-details-panel
-     [:h2.node-title "git reset"]
-     [:p.node-desc "Reset current HEAD to the specified state. This command modifies the index and/or the working tree depending on the flags used."]
-     [:p.node-desc [markdown-view "## Some markdown\n\n```curated-resources\nhttps://learngitbranching.js.org/?level=intro2\nurl2\nsuper-long-url-that-has-a-huge-address-super-long-url-that-has-a-huge-address\nsuper-long-url-that-has-a-huge-address-super-long-url-that-has-a-huge-address\nsuper-long-url-that-has-a-huge-address-super-long-url-that-has-a-huge-address\nsuper-long-url-that-has-a-huge-address-super-long-url-that-has-a-huge-address\n```\n\n```traditional-code-block\nurl1\nurl2\n```\nMy custom link: [A node](<node:git reset>)\n\nA traditional link: [Google](www.google.com)"]]
+     [:h2.node-title selected-or-fallback-node]
+     [:p.node-desc [markdown-view (get explanations {:type :node :id selected-or-fallback-node})]]
 
      [:h3 {:style {:font-size "1.1rem" :margin-bottom "12px" :color "#374151"}} "Curated Resources"]
      [:div.resource-list
