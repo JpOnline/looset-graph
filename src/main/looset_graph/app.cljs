@@ -1,8 +1,8 @@
 (ns looset-graph.app
   (:require
     ["react-markdown" :default ReactMarkdown]
-    [cljs.reader]
     [clojure.data]
+    [clojure.edn :as edn]
     [clojure.set :as set]
     [clojure.string]
     [goog.net.XhrIo :as xhr]
@@ -668,7 +668,7 @@
   [node-prop]
   (let [node-id (clean-surrounding-quotes (get-in node-prop [1 1 1 1]))
         edn (get node-prop 2)]
-    [{node-id (cljs.reader/read-string (get-edn-string edn))}]))
+    [{node-id (edn/read-string (get-edn-string edn))}]))
 
 (defn no-memo-nodes-map*
   [{:keys [graph-ast]}]
