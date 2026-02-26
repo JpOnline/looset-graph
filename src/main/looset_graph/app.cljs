@@ -2090,14 +2090,34 @@
        :lix   [:span.ml-1 {:style {:color "#4a484a" :font-size "x-large"}} node-id]
        [:span node-id])])) ;; Fallback
 
+(defn markdown-view-node-link [js-props]
+  (let [href (-> js-props .-node .-properties .-href)
+        children (.-children js-props)
+        node-id (some-> href (subs 5) js/decodeURIComponent)]
+    (if (and href (clojure.string/starts-with? href "node:"))
+      ;; Intercept Link for Internal Navigation
+      (reagent/as-element
+        [:a.internal-link
+         {:href href
+          :on-click (fn [e]
+                      (.preventDefault e)
+                      (>evt [:looset-trace.app/node-link-clicked node-id])
+                      ;; Extract ID (remove 'node:') and log
+                      (js/console.log "Clicked internal node:" (subs href 5)))}
+         children])
+
+      ;; Fallback: Default External Link
+      (reagent/as-element [:a {:href href :target "_blank"} children]))))
+
 (defn markdown-view [content node-name]
   (let [custom-components
-        {:code (fn [js-props]
+        {:a markdown-view-node-link
+         :code (fn [js-props]
                  (let [class-name (.-className js-props)
                        ;; ReactMarkdown passes the text content as an array in children
                        children (.-children js-props)]
-                   (if (= class-name "language-meta")
-                     ;; 1. Intercept 'meta' code blocks
+                   (if (= class-name "language-curated-resources")
+                     ;; 1. Intercept code blocks
                      (let [raw-text (first children)
                            ;; Split by newline and remove empty lines
                            urls (->> (clojure.string/split raw-text #"\n")
@@ -2106,32 +2126,13 @@
                          [:div.meta-box {:style {:border "2px solid #ccc"
                                                  :padding "10px"
                                                  :background "#f9f9f9"}}
-                          [:strong "My Node is called: "] node-name
+                          [:strong "URLs:"]
                           [:ul
                            (for [url urls]
                              ^{:key url} [:li url])]])) ; Here you can sort/reorder your URLs
 
                      ;; 2. Fallback: Default Code Block
-                     (reagent/as-element [:code {:class class-name} children]))))
-
-         :a (fn [js-props]
-              (let [href (-> js-props .-node .-properties .-href)
-                    children (.-children js-props)]
-                (if (and href (clojure.string/starts-with? href "node:"))
-                  ;; Intercept Link for Internal Navigation
-                  (reagent/as-element
-                   [:span.internal-link
-                    {:style {:color "red"
-                             :text-decoration "underline"
-                             :cursor "pointer"}
-                     :on-click (fn [e]
-                                 (.preventDefault e)
-                                 ;; Extract ID (remove 'node:') and log
-                                 (js/console.log "Clicked internal node:" (subs href 5)))}
-                    children])
-
-                  ;; Fallback: Default External Link
-                  (reagent/as-element [:a {:href href :target "_blank"} children]))))}]
+                     (reagent/as-element [:code {:class class-name} children]))))}]
 
     ;; Render the ReactMarkdown component
     [:> ReactMarkdown
@@ -2145,7 +2146,7 @@
      [:div.prose.prose-sm.max-w-none
       {:style {:font-family "Proza Libre, sans-serif" :color "#4a484a"}}
       [markdown-view
-       (str "Here is a concept. \n\n ```meta\nurl1\nurl2\n``` \n\n See also [Staging Area](<node:Staging Area>)." content)
+       content
        "some node"]])])
 
 (defn node-display-row [{:keys [node-id with-controls?]}]
@@ -2440,6 +2441,28 @@
      .bg-gray-50 { background-color: #f9fafb; }
      .border-double { border-style: double; }
      .border-blue-200 { border-color: #bfdbfe; }
+
+   .internal-link {
+     display: inline-block;
+     background: #f3f4f6;
+     border: 1px solid #d1d5db;
+     border-radius: 12px;
+     padding: 0px 8px;
+     margin: 0 2px;
+     color: #374151;
+     font-weight: 500;
+     font-size: 0.9em;
+     text-decoration: none;
+     transition: all 0.2s ease;
+     cursor: pointer;
+   }
+   .internal-link:hover {
+     background: #eff6ff;
+     border-color: #3b82f6;
+     color: #1d4ed8;
+     transform: translateY(-1px);
+     box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+   }
    ")])
 
 (defn ctrl-c-selected-nodes

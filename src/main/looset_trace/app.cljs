@@ -554,28 +554,12 @@
                            ;; The Visual Depth Gradient
                            [:div.depth-indicator {:style (get-gradient-style start-depth end-depth)}]
                            [:div.res-title title]
-                           [:div.res-meta (str type " • Depth: " start-depth "% - " end-depth "%")]])]))))
+                           [:div.res-meta (str type " • Depth: " start-depth "% - " end-depth "%")]])]))))}]
 
-           :a (fn [js-props]
-                (let [href (-> js-props .-node .-properties .-href)
-                      children (.-children js-props)]
-                  (if (and href (clojure.string/starts-with? href "node:"))
-                    ;; Intercept Link for Internal Navigation
-                    (reagent/as-element
-                     [:span.internal-link
-                      {:on-click (fn [e]
-                                   (.preventDefault e)
-                                   ;; Extract ID (remove 'node:') and log
-                                   (js/console.log "Clicked internal node:" (subs href 5)))}
-                      children])
-
-                    ;; Fallback: Default External Link
-                    (reagent/as-element [:a {:href href :target "_blank"} children]))))}]
-
-      ;; Render the ReactMarkdown component
-      [:> ReactMarkdown
-       {:components (clj->js custom-components)
-        :children content}]))
+    ;; Render the ReactMarkdown component
+    [:> ReactMarkdown
+     {:components (clj->js custom-components)
+      :children content}]))
 
 ;; --- PROBLEM QUIZ COMPONENT ---
 (defn quiz-problem [data state-atom]
