@@ -417,14 +417,13 @@
 
 (def mock-knowledge-data
   {;; We omit the :title here to test the optionality, relying only on the :description
-   :title "Why do you want to undo your recent commits?Why do you want to undo your recent commits?Why do you want to undo your recent commits?Why do you want to undo your recent commits?"
-   :description "What happens to your changes when you execute 'git reset --soft HEAD~1' in your terminal? Consider the state of the Staging Area and the Working Directory.What happens to your changes when you execute 'git reset --soft HEAD~1' in your terminal? Consider the state of the Staging Area and the Working Directory.What happens to your changes when you execute 'git reset --soft HEAD~1' in your terminal? Consider the state of the Staging Area and the Working Directory."
-   :options [{:id :a :text "The files are permanently deleted and cannot be recovered from the local history."}
-             {:id :b :text "The files remain in the Staging Area, ready to be committed again immediately."}
-             {:id :b :text "I forgot to add a file to the commit, so I need to amend the previous commit to include it.I forgot to add a file to the commit, so I need to amend the previous commit to include it.I forgot to add a file to the commit, so I need to amend the previous commit to include it."}
-             {:id :b :text "I forgot to add a file to the commit, so I need to amend the previous commit to include it.I forgot to add a file to the commit, so I need to amend the previous commit to include it.I forgot to add a file to the commit, so I need to amend the previous commit to include it."}
-             {:id :c :text "The files are moved to the Working Directory (unstaged) and must be re-added.The files are moved to the Working Directory (unstaged) and must be re-added.The files are moved to the Working Directory (unstaged) and must be re-added.The files are moved to the Working Directory (unstaged) and must be re-added."}]
-   :correct-id :b})
+   ; :title "Why do you want to undo your recent commits?Why do you want to undo your recent commits?Why do you want to undo your recent commits?Why do you want to undo your recent commits?"
+   :description "If you execute `git commit --amend --no-edit` without staging any new changes, why does the resulting commit object resolve to a completely different SHA-1 hash than the original?"
+   :options [{:id :a :text "Git automatically injects a new cryptographic nonce into the commit header to enforce global graph uniqueness."}
+             {:id :b :text "The  `tree` object is recursively re-hashed to guarantee data integrity against the `.git/index.`"}
+             {:id :c :text "The committer timestamp is updated to the current execution time, fundamentally altering the raw text payload used for the SHA-1 calculation."}
+             {:id :d :text "The parent pointer is reassigned to reference the original commit, strictly enforcing a linear Directed Acyclic Graph."}]
+   :correct-id :c})
 
 (def mock-resources
   [{:id 1 :title "Git Reset in 100 Seconds" :type "Video" :depth 0}
@@ -689,7 +688,7 @@
      [:div.quiz-content
       [:div.quiz-inner
        (when-let [title (:title data)] [:h3.question-title title])
-       (when-let [desc (:description data)] [:p.question-desc desc])
+       (when-let [desc (:description data)] [:p.question-desc [markdown-view desc]])
 
        [:div.options-list
         (for [{:keys [id text]} (:options data)]
