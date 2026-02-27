@@ -417,9 +417,8 @@
    ; :description "Git provides several ways to undo changes, but the best approach depends entirely on what you are trying to achieve and whether your changes have been shared with others.Git provides several ways to undo changes, but the best approach depends entirely on what you are trying to achieve and whether your changes have been shared with others.Git provides several ways to undo changes, but the best approach depends entirely on what you are trying to achieve and whether your changes have been shared with others."
    :options [[:span [:strong "Keep the changes: "] "I want to undo the commit but keep all the work I did as \"unstaged\" changes in my folder."]
              [:span [:strong "Delete the changes: "] "I want to completely delete the last commits and the work inside them (reset to a clean previous state)."]
-             [:span [:strong "Fix a mistake: "] "I just want to modify the last commit (e.g., fix a typo or add a forgotten file) without creating a new one."]
              [:span [:strong "Undo a push: "] "I already pushed these commits to a remote server (GitHub/GitLab) and need to fix it there too."]]
-   :assumed-id 3})
+   :assumed-id 2})
 
 (def mock-knowledge-data
   {;; We omit the :title here to test the optionality, relying only on the :description
@@ -430,92 +429,6 @@
              {:id :c :text "The committer timestamp is updated to the current execution time, fundamentally altering the raw text payload used for the SHA-1 calculation."}
              {:id :d :text "The parent pointer is reassigned to reference the original commit, strictly enforcing a linear Directed Acyclic Graph."}]
    :correct-id :c})
-
-(def mock-resources
-  [{:id 1 :title "Git Reset in 100 Seconds" :type "Video" :depth 0}
-   {:id 2 :title "Understanding the 3 Trees of Git" :type "Article" :depth 40}
-   {:id 3 :title "Git Reset vs Revert vs Checkout" :type "Article" :depth 60}
-   {:id 5 :title "2 Git Reset vs Revert vs Checkout" :type "Article" :depth 60}
-   {:id 6 :title "2 Git Reset vs Revert vs Checkout" :type "Article" :depth 60}
-   {:id 4 :title "Pro Git: Reset Demystified" :type "Reference" :depth 100}])
-
-(def mock-resources-2
-  {"https://learngitbranching.js.org/?level=intro2"
-   {:title "Introduction to Git Branches"
-    :summary "Learn the fundamentals of creating and switching between lightweight branches in Git."
-
-    ;; Diátaxis Classification
-    :diataxis-type {:how-to 0.0
-                    :tutorial 0.6
-                    :explanation 0.4
-                    :reference 0.0}
-
-    ;; Content Format
-    :media-type #{:simulation :game}
-    :segment-info {:is-segment? true
-                   :segment-focus "Understanding branches as lightweight commit pointers and checking them out."}
-
-    ;; Concept Mapping
-    :concepts-matched ["Branch" "git branch" "git checkout / git switch"]
-    :concepts-new []
-    :commands-mentioned ["git branch" "git checkout" "git switch" "git checkout -b"]
-
-    :safety
-    {:level :safe
-     :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
-     :mentions-reflog? false}
-
-    :interface-type :cli
-    :estimated-minutes 5
-    :straight-to-the-point :straight
-    :didactic-score 5
-    :experience-level :beginner
-    :visual-score 5
-    :production-quality 3
-
-    ;; Metadata specific to the game platform
-    :game-meta
-    {:game-name "Learn Git Branching"
-     :game-url "https://learngitbranching.js.org/"
-     :level-id "intro2"
-     :objective-summary "Make a new branch named bugFix and switch to that branch."
-     :required-commands ["git branch bugFix" "git checkout bugFix"]}}
-
-   "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ&t=2460"
-   {:title "Introduction to Git Branching: The Kitchen Analogy"
-    :summary "Explains the concept of branching as a safe environment for experimentation using a restaurant kitchen analogy, and demonstrates how to list and create branches."
-    :diataxis-type #{:tutorial :explanation}
-    :media-type :video
-    :segment-info {:is-segment? true
-                   :segment-focus "Branching conceptual model and basic creation"}
-    :concepts-matched ["Branch"
-                       "git branch"
-                       "git branch [name]"
-                       "git checkout / git switch"
-                       "git merge"
-                       "Feature Branching"]
-    :concepts-new ["Main vs Master Naming" "Kitchen Analogy"]
-    :commands-mentioned ["git branch" "git checkout"]
-    :safety {:level :safe
-             :reason "Operations are read-only (listing) or additive (creating). No destructive actions performed."
-             :mentions-reflog? false}
-    :interface-type :cli
-    :estimated-minutes 3
-    :straight-to-the-point :medium
-    :didactic-score 5
-    :experience-level :beginner
-    :visual-score 3
-    :production-quality 3
-
-    :youtube-data
-    {:title "Git & GitHub Crash Course for Beginners [2026]"
-     :channel-name "freeCodeCamp.org"
-     :channel-url "https://www.youtube.com/@freeCodeCamp"
-     :total-duration "1:21:14"
-     :chapter-name "Git Branching Explained"
-     :chapter-starts-at "0:40:58"
-     :chapter-duration "0:02:55"}}
-   })
 
 ;; ---------------------------------------------------------
 ;; -- UTILITIES
