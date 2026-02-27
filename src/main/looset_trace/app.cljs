@@ -8,7 +8,7 @@
     [reagent.core :as reagent]))
 
 ;; ---------------------------------------------------------
-;; STYLES
+;; -- STYLES
 ;; ---------------------------------------------------------
 (def light-red "#ffd7d7")
 (def light-yellow "#fff6c4")
@@ -16,7 +16,7 @@
 (defn trace-styles []
   [:style "
     /* -----------------------------------------
-       Global scrollbar definitions
+;; --- Global scrollbar definitions
        ----------------------------------------- */
     * {
       /* Firefox: thin scrollbar, semi-transparent thumb, transparent track */
@@ -52,7 +52,9 @@
       background: rgba(0, 0, 0, 0.3);
     }
 
-    /* Global App Container */
+    /* -----------------------------------------
+;; --- Global App Container
+       ----------------------------------------- */
     .app-container {
       position: relative;
       height: 100vh;
@@ -64,7 +66,7 @@
     }
 
     /* -----------------------------------------
-       Background Graph Layer
+;; --- Background Graph Layer
        ----------------------------------------- */
     .graph-bg {
       position: absolute;
@@ -86,7 +88,7 @@
     }
 
     /* -----------------------------------------
-       Interaction Layer (The panel that moves)
+;; --- Interaction Layer (The panel that moves)
        ----------------------------------------- */
     .interaction-layer {
       position: absolute;
@@ -110,7 +112,7 @@
     }
 
     /* -----------------------------------------
-       Problem Panel (Left Side)
+;; --- Problem Panel (Left Side)
        ----------------------------------------- */
     .problem-panel {
       width: 100%;
@@ -130,7 +132,7 @@
     }
 
     /* -----------------------------------------
-       Knowledge Panel (Right Side)
+;; --- Knowledge Panel (Right Side)
        ----------------------------------------- */
     .knowledge-panel {
       width: 0%;
@@ -146,7 +148,7 @@
     }
 
     /* -----------------------------------------
-       Search UI (Zero-State content)
+;; --- Search UI (Zero-State content)
        ----------------------------------------- */
     .search-ui {
       width: 100%;
@@ -218,7 +220,7 @@
     .trace-card.highlight { border-color: #3b82f6; color: #1d4ed8; background: #eff6ff; font-weight: 500; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1); }
 
     /* -----------------------------------------
-       QUIZ PANELS & WATERMARKS
+;; --- QUIZ PANELS & WATERMARKS
        ----------------------------------------- */
     .quiz-container {
       width: 100%;
@@ -303,7 +305,7 @@
     .quiz-option.option-selected { background: #4b5563; color: #fff; border-color: #4b5563; font-weight: 500; }
 
     /* -----------------------------------------
-       RIGHT PANEL (Node Details & Resources)
+;; --- RIGHT PANEL (Node Details & Resources)
        ----------------------------------------- */
     .node-details-panel {
       position: absolute; top: 0; right: 0; width: 380px; height: 100%;
@@ -359,10 +361,37 @@
       transform: translateY(-1px);
       box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
     }
+
+    /* -----------------------------------------
+;; --- Markdown Code Styles
+       ----------------------------------------- */
+    .markdown-inline-code {
+      background-color: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #ef4444;
+      font-family: monospace;
+      font-size: 0.9em;
+    }
+
+    .markdown-block-code {
+      display: block;
+      overflow-x: auto;
+      white-space: pre;
+      background-color: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      padding: 16px;
+      margin: 12px 0;
+      border-radius: 8px;
+      color: #334155;
+      font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
   "])
 
 ;; ---------------------------------------------------------
-;; MOCK DATA
+;; -- MOCK DATA
 ;; ---------------------------------------------------------
 (def featured-questions
   [{:id :undo :label "Undo last commits" :highlight? true :icon "🔥"}
@@ -484,7 +513,7 @@
    })
 
 ;; ---------------------------------------------------------
-;; UTILITIES
+;; -- UTILITIES
 ;; ---------------------------------------------------------
 ;; Calculates an HSL color based on depth (0-100).
 ;; 0 = "Light Blue"/white, 100 = "Dark Navy"/black.
@@ -606,14 +635,17 @@
                            ;; The Visual Depth Gradient
                            [:div.depth-indicator {:style (get-gradient-style start-depth end-depth)}]
                            [:div.res-title title]
-                           [:div.res-meta (str type summary)]])]))))}]
+                           [:div.res-meta (str type summary)]])])
+
+                     :else ;; Fallback: Default Code Block
+                     (reagent/as-element [:code.markdown-block-code {:class class-name} children]))))}]
 
     ;; Render the ReactMarkdown component
     [:> ReactMarkdown
      {:components (clj->js custom-components)
       :children content}]))
 
-;; --- PROBLEM QUIZ COMPONENT ---
+;; ---   PROBLEM QUIZ COMPONENT ---
 (defn quiz-problem [data state-atom]
   (let [selected-id @state-atom
         answered?   (some? selected-id)]
@@ -643,7 +675,7 @@
               :on-click #(when-not answered? (reset! state-atom id))}
              text]))]]]]))
 
-;; --- KNOWLEDGE QUIZ COMPONENT ---
+;; ---   KNOWLEDGE QUIZ COMPONENT ---
 (defn quiz-knowledge [data state-atom]
   (let [selected-id @state-atom
         answered?   (some? selected-id)
@@ -689,7 +721,7 @@
      [:p.node-desc [markdown-view (get explanations {:type :node :id selected-or-fallback-node})]]]))
 
 ;; ---------------------------------------------------------
-;; Search UI Component
+;; ---   Search UI Component
 ;; ---------------------------------------------------------
 (defn search-ui []
   ;; Local state for the search input behavior
@@ -790,7 +822,7 @@
 ;; ---------------------------------------------------------
 
 ;; ---------------------------------------------------------
-;; --- Re-frame Events/Subs
+;; ---   Re-frame Events/Subs
 ;; ---------------------------------------------------------
 
 (defn active-trace ;; Holds the ID of the selected question
@@ -830,7 +862,7 @@
 ;; (re-frame/dispatch-sync [::add-node-props ["git revert" {:name "x git revert"}]])
 
 ;; ---------------------------------------------------------
-;; --- Main view ---------------------------------------------------------
+;; ---   Main view ---------------------------------------------------------
 ;; ---------------------------------------------------------
 
 (defn main []
