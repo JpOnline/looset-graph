@@ -319,7 +319,13 @@
     .state-trace .node-details-panel { transform: translateX(0); } /* Slides in when trace starts */
 
     .node-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
-    .node-desc { color: #6b7280; font-size: 0.95rem; line-height: 1.5; margin-bottom: 30px; }
+    .node-desc {
+      color: #6b7280;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      margin-bottom: 30px;
+      padding-bottom: calc(30vh + 30px);
+    }
 
     /* Resource Cards */
     .resource-list { display: flex; flex-direction: column; gap: 12px; }
