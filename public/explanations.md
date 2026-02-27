@@ -33,6 +33,15 @@ gpgsig -----BEGIN PGP SIGNATURE-----
 Select node when click Node Link
 ```
 
+## Resources
+```curated-resources
+https://learngitbranching.js.org/?level=intro1
+https://learngitbranching.js.org/?level=move1
+https://youtu.be/ZDR433b0HJY?si=svvsTtOrsrQuUJ2y&t=2648
+https://git-scm.com/book/en/v2/Git-Internals-Git-Objects
+https://dev.to/__whyd_rf/a-deep-dive-into-git-internals-blobs-trees-and-commits-1doc
+```
+
 {{"Tag Object"}}
 Lorem Ipsum balweoowj fiowjfowjfijowjfoiwej fojwofjoiwjfowj f
 owiej fowjfojwoifej oiwjfoijwe
