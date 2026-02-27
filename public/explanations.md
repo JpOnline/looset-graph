@@ -16,6 +16,23 @@ https://youtu.be/mAFoROnOfHs?si=G-ibDDoKzriwO2hI&t=4191
 https://learngitbranching.js.org/?level=rampup4
 ```
 
+{{"Commit Object"}}
+Metadata wrapper that permanently binds a specific snapshot of a project's state to a location in the repository's historical timeline.
+
+## Example
+```javascript
+tree 09a7e5428e35e2b85049089f113480e84b7030db
+parent 19eed125b82041446344af229554499e428b2180
+author João Paulo <joao.paulo@vouch.io> 1772119130 -0300
+committer João Paulo <joao.paulo@vouch.io> 1772119130 -0300
+gpgsig -----BEGIN PGP SIGNATURE-----
+
+ iQIzBA...
+ -----END PGP SIGNATURE-----
+
+Select node when click Node Link
+```
+
 {{"Tag Object"}}
 Lorem Ipsum balweoowj fiowjfowjfijowjfoiwej fojwofjoiwjfowj f
 owiej fowjfojwoifej oiwjfoijwe

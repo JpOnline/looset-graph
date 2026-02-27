@@ -569,6 +569,7 @@
         {:a looset-graph/markdown-view-node-link
          :code (fn [js-props]
                  (let [class-name (.-className js-props)
+                       inline? (.-inline js-props)
                        ;; ReactMarkdown passes the text content as an array in children
                        children (.-children js-props)
                        raw-text (when (seq children) (first children))
@@ -579,11 +580,13 @@
                        resources-with-gradient (->> raw-resources
                                                  (map #(assoc % :depth (calculate-depth %)))
                                                  (calculate-depth-gradients))]
-                   (if (not= class-name "language-curated-resources")
-                     ;; Fallback: Default Code Block
-                     (reagent/as-element [:code {:class class-name} children])
+                   (cond
+                     inline?
+                     (reagent/as-element [:code.markdown-inline-code {:class class-name} children])
+
+                     (= class-name "language-curated-resources")
                      (reagent/as-element
-                       [:div.resource-list
+                      [:div.resource-list
                         (for [{:keys [url title media-type summary start-depth end-depth]} resources-with-gradient
                               :let [type (condp some media-type
                                            #{:game} "🎮 "
