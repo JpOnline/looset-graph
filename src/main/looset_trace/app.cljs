@@ -570,7 +570,8 @@
         answered?   (some? selected-id)]
     [:div.quiz-container
      ;; Info-gathered (light blue) background when answered
-     {:class (when answered? "panel-info-gathered")}
+     {:class (when answered? "panel-info-gathered")
+      :title "Until you answer this question, your codebase is simultaneously perfectly fine and completely destroyed. I've highlighted my best guess below, but if you want the actual solution instead of a hallucinated one, you need to narrow down the variables. Work with me here; I promise I won't judge your commit message history."}
 
      [:div.panel-watermark.left "❓"]
 
@@ -601,7 +602,8 @@
         is-correct? (= selected-id (:correct-id data))]
     [:div.quiz-container
      ;; Correct/Wrong (green/red) background when answered
-     {:class (when answered? (if is-correct? "panel-correct" "panel-wrong"))}
+     {:class (when answered? (if is-correct? "panel-correct" "panel-wrong"))
+      :title "To execute this solution without setting the server on fire, you need to understand the underlying mechanics. If you miss this question, I'm going to dynamically rebuild your learning path to cover the basics. Don't complain to the UI; physics is physics, and Git is Git."}
 
      [:div.panel-watermark.right "🧠"]
 
