@@ -10,8 +10,9 @@
 ;; ---------------------------------------------------------
 ;; -- STYLES
 ;; ---------------------------------------------------------
-(def light-red "#ffd7d7")
-(def light-yellow "#fff6c4")
+(def LIGHT-RED "#ffd7d7")
+(def LIGHT-YELLOW "#fff6c4")
+(def LIGHT-GREEN "#d6ffcf")
 
 (defn trace-styles []
   [:style "
@@ -400,7 +401,7 @@
 ;; -- MOCK DATA
 ;; ---------------------------------------------------------
 (def featured-questions
-  [{:id :undo :label "Undo last commits" :highlight? true :icon "🔥"}
+  [{:id "❓ Undo last commits" :label "Undo last commits" :highlight? true :icon "🔥"}
    {:id :pull-fetch :label "Difference between 'pull' and 'fetch'"}
    {:id :delete-branch :label "Delete a branch locally and remotely"}
    {:id :undo-add :label "Undo 'git add' before commit"}])
@@ -653,8 +654,8 @@
             no-matches?    (and has-query? (empty? matches))
 
             ;; Fetch active trace from re-frame to hide dropdown if tracing
-            active-trace   (<sub [::active-trace])
-            is-tracing?    (some? active-trace)
+            problem-node   (<sub [::problem-node])
+            is-tracing?    (some? problem-node)
             show-dropdown? (and @is-focused? has-query? (not is-tracing?))
 
             ;; Handler to start the trace using Re-frame
@@ -742,18 +743,38 @@
 ;; ---------------------------------------------------------
 ;; ---   Re-frame Events/Subs
 ;; ---------------------------------------------------------
+(def trace-scenarios
+  {;; Problem Space
+   "❓ Undo last commits"
+   {:assumed-route [:delete]
+    :routing {[:delete] "git revert"}
+    :questions {}}
 
-(defn active-trace ;; Holds the ID of the selected question
+   ;; Knowledge Space
+   "git revert"
+   {
+    :prerequisites ["Commit Object" "Immutability"]}
+
+   "Commit Object"
+   {:prerequisites ["Immutability"] ;; TODO: I'm not sure if I'll keep it, only testing for now.
+    :questions {:1 {:description "If you execute `git commit --amend --no-edit` without staging any new changes, why does the resulting commit object resolve to a completely different SHA-1 hash than the original?"
+                    :options [{:id :a :text "Git automatically injects a new cryptographic nonce into the commit header to enforce global graph uniqueness."}
+                              {:id :b :text "The  `tree` object is recursively re-hashed to guarantee data integrity against the `.git/index.`"}
+                              {:id :c :text "The committer timestamp is updated to the current execution time, fundamentally altering the raw text payload used for the SHA-1 calculation."}
+                              {:id :d :text "The parent pointer is reassigned to reference the original commit, strictly enforcing a linear Directed Acyclic Graph."}]
+                    :correct-id :c}}}})
+
+(defn problem-node ;; Holds the ID of the selected question
   [app-state _]
-  (get-in app-state [:trace-ui :active-trace] nil))
-(re-frame/reg-sub ::active-trace active-trace)
+  (get-in app-state [:trace-ui :problem-node] nil))
+(re-frame/reg-sub ::problem-node problem-node)
 
 (defn set-problem-node [app-state [_e id]]
-  (assoc-in app-state [:trace-ui :active-trace] id))
+  (assoc-in app-state [:trace-ui :problem-node] id))
 (re-frame/reg-event-db ::set-problem-node set-problem-node)
 
 (defn reset-problem-node [app-state]
-  (assoc-in app-state [:trace-ui :active-trace] nil))
+  (assoc-in app-state [:trace-ui :problem-node] nil))
 (re-frame/reg-event-db ::reset-problem-node reset-problem-node)
 
 ;; this one doesn't belong here.. add to another Re-frame Events/Subs
@@ -761,16 +782,96 @@
   (update-in app-state [:domain :nodes-map node] merge props))
 (re-frame/reg-event-db ::add-node-props add-node-props)
 
+(defn question-result
+  ([app-state node]
+   (let [[question-id answer] (first (get-in app-state [:trace-ui :answered-questions node] [nil nil]))]
+     (question-result node question-id answer)))
+  ([node question-id answer]
+   (println "que re" node question-id answer)
+   (let [correct-answer (get-in trace-scenarios [node :questions question-id :correct-id])
+         _ (when (and question-id (nil? correct-answer)) (throw (ex-info "Resposta correta não tá definida." {:question-for-node node})))]
+      ;; Maybe I could have different states to define another node based on the answer.
+     (cond
+       (nil? question-id) :no-answer
+       (= answer correct-answer) :right
+       :else :wrong))))
+
+(defn target-node
+  "Depends on the problem the user has and the problem related questions she answered.
+  Actually it depends on the knowledge related questions as well.."
+  [app-state event]
+  (let [problem-node (get-in app-state [:trace-ui :problem-node] nil)
+        answered-questions (get-in app-state [:trace-ui :answered-questions] nil)
+        problem-answered-questions (get answered-questions problem-node nil)
+        route-based-on-assumptions (get-in trace-scenarios [problem-node :assumed-route] nil)
+        _ (when (nil? route-based-on-assumptions) (throw (ex-info "Problema ao escolher target node baseado em respostas assumidas." {:problem-node problem-node})))
+        selected-route (or problem-answered-questions route-based-on-assumptions)
+        target-from-problem (get-in trace-scenarios [problem-node :routing selected-route])
+        target-prerequisites (get-in trace-scenarios [target-from-problem :prerequisites])
+                ;; TODO: I'll need a recursion here.
+        aim-fn (fn [target prerequisite]
+                  ;; TODO: I actually want to get the real answer and have a logic to check if it's right.
+                 (if (= :wrong (question-result app-state prerequisite))
+                   ;; wront answer for prerequisite then prerequisite
+                   prerequisite
+                   ;; no prerequisite then target
+                   ;; no answer for prerequisite then target
+                   ;; right answer for prerequisite then target
+                   target))
+        target-from-knowledge (reduce aim-fn target-from-problem target-prerequisites)]
+    target-from-knowledge))
+(re-frame/reg-sub ::target-node target-node)
+
+(defn answered-questions
+  [app-state]
+  (get-in app-state [:trace-ui :answered-questions] {}))
+(re-frame/reg-sub ::answered-questions answered-questions)
+
+(defn brain-node
+  "Depends on the target and the knowledge related questions she answered."
+  [target-node answered-questions]
+  ; (if (= "git revert" target-node)
+  (if (seq answered-questions)
+    "Immutability"
+    "Commit Object"))
+(re-frame/reg-sub
+  ::brain-node
+  :<- [::target-node]
+  :<- [::answered-questions]
+  brain-node)
+
 (defonce counter (atom 0))
 (def next-nodes
-  [{:delay 100 :node-prop ["❓ Undo last commits" {:color light-red :hidden? false}]}
-   {:delay 800 :node-prop ["git revert" {:name "🎯 git revert" :color light-red :hidden? false}]}
-   {:delay 1600 :node-prop ["Commit Object" {:name "🧠 Commit Object" :color light-yellow :hidden? false}]}
-   {:delay 1600 :node-prop ["Immutability" {:color light-yellow :hidden? false}]}])
+  [{:delay 100 :node-prop ["❓ Undo last commits" {:color LIGHT-RED :hidden? false}]}
+   {:delay 800 :node-prop ["git revert" {:name "🎯 git revert" :color LIGHT-RED :hidden? false}]}
+   {:delay 1600 :node-prop ["Commit Object" {:name "🧠 Commit Object" :color LIGHT-YELLOW :hidden? false}]}
+   {:delay 1600 :node-prop ["Immutability" {:color LIGHT-YELLOW :hidden? false}]}])
+
 (defn next-node [_]
   ; {:fx [[:dispatch-later {:ms 2000 :dispatch [::add-node-props ["git revert" {:color "#fff6c4"}]]}]]})
   {:fx (map #(into [:dispatch-later {:ms (:delay %) :dispatch [::add-node-props (:node-prop %)]}]) next-nodes)})
 (re-frame/reg-event-fx ::next-node next-node)
+
+(defn answered-knowledge-question
+  [{app-state :db} [evt question-id chosen-option]]
+  (let [brain (brain-node (target-node app-state evt) (answered-questions app-state))
+        answered-right? (= :right (question-result brain question-id chosen-option))
+        app-state* (assoc-in app-state [:trace-ui :answered-questions brain question-id] chosen-option)
+        brain* (brain-node (target-node app-state* evt) (answered-questions app-state*))
+        target (target-node app-state evt)
+        target* (target-node app-state* evt)
+        brain-node-next-color (if answered-right? LIGHT-GREEN LIGHT-RED)
+        fx-seq (cond-> []
+                 (not= brain brain*)
+                 (concat [[:dispatch-later {:ms 100 :dispatch [::add-node-props [brain {:name brain :color brain-node-next-color}]]}]
+                          [:dispatch-later {:ms 100 :dispatch [::add-node-props [brain* {:name (str "🧠 "brain*)}]]}]])
+
+                 (not= target target*)
+                 (concat [[:dispatch-later {:ms 100 :dispatch [::add-node-props [target {:name target}]]}]
+                          [:dispatch-later {:ms 100 :dispatch [::add-node-props [target* {:name (str "🎯 "target*)}]]}]]))]
+    {:db app-state*
+     :fx fx-seq}))
+(re-frame/reg-event-fx ::answered-knowledge-question answered-knowledge-question)
 
 (comment
   (do
@@ -788,12 +889,16 @@
   (let [problem-answer   (reagent/atom nil)
         knowledge-answer (reagent/atom nil)]
     (fn []
-      (let [active-trace (<sub [::active-trace])
-            is-tracing?  (some? active-trace)]
+      (let [problem-node (<sub [::problem-node])
+            is-tracing?  (some? problem-node)]
 
         ;; Add .state-trace class conditionally to trigger all CSS animations
         [:div.app-container {:class (when is-tracing? "state-trace")
-                             :on-click #(>evt [::next-node])}
+                             :on-click #(do
+                                          (if (zero? @counter)
+                                            (>evt [::next-node])
+                                            (>evt [::answered-knowledge-question :1 :a]))
+                                          (swap! counter inc))}
          [trace-styles]
 
          ;; === BACKGROUND GRAPH LAYER ===
