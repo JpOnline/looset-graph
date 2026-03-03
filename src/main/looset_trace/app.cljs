@@ -999,7 +999,8 @@
 
 (defn commit-knowledge-answer
   [{app-state :db} [evt]]
-  (let [staged (get-in app-state [:trace-ui :staged-knowledge-answer])
+  (let [has-no-edge? #(not (some #{:edges-to :edges-from} (keys (get-in app-state [:domain :nodes-map %]))))
+        staged (get-in app-state [:trace-ui :staged-knowledge-answer])
         question-id (:question-id staged)
         chosen-option (:answer staged)
         brain (brain-node [(target-node app-state evt) (answered-questions app-state)])
@@ -1014,7 +1015,15 @@
         fx-seq (cond-> []
                  (not= brain brain*)
                  (concat [[:dispatch-later {:ms 100 :dispatch [::add-node-props [brain {:name brain :color brain-node-next-color}]]}]
-                          [:dispatch-later {:ms 100 :dispatch [::add-node-props [brain* {:name (str "🧠 "brain*)}]]}]])
+                          [:dispatch-later {:ms 100 :dispatch [::add-node-props [brain* {:name (str "🧠 "brain*)}]]}]
+                           ;; I can define a Node in trace-scenarios that is
+                           ;; not in the graph-text, in this case it won't have
+                           ;; connections, so let's create between it and the
+                           ;; current-target.
+                          (when (has-no-edge? brain*)
+                            [:dispatch-later {:ms 100 :dispatch [::add-node-props [target* {:edges-to (merge-with (comp set concat)
+                                                                                                                  (get-in app-state* [:domain :nodes-map target* :edges-to] {})
+                                                                                                                  {"depends of" #{brain*}})}]]}])])
 
                  (not= target target*)
                  (concat [[:dispatch-later {:ms 100 :dispatch [::add-node-props [target {:name target}]]}]
