@@ -596,10 +596,13 @@
              text]))]]]]))
 
 ;; ---   KNOWLEDGE QUIZ COMPONENT ---
-(defn quiz-knowledge [data state-atom]
-  (let [selected-id @state-atom
-        answered?   (some? selected-id)
-        is-correct? (= selected-id (:correct-id data))]
+(defn quiz-knowledge [brain-id question-id data]
+  (let [answered-map (<sub [::answered-questions])
+        ;; Check if this specific node/question has an answer recorded
+        selected-id  (get-in answered-map [brain-id question-id])
+        answered?    (some? selected-id)
+        is-correct?  (= selected-id (:correct-id data))]
+
     [:div.quiz-container
      ;; Correct/Wrong (green/red) background when answered
      {:class (when answered? (if is-correct? "panel-correct" "panel-wrong"))
@@ -626,7 +629,8 @@
             ^{:key id}
             [:button.quiz-option
              {:class opt-class
-              :on-click #(when-not answered? (reset! state-atom id))}
+              :on-click #(when-not answered?
+                           (>evt [::answered-knowledge-question question-id id]))}
              text]))]]]]))
 
 (defn right-panel-view []
@@ -764,7 +768,14 @@
                               {:id :b :text "The  `tree` object is recursively re-hashed to guarantee data integrity against the `.git/index.`"}
                               {:id :c :text "The committer timestamp is updated to the current execution time, fundamentally altering the raw text payload used for the SHA-1 calculation."}
                               {:id :d :text "The parent pointer is reassigned to reference the original commit, strictly enforcing a linear Directed Acyclic Graph."}]
-                    :correct-id :c}}}})
+                    :correct-id :c}}}
+
+   "Immutability"
+   {:questions {:0 {:title "abc"
+                    :options [{:id :a :text "O a"}
+                              {:id :b :text "O b"}
+                              {:id :c :text "O c"}]
+                    :correct-id :b}}}})
 
 (defn problem-node ;; Holds the ID of the selected question
   [app-state _]
@@ -806,7 +817,7 @@
         answered-questions (get-in app-state [:trace-ui :answered-questions] nil)
         problem-answered-questions (get answered-questions problem-node nil)
         route-based-on-assumptions (get-in trace-scenarios [problem-node :assumed-route] nil)
-        _ (when (nil? route-based-on-assumptions) (throw (ex-info "Problema ao escolher target node baseado em respostas assumidas." {:problem-node problem-node})))
+        ; _ (when (nil? route-based-on-assumptions) (throw (ex-info "Problema ao escolher target node baseado em respostas assumidas." {:problem-node problem-node})))
         selected-route (or problem-answered-questions route-based-on-assumptions)
         target-from-problem (get-in trace-scenarios [problem-node :routing selected-route])
         target-prerequisites (get-in trace-scenarios [target-from-problem :prerequisites])
@@ -831,9 +842,9 @@
 
 (defn brain-node
   "Depends on the target and the knowledge related questions she answered."
-  [target-node answered-questions]
+  [[target-node answered-questions]]
   ; (if (= "git revert" target-node)
-  (if (seq answered-questions)
+  (if (= "Commit Object" target-node)
     "Immutability"
     "Commit Object"))
 (re-frame/reg-sub
@@ -856,10 +867,10 @@
 
 (defn answered-knowledge-question
   [{app-state :db} [evt question-id chosen-option]]
-  (let [brain (brain-node (target-node app-state evt) (answered-questions app-state))
+  (let [brain (brain-node [(target-node app-state evt) (answered-questions app-state)])
         answered-right? (= :right (question-result brain question-id chosen-option))
         app-state* (assoc-in app-state [:trace-ui :answered-questions brain question-id] chosen-option)
-        brain* (brain-node (target-node app-state* evt) (answered-questions app-state*))
+        brain* (brain-node [(target-node app-state* evt) (answered-questions app-state*)])
         target (target-node app-state evt)
         target* (target-node app-state* evt)
         brain-node-next-color (if answered-right? LIGHT-GREEN LIGHT-RED)
@@ -887,23 +898,24 @@
 ;; ---------------------------------------------------------
 
 (defn main []
-  ;; Local state for quiz answers stays in main (or could be moved to their own components later)
-  (let [problem-answer   (reagent/atom nil)
-        knowledge-answer (reagent/atom nil)]
+  (let [problem-answer (reagent/atom nil)]
     (fn []
       (let [problem-node (<sub [::problem-node])
-            is-tracing?  (some? problem-node)]
+            is-tracing?  (some? problem-node)
+            current-brain (<sub [::brain-node])
+            questions-map (get-in trace-scenarios [current-brain :questions] {})
+            [question-id question-data] (first questions-map)]
 
         ;; Add .state-trace class conditionally to trigger all CSS animations
         [:div.app-container {:class (when is-tracing? "state-trace")
-                             :on-click #(do
-                                          (if (zero? @counter)
-                                            (>evt [::next-node])
-                                            (>evt [::answered-knowledge-question :1 :a]))
-                                          (swap! counter inc))}
+                             :on-click #(when (not is-tracing?) (>evt [::next-node]))}
          [trace-styles]
+         ; [:div "debug"
+         ;  [:pre (str "problem-node: "problem-node)]
+         ;  [:pre (str "current-target "(<sub [::target-node]))]
+         ;  [:pre (str "current-brain: "(<sub [::brain-node]))]]
 
-         ;; === BACKGROUND GRAPH LAYER ===
+         ;; === BACKGROUND GRAPH LAYER (Moves from Full Screen to Bottom) ===
          [:div.graph-bg
            [util/error-boundary
             {:if-error [:h2 "erro"]}
@@ -915,10 +927,8 @@
 
          ;; === INTERACTION LAYER (Moves from Full Screen to Bottom) ===
          [:div.interaction-layer
-
           ; Left: Initially search-ui, later problem-quiz
           [:div.problem-panel
-
            ;; Search UI (Visible initially, fades out on trace via CSS opacity/transform)
            [search-ui]
 
@@ -928,4 +938,5 @@
 
           ;; Right: Knowledge Panel (Visible during trace)
           [:div.knowledge-panel
-           [quiz-knowledge mock-knowledge-data knowledge-answer]]]]))))
+           (when (and is-tracing? question-data)
+             [quiz-knowledge current-brain question-id question-data])]]]))))
