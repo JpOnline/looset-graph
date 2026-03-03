@@ -475,6 +475,47 @@
              {:id :d :text "The parent pointer is reassigned to reference the original commit, strictly enforcing a linear Directed Acyclic Graph."}]
    :correct-id :c})
 
+(def trace-scenarios
+  {;; Problem Space
+   "❓ Undo last commits"
+   {:assumed-route [:delete]
+    :routing {[:delete] "git revert"}
+    :questions {}}
+
+   ;; Knowledge Space
+   "git revert"
+   {
+    :prerequisites ["Commit Object" "Immutability"]}
+
+   "Commit Object"
+   {:prerequisites ["Immutability"] ;; TODO: I'm not sure if I'll keep it, only testing for now.
+    :questions {:1 {:description "If you execute `git commit --amend --no-edit` without staging any new changes, why does the resulting commit object resolve to a completely different SHA-1 hash than the original?"
+                    :options [{:id :a :text "Git automatically injects a new cryptographic nonce into the commit header to enforce global graph uniqueness."}
+                              {:id :b :text "The  `tree` object is recursively re-hashed to guarantee data integrity against the `.git/index.`"}
+                              {:id :c :text "The committer timestamp is updated to the current execution time, fundamentally altering the raw text payload used for the SHA-1 calculation."}
+                              {:id :d :text "The parent pointer is reassigned to reference the original commit, strictly enforcing a linear Directed Acyclic Graph."}]
+                    :correct-id :c}}}
+
+   "Immutability"
+   {:questions {:0 {:title "abc"
+                    :options [{:id :a :text "O a"}
+                              {:id :b :text "O b"}
+                              {:id :c :text "O c"}]
+                    :correct-id :b}}}
+   "advanced"
+   {:prerequisites ["git revert"]
+    :questions {:0 {:title "advanced"
+                    :options [{:id :a :text "any a"}
+                              {:id :b :text "any b"}
+                              {:id :c :text "any c"}]
+                    :correct-id :a}}}
+   "Any"
+   {:questions {:0 {:title "?"
+                    :options [{:id :a :text "any a"}
+                              {:id :b :text "any b"}
+                              {:id :c :text "any c"}]
+                    :correct-id :a}}}})
+
 ;; ---------------------------------------------------------
 ;; -- UTILITIES
 ;; ---------------------------------------------------------
@@ -542,6 +583,40 @@
     (= :beginner (:experience-level resource)) (- 15)))
 ;; To test the calculate-depth fn
 ;; (map #(select-keys % [:depth :media-type :experience-level]) (sort-by :depth (map #(assoc % :depth (calculate-depth %)) (vals (:resources-meta (:domain @re-frame.db/app-db))))))
+
+;; ---------------------------------------------------------
+;; ---   question-result defmulti ---------------------------------------------------------
+;; ---------------------------------------------------------
+
+(defmulti question-result (fn [opts] (keys opts)))
+
+(defmethod question-result '(:node :question-id :answer)
+  [{:keys [node question-id answer]}]
+  (let [correct-answer (get-in trace-scenarios [node :questions question-id :correct-id])
+        _ (when (and question-id (nil? correct-answer)) (throw (ex-info "Resposta correta não tá definida." {:question-for-node node})))]
+    ;; Maybe I could have different states to define another node based on the answer.
+    (cond
+      (nil? question-id) :no-answer
+      (= answer correct-answer) :right
+      :else :wrong)))
+
+(defmethod question-result '(:app-state :node)
+  [{:keys [app-state node]}]
+  (let [[question-id answer] (first (get-in app-state [:trace-ui :answered-questions node] [nil nil]))]
+    (question-result {:node node :question-id question-id :answer answer})))
+
+(defmethod question-result '(:answered-questions :node)
+  [{:keys [answered-questions node]}]
+  (let [[question-id answer] (first (get answered-questions node [nil nil]))]
+    (question-result {:node node :question-id question-id :answer answer})))
+
+;; --
+
+(defn contain-node-as-prerequisite?
+  "Checks if the candidate-node has the target-node listed in its prerequisites."
+  [node candidate-node]
+  (let [prereqs (get-in trace-scenarios [candidate-node :prerequisites] [])]
+    (some #{node} prereqs)))
 
 ;; ---------------------------------------------------------
 ;; -- COMPONENTS---------------------------------------------------------
@@ -817,34 +892,6 @@
 ;; ---------------------------------------------------------
 ;; ---   Re-frame Events/Subs
 ;; ---------------------------------------------------------
-(def trace-scenarios
-  {;; Problem Space
-   "❓ Undo last commits"
-   {:assumed-route [:delete]
-    :routing {[:delete] "git revert"}
-    :questions {}}
-
-   ;; Knowledge Space
-   "git revert"
-   {
-    :prerequisites ["Commit Object" "Immutability"]}
-
-   "Commit Object"
-   {:prerequisites ["Immutability"] ;; TODO: I'm not sure if I'll keep it, only testing for now.
-    :questions {:1 {:description "If you execute `git commit --amend --no-edit` without staging any new changes, why does the resulting commit object resolve to a completely different SHA-1 hash than the original?"
-                    :options [{:id :a :text "Git automatically injects a new cryptographic nonce into the commit header to enforce global graph uniqueness."}
-                              {:id :b :text "The  `tree` object is recursively re-hashed to guarantee data integrity against the `.git/index.`"}
-                              {:id :c :text "The committer timestamp is updated to the current execution time, fundamentally altering the raw text payload used for the SHA-1 calculation."}
-                              {:id :d :text "The parent pointer is reassigned to reference the original commit, strictly enforcing a linear Directed Acyclic Graph."}]
-                    :correct-id :c}}}
-
-   "Immutability"
-   {:questions {:0 {:title "abc"
-                    :options [{:id :a :text "O a"}
-                              {:id :b :text "O b"}
-                              {:id :c :text "O c"}]
-                    :correct-id :b}}}})
-
 (defn problem-node ;; Holds the ID of the selected question
   [app-state _]
   (get-in app-state [:trace-ui :problem-node] nil))
@@ -863,20 +910,6 @@
   (update-in app-state [:domain :nodes-map node] merge props))
 (re-frame/reg-event-db ::add-node-props add-node-props)
 
-(defn question-result
-  ([app-state node]
-   (let [[question-id answer] (first (get-in app-state [:trace-ui :answered-questions node] [nil nil]))]
-     (question-result node question-id answer)))
-  ([node question-id answer]
-   (println "que re" node question-id answer)
-   (let [correct-answer (get-in trace-scenarios [node :questions question-id :correct-id])
-         _ (when (and question-id (nil? correct-answer)) (throw (ex-info "Resposta correta não tá definida." {:question-for-node node})))]
-      ;; Maybe I could have different states to define another node based on the answer.
-     (cond
-       (nil? question-id) :no-answer
-       (= answer correct-answer) :right
-       :else :wrong))))
-
 (defn target-node
   "Depends on the problem the user has and the problem related questions she answered.
   Actually it depends on the knowledge related questions as well.."
@@ -892,7 +925,7 @@
                 ;; TODO: I'll need a recursion here.
         aim-fn (fn [target prerequisite]
                   ;; TODO: I actually want to get the real answer and have a logic to check if it's right.
-                 (if (= :wrong (question-result app-state prerequisite))
+                 (if (= :wrong (question-result {:app-state app-state :node prerequisite}))
                    ;; wront answer for prerequisite then prerequisite
                    prerequisite
                    ;; no prerequisite then target
@@ -909,12 +942,43 @@
 (re-frame/reg-sub ::answered-questions answered-questions)
 
 (defn brain-node
-  "Depends on the target and the knowledge related questions she answered."
+  "Calculates the next node to test based on prerequisites, the target, and advanced concepts."
   [[target-node answered-questions]]
-  ; (if (= "git revert" target-node)
-  (if (= "Commit Object" target-node)
-    "Immutability"
-    "Commit Object"))
+  (let [answered-question? #(not= :no-answer (question-result {:answered-questions answered-questions :node %}))
+        has-question? #(:questions (get trace-scenarios % {}))
+        target's-prerequisites (get-in trace-scenarios [target-node :prerequisites] []) ;; Hum, it's possible to name a var with '. It might bite me in the future..
+        ;; Test with prerequisites having one value;
+        unanswered-prereq (->> target's-prerequisites
+                            (remove answered-question?)
+                            (filter has-question?)
+                            (first)) ;; Find the first prerequisite that is NOT answered.
+        unanswered-advanced (when-not unanswered-prereq
+                              (->> trace-scenarios
+                                (keys)
+                                (filter #(contain-node-as-prerequisite? target-node %))
+                                (remove answered-question?)
+                                (filter has-question?)
+                                (first)))
+        any-unnanswered (when-not unanswered-advanced
+                          (->> trace-scenarios
+                            (keys)
+                            (remove answered-question?)
+                            (filter has-question?)
+                            (remove #{target-node})
+                            (remove #(clojure.string/starts-with? % "❓"))
+                            (first)))]
+    (tap> {:brain-node
+           {:target's-prerequisites target's-prerequisites
+            :unanswered-prereq   unanswered-prereq
+            :unanswered-advanced unanswered-advanced
+            :any-unnanswered     any-unnanswered
+            :target-node         target-node}})
+    ;; TODO: What happens when the user answered everything?
+    (or unanswered-prereq
+        unanswered-advanced
+        any-unnanswered
+        target-node)))
+
 (re-frame/reg-sub
   ::brain-node
   :<- [::target-node]
@@ -939,7 +1003,7 @@
         question-id (:question-id staged)
         chosen-option (:answer staged)
         brain (brain-node [(target-node app-state evt) (answered-questions app-state)])
-        answered-right? (= :right (question-result brain question-id chosen-option))
+        answered-right? (= :right (question-result {:node brain :question-id question-id :answer chosen-option}))
         app-state* (-> app-state
                      (assoc-in [:trace-ui :answered-questions brain question-id] chosen-option)
                      (assoc-in [:trace-ui :staged-knowledge-answer] nil))
