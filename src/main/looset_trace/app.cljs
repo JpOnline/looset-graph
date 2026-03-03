@@ -268,6 +268,10 @@
       padding-left: 8px;
     }
 
+    .quiz-inner.has-action-bar {
+      padding-bottom: 80px;
+    }
+
     /* Text Formatting */
     .question-title {
       font-size: 1.25rem;
@@ -304,6 +308,46 @@
     .quiz-option.option-disabled { opacity: 0.6; cursor: default; }
     .quiz-option.option-assumed { border: 2px dashed #9ca3af; background: #f3f4f6; color: #374151; font-weight: 500; }
     .quiz-option.option-selected { background: #4b5563; color: #fff; border-color: #4b5563; font-weight: 500; }
+
+    .action-bar-container {
+      position: absolute;
+      bottom: 26px; left: 0; right: 0;
+      padding: 16px 24px;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid rgba(0, 0, 0, 0.08);
+      box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.03);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transform: translateY(100%); /* Hidden completely off the bottom */
+      transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+      z-index: 10;
+    }
+
+    .action-bar-container.visible {
+      transform: translateY(0); /* Slides up */
+    }
+
+    .action-feedback-text {
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+    .action-feedback-text.correct { color: #059669; }
+    .action-feedback-text.wrong { color: #dc2626; }
+
+    .btn-continue {
+      background: #5abb4ed6;
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-continue:hover { background: #4e813bd6; }
 
     /* -----------------------------------------
 ;; --- RIGHT PANEL (Node Details & Resources)
@@ -595,11 +639,28 @@
               :on-click #(when-not answered? (reset! state-atom id))}
              text]))]]]]))
 
+;; ---------------------------------------------------------
+;; ---   KNOWLEDGE QUIZ subs/events ---
+;; ---------------------------------------------------------
+(re-frame/reg-sub
+ ::staged-knowledge-answer
+ (fn [db _]
+   (get-in db [:trace-ui :staged-knowledge-answer])))
+
+(re-frame/reg-event-db
+ ::stage-knowledge-answer
+ (fn [db [_ question-id chosen-option]]
+   (assoc-in db [:trace-ui :staged-knowledge-answer] {:question-id question-id :answer chosen-option})))
+
 ;; ---   KNOWLEDGE QUIZ COMPONENT ---
 (defn quiz-knowledge [brain-id question-id data]
   (let [answered-map (<sub [::answered-questions])
-        ;; Check if this specific node/question has an answer recorded
-        selected-id  (get-in answered-map [brain-id question-id])
+        staged-data  (<sub [::staged-knowledge-answer])
+        staged?      (some? staged-data)
+        ;; Use staged answer if it exists, otherwise check if it was previously fully answered
+        selected-id  (if staged?
+                       (:answer staged-data)
+                       (get-in answered-map [brain-id question-id]))
         answered?    (some? selected-id)
         is-correct?  (= selected-id (:correct-id data))]
 
@@ -611,7 +672,7 @@
      [:div.panel-watermark.right "🧠"]
 
      [:div.quiz-content
-      [:div.quiz-inner
+      [:div.quiz-inner {:class (when staged? "has-action-bar")}
        (when-let [title (:title data)] [:h3.question-title title])
        (when-let [desc (:description data)] [:p.question-desc [markdown-view desc]])
 
@@ -630,8 +691,15 @@
             [:button.quiz-option
              {:class opt-class
               :on-click #(when-not answered?
-                           (>evt [::answered-knowledge-question question-id id]))}
-             text]))]]]]))
+                           (>evt [::stage-knowledge-answer question-id id]))}
+             text]))]]]
+
+     [:div.action-bar-container {:class (when staged? "visible")}
+      [:div.action-feedback-text {:class (if is-correct? "correct" "wrong")}
+       (if is-correct? "✓ Exactly!" "✗ Not quite...")]
+      [:button.btn-continue
+       {:on-click #(>evt [::commit-knowledge-answer])}
+       "Continue ➔"]]]))
 
 (defn right-panel-view []
   (let [selected-or-fallback-node (let [[selected-node & osn] @(re-frame/sub :flow {:id :f-selected-nodes})
@@ -865,11 +933,16 @@
   {:fx (map #(into [:dispatch-later {:ms (:delay %) :dispatch [::add-node-props (:node-prop %)]}]) next-nodes)})
 (re-frame/reg-event-fx ::next-node next-node)
 
-(defn answered-knowledge-question
-  [{app-state :db} [evt question-id chosen-option]]
-  (let [brain (brain-node [(target-node app-state evt) (answered-questions app-state)])
+(defn commit-knowledge-answer
+  [{app-state :db} [evt]]
+  (let [staged (get-in app-state [:trace-ui :staged-knowledge-answer])
+        question-id (:question-id staged)
+        chosen-option (:answer staged)
+        brain (brain-node [(target-node app-state evt) (answered-questions app-state)])
         answered-right? (= :right (question-result brain question-id chosen-option))
-        app-state* (assoc-in app-state [:trace-ui :answered-questions brain question-id] chosen-option)
+        app-state* (-> app-state
+                     (assoc-in [:trace-ui :answered-questions brain question-id] chosen-option)
+                     (assoc-in [:trace-ui :staged-knowledge-answer] nil))
         brain* (brain-node [(target-node app-state* evt) (answered-questions app-state*)])
         target (target-node app-state evt)
         target* (target-node app-state* evt)
@@ -884,7 +957,7 @@
                           [:dispatch-later {:ms 100 :dispatch [::add-node-props [target* {:name (str "🎯 "target*)}]]}]]))]
     {:db app-state*
      :fx fx-seq}))
-(re-frame/reg-event-fx ::answered-knowledge-question answered-knowledge-question)
+(re-frame/reg-event-fx ::commit-knowledge-answer commit-knowledge-answer)
 
 (comment
   (do
