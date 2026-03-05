@@ -312,7 +312,7 @@
     .action-bar-container {
       position: absolute;
       bottom: 26px; left: 0; right: 0;
-      padding: 16px 24px;
+      padding: 16px 48px;
       background: rgba(255, 255, 255, 0.85);
       backdrop-filter: blur(8px);
       border-top: 1px solid rgba(0, 0, 0, 0.08);
@@ -442,7 +442,7 @@
   "])
 
 ;; ---------------------------------------------------------
-;; -- MOCK DATA
+;; -- DATA
 ;; ---------------------------------------------------------
 (def featured-questions
   [{:id "❓ Undo last commits" :label "Undo last commits" :highlight? true :icon "🔥"}
@@ -478,9 +478,29 @@
 (def trace-scenarios
   {;; Problem Space
    "❓ Undo last commits"
-   {:assumed-route [:delete]
-    :routing {[:delete] "git revert"}
-    :questions {}}
+   {:routing [[:pushed :collaborating] "git revert"
+              [:pushed :personal-branch] "git push -f"
+              [:local] "git reset"
+              [:local :keep] "git reset --soft"
+              [:local :delete] "git reset --hard"
+              [:local :--any :premature] "git commit --amend --no-edit"
+              [:local :--any :premature :git-hooks] "pre-commit git hook"]
+    :questions {[] {:description "Have these commits already been pushed to a remote repository, or do they only exist locally on your computer?"
+                    :options [{:id :local :text "I'm **local only**. I have not run a `git push` command yet."}
+                              {:id :pushed :text "I've **already pushed** to a remote repository."}]}
+                [:local] {:description "Do you want to preserve the code changes you made, or permanently discard them?"
+                          :options [{:id :keep :text "**Keep the changes**: I want to undo the commit but keep all the work I did as \"unstaged\" changes in my folder."}
+                                    {:id :delete :text "**Delete the changes**: I want to completely delete the last commits and the work inside them (reset to a clean previous state)."}]}
+                [:pushed] {:description "Are you collaborating with others on this specific branch, or is it a personal branch where rewriting history is safe?"}
+                          :options [{:id :collaborating :text "Collaborating with others (Shared Branch)"}
+                                    {:id :personal-branch :text "Personal branch (Safe to rewrite history)"}]
+                [:local :--any] {:description "Why did these specific commits need to be undone in the first place?"
+                                 :options [{:id :pramature :text "It was a premature commit. I need to add more things to the commit."}
+                                           {:id :batched-work :text "Work is being batched together too broadly before being reviewed."}]}
+                [:local :--any :premature] {:description "Which of the following could avoid the problem of happening again?"
+                                            :options [{:id :checklist :text "Checklists"}
+                                                      {:id :unit-test :text "Unit tests"}
+                                                      {:id :git-hooks :text "Git Hooks"}]}}}
 
    ;; Knowledge Space
    "git revert"
@@ -619,6 +639,55 @@
     (some #{node} prereqs)))
 
 ;; ---------------------------------------------------------
+;; ---   checking the assummed problem route ---------------------------------------------------------
+;; ---------------------------------------------------------
+(defn path-match?
+  "Check if the user's current path is a valid prefix of a route
+  (handling the wildcards :--any)."
+  [current-path route]
+  (and (<= (count current-path) (count route))
+       (every? true? (map (fn [c r] (or (= r :--any) (= c r)))
+                          current-path route))))
+
+(defn evaluate-routing
+  "Returns a map {:matched-node matched-node :assumed-answer next-step :is-final? bool}
+   for the first matching route in the priority list."
+  [routing-vec current-path]
+  (let [routes (partition 2 routing-vec)] ;; Group the vector into [route target] pairs
+    (reduce (fn [_ [route target]]
+              (when (path-match? current-path route) ;; Short circuits to the found match
+                (reduced {:matched-node target
+                          ;; The next ID we assume they will click
+                          :assumed-answer (when (< (count current-path) (count route))
+                                            (nth route (count current-path)))
+                          ;; True if they reached the end of this route
+                          :is-final? (= (count current-path) (count route))})))
+            nil
+            routes)))
+
+(comment
+  (evaluate-routing
+    [[:pushed :collaborating] "git revert"
+     [:pushed :personal-branch] "git push -f"
+     [:local] "git reset"
+     [:local :keep] "git reset --soft"
+     [:local :delete] "git reset --hard"
+     [:local :--any :premature] "git commit --amend --no-edit"
+     [:local :--any :premature :git-hooks] "pre-commit git hook"]
+    [:local :x :y]))
+
+(defn question-match?
+  "Helper to find the right question for the current path (handling the wildcard :--any)."
+  [current-path q-key]
+  (and (= (count current-path) (count q-key))
+       (every? true? (map (fn [c q] (or (= q :--any) (= c q)))
+                          current-path q-key))))
+
+(defn get-question-for-path [questions-map current-path]
+  (let [matched-key (first (filter #(question-match? current-path %) (keys questions-map)))]
+    (get questions-map matched-key)))
+;;--
+;; ---------------------------------------------------------
 ;; -- COMPONENTS---------------------------------------------------------
 ;; ---------------------------------------------------------
 
@@ -684,35 +753,46 @@
       :children content}]))
 
 ;; ---   PROBLEM QUIZ COMPONENT ---
-(defn quiz-problem [data state-atom]
-  (let [selected-id @state-atom
-        answered?   (some? selected-id)]
+;; ----    re-frame subs/events
+(re-frame/reg-sub ::problem-path-taken
+  (fn [db _] (get-in db [:trace-ui :answers-for-problem-questions] [])))
+
+(re-frame/reg-sub ::problem-evaluation
+  :<- [::problem-node]
+  :<- [::problem-path-taken]
+  (fn [[node path] _]
+    (let [routing-vec (get-in trace-scenarios [node :routing] [])]
+      (evaluate-routing routing-vec path))))
+
+;; Instant click event
+(re-frame/reg-event-db ::answered-problem
+  (fn [db [_ chosen-id]]
+    (update-in db [:trace-ui :answers-for-problem-questions] (fnil conj []) chosen-id)))
+;; ---
+(defn quiz-problem [question-data assumed-answer]
+  (let [;; Sort options: Assumed goes first.
+        sorted-options (sort-by (fn [opt] (if (= (:id opt) assumed-answer) -1 1))
+                                (:options question-data))]
     [:div.quiz-container
-     ;; Info-gathered (light blue) background when answered
-     {:class (when answered? "panel-info-gathered")
-      :title "Until you answer this question, your codebase is simultaneously perfectly fine and completely destroyed. I've highlighted my best guess below, but if you want the actual solution instead of a hallucinated one, you need to narrow down the variables. Work with me here; I promise I won't judge your commit message history."}
+     {:title "Until you answer this question, your codebase is simultaneously perfectly fine and completely destroyed. I've highlighted my best guess below, but if you want the actual solution instead of a hallucinated one, you need to narrow down the variables. Work with me here; I promise I won't judge your commit message history."}
 
      [:div.panel-watermark.left "❓"]
 
      [:div.quiz-content
       [:div.quiz-inner
-       (when-let [title (:title data)] [:h3.question-title title])
-       (when-let [desc (:description data)] [:p.question-desc desc])
+       (when-let [title (:title question-data)] [:h3.question-title [markdown-view title]])
+       (when-let [desc (:description question-data)] [:p.question-desc [markdown-view desc]])
 
        [:div.options-list
-        (for [[id text] (map-indexed #(into [%1 %2]) (:options data))]
-          (let [is-this-selected (= id selected-id)
-                ;; Specific logic for Problem Mode (Assumed vs Selected)
-                opt-class (cond
-                            is-this-selected "option-selected"
-                            answered? "option-disabled"
-                            (= id (:assumed-id data)) "option-assumed"
-                            :else "option-default")]
+        (for [{:keys [id text]} sorted-options]
+          (let [opt-class (if (= id assumed-answer) "option-assumed" "option-default")]
             ^{:key id}
             [:button.quiz-option
              {:class opt-class
-              :on-click #(when-not answered? (reset! state-atom id))}
-             text]))]]]]))
+              :on-click #(js/setTimeout ;; A little delay before changing the whole UI.
+                           (fn [] (>evt [::answered-problem id]))
+                           2000)}
+             [markdown-view text]]))]]]]))
 
 ;; ---------------------------------------------------------
 ;; ---   KNOWLEDGE QUIZ subs/events ---
@@ -913,14 +993,11 @@
 (defn target-node
   "Depends on the problem the user has and the problem related questions she answered.
   Actually it depends on the knowledge related questions as well.."
-  [app-state event]
+  [app-state _event]
   (let [problem-node (get-in app-state [:trace-ui :problem-node] nil)
-        answered-questions (get-in app-state [:trace-ui :answered-questions] nil)
-        problem-answered-questions (get answered-questions problem-node nil)
-        route-based-on-assumptions (get-in trace-scenarios [problem-node :assumed-route] nil)
-        ; _ (when (nil? route-based-on-assumptions) (throw (ex-info "Problema ao escolher target node baseado em respostas assumidas." {:problem-node problem-node})))
-        selected-route (or problem-answered-questions route-based-on-assumptions)
-        target-from-problem (get-in trace-scenarios [problem-node :routing selected-route])
+        answered-questions (get-in app-state [:trace-ui :answers-for-problem-questions] [])
+        trace-scenarios-routing  (get-in trace-scenarios [problem-node :routing] [])
+        target-from-problem (:matched-node (evaluate-routing trace-scenarios-routing answered-questions))
         target-prerequisites (get-in trace-scenarios [target-from-problem :prerequisites])
                 ;; TODO: I'll need a recursion here.
         aim-fn (fn [target prerequisite]
@@ -967,18 +1044,11 @@
                             (remove #{target-node})
                             (remove #(clojure.string/starts-with? % "❓"))
                             (first)))]
-    (tap> {:brain-node
-           {:target's-prerequisites target's-prerequisites
-            :unanswered-prereq   unanswered-prereq
-            :unanswered-advanced unanswered-advanced
-            :any-unnanswered     any-unnanswered
-            :target-node         target-node}})
     ;; TODO: What happens when the user answered everything?
     (or unanswered-prereq
         unanswered-advanced
         any-unnanswered
         target-node)))
-
 (re-frame/reg-sub
   ::brain-node
   :<- [::target-node]
@@ -1042,47 +1112,56 @@
 ;; ---------------------------------------------------------
 ;; ---   Main view ---------------------------------------------------------
 ;; ---------------------------------------------------------
-
 (defn main []
-  (let [problem-answer (reagent/atom nil)]
-    (fn []
-      (let [problem-node (<sub [::problem-node])
-            is-tracing?  (some? problem-node)
-            current-brain (<sub [::brain-node])
-            questions-map (get-in trace-scenarios [current-brain :questions] {})
-            [question-id question-data] (first questions-map)]
+  (let [problem-node (<sub [::problem-node])
+        is-tracing?  (some? problem-node)
 
-        ;; Add .state-trace class conditionally to trigger all CSS animations
-        [:div.app-container {:class (when is-tracing? "state-trace")
-                             :on-click #(when (not is-tracing?) (>evt [::next-node]))}
-         [trace-styles]
-         ; [:div "debug"
-         ;  [:pre (str "problem-node: "problem-node)]
-         ;  [:pre (str "current-target "(<sub [::target-node]))]
-         ;  [:pre (str "current-brain: "(<sub [::brain-node]))]]
+        ;; --- Problem Panel Setup ---
+        problem-path-takeen (<sub [::problem-path-taken])
+        assumed-answer (:assumed-answer (<sub [::problem-evaluation]))
+        ;; Fetch the specific question for the current path
+        questions-map (get-in trace-scenarios [problem-node :questions] {})
+        problem-question-data (get-question-for-path questions-map problem-path-takeen)
 
-         ;; === BACKGROUND GRAPH LAYER (Moves from Full Screen to Bottom) ===
-         [:div.graph-bg
-           [util/error-boundary
-            {:if-error [:h2 "erro"]}
-            [looset-graph/graph-component]]]
+        ;; --- Knowledge Panel Setup ---
+        current-brain  (<sub [::brain-node])
+        questions-map  (get-in trace-scenarios [current-brain :questions] {})
+        [knowledge-question-id knowledge-question-data] (first questions-map)]
 
-         ;; --- Right Panel (Node Details) ---
-         ;; Sits behind the interaction layer due to z-index (5 vs 10)
-         [right-panel-view]
+    [:div.app-container {:class (when is-tracing? "state-trace")
+                         :on-click #(when (not is-tracing?) (>evt [::next-node]))}
+     [trace-styles]
+     [:div "debug"
+       [:pre (str "problem-node: "problem-node)]
+       [:pre (str "current-target "(<sub [::target-node]))]
+       [:pre (str "current-brain: "(<sub [::brain-node]))]
+       [:pre (str "problem-path-takeen: "(<sub [::problem-path-taken]))]
+       [:pre (str "Assumed id: "(<sub [::problem-evaluation]))]
+       [:pre (str "question-data: "problem-question-data)]]
 
-         ;; === INTERACTION LAYER (Moves from Full Screen to Bottom) ===
-         [:div.interaction-layer
-          ; Left: Initially search-ui, later problem-quiz
-          [:div.problem-panel
-           ;; Search UI (Visible initially, fades out on trace via CSS opacity/transform)
-           [search-ui]
 
-           ;; Problem Quiz (Visible during trace)
-           (when is-tracing?
-             [quiz-problem mock-problem-data problem-answer])]
+     ;; === BACKGROUND GRAPH LAYER (Moves from Full Screen to Bottom) ===
+     [:div.graph-bg
+       [util/error-boundary
+        {:if-error [:h2 "erro"]}
+        [looset-graph/graph-component]]]
 
-          ;; Right: Knowledge Panel (Visible during trace)
-          [:div.knowledge-panel
-           (when (and is-tracing? question-data)
-             [quiz-knowledge current-brain question-id question-data])]]]))))
+     ;; --- Right Panel (Node Details) ---
+     ;; Sits behind the interaction layer due to z-index (5 vs 10)
+     [right-panel-view]
+
+     ;; === INTERACTION LAYER (Moves from Full Screen to Bottom) ===
+     [:div.interaction-layer
+      ; Left: Initially search-ui, later problem-quiz
+      [:div.problem-panel
+       ;; Search UI (Visible initially, fades out on trace via CSS opacity/transform)
+       [search-ui]
+
+       ;; Problem Quiz (Visible during trace)
+       (when (and is-tracing? problem-question-data)
+         [quiz-problem problem-question-data assumed-answer])]
+
+      ;; Right: Knowledge Panel (Visible during trace)
+      [:div.knowledge-panel
+       (when (and is-tracing? knowledge-question-data)
+         [quiz-knowledge current-brain knowledge-question-id knowledge-question-data])]]]))
