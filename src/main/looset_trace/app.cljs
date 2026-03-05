@@ -769,30 +769,43 @@
   (fn [db [_ chosen-id]]
     (update-in db [:trace-ui :answers-for-problem-questions] (fnil conj []) chosen-id)))
 ;; ---
-(defn quiz-problem [question-data assumed-answer]
-  (let [;; Sort options: Assumed goes first.
-        sorted-options (sort-by (fn [opt] (if (= (:id opt) assumed-answer) -1 1))
-                                (:options question-data))]
-    [:div.quiz-container
-     {:title "Until you answer this question, your codebase is simultaneously perfectly fine and completely destroyed. I've highlighted my best guess below, but if you want the actual solution instead of a hallucinated one, you need to narrow down the variables. Work with me here; I promise I won't judge your commit message history."}
+(defn quiz-problem []
+  (let [clicked-id (reagent.core/atom nil)]
+    (fn [question-data assumed-answer]
+      (let [;; Sort options: Assumed goes first.
+            sorted-options (sort-by (fn [opt] (if (= (:id opt) assumed-answer) -1 1))
+                                    (:options question-data))
+            is-waiting? (some? @clicked-id)]
+        [:div.quiz-container
+         {:class (when is-waiting? "panel-info-gathered")
+          :title "Until you answer this question, your codebase is simultaneously perfectly fine and completely destroyed. I've highlighted my best guess below, but if you want the actual solution instead of a hallucinated one, you need to narrow down the variables. Work with me here; I promise I won't judge your commit message history."}
 
-     [:div.panel-watermark.left "❓"]
+         [:div.panel-watermark.left "❓"]
 
-     [:div.quiz-content
-      [:div.quiz-inner
-       (when-let [title (:title question-data)] [:h3.question-title [markdown-view title]])
-       (when-let [desc (:description question-data)] [:p.question-desc [markdown-view desc]])
+         [:div.quiz-content
+          [:div.quiz-inner
+           (when-let [title (:title question-data)] [:h3.question-title [markdown-view title]])
+           (when-let [desc (:description question-data)] [:p.question-desc [markdown-view desc]])
 
-       [:div.options-list
-        (for [{:keys [id text]} sorted-options]
-          (let [opt-class (if (= id assumed-answer) "option-assumed" "option-default")]
-            ^{:key id}
-            [:button.quiz-option
-             {:class opt-class
-              :on-click #(js/setTimeout ;; A little delay before changing the whole UI.
-                           (fn [] (>evt [::answered-problem id]))
-                           2000)}
-             [markdown-view text]]))]]]]))
+           [:div.options-list
+            (for [{:keys [id text]} sorted-options]
+              (let [is-this-clicked? (= id @clicked-id)
+                    opt-class (cond
+                                is-this-clicked? "option-selected"
+                                is-waiting?      "option-disabled"
+                                (= id assumed-answer) "option-assumed"
+                                :else "option-default")]
+                ^{:key id}
+                [:button.quiz-option
+                 {:class opt-class
+                  :on-click #(when-not is-waiting?
+                               (reset! clicked-id id)
+                               (js/setTimeout ;; A little delay before changing the whole UI.
+                                 (fn []
+                                   (>evt [::answered-problem id])
+                                   (reset! clicked-id nil))
+                                 2000))}
+                 [markdown-view text]]))]]]]))))
 
 ;; ---------------------------------------------------------
 ;; ---   KNOWLEDGE QUIZ subs/events ---
