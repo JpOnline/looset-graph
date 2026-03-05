@@ -1,7 +1,12 @@
-{{"❓ Undo last commits"}}
+{{"❓ Undo last commits" -"solved by"-> "git revert"}}
 Assuming you have already pushed these commits to a remote server in a branch others are working on, check the following node for a solution:
 
 [git revert](<node:git revert>)
+
+{{"❓ Undo last commits" -"solved by"-> "git reset"}}
+Xyz
+
+[git something else](<node:git revert>)
 
 {{"git revert"}}
 Creates a **new commit** that does the exact opposite of the target commit. Best for teams because it doesn't break others' history.

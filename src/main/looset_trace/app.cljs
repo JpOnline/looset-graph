@@ -604,6 +604,12 @@
 ;; To test the calculate-depth fn
 ;; (map #(select-keys % [:depth :media-type :experience-level]) (sort-by :depth (map #(assoc % :depth (calculate-depth %)) (vals (:resources-meta (:domain @re-frame.db/app-db))))))
 
+(defn contain-node-as-prerequisite?
+  "Checks if the candidate-node has the target-node listed in its prerequisites."
+  [node candidate-node]
+  (let [prereqs (get-in trace-scenarios [candidate-node :prerequisites] [])]
+    (some #{node} prereqs)))
+
 ;; ---------------------------------------------------------
 ;; ---   question-result defmulti ---------------------------------------------------------
 ;; ---------------------------------------------------------
@@ -630,14 +636,6 @@
   (let [[question-id answer] (first (get answered-questions node [nil nil]))]
     (question-result {:node node :question-id question-id :answer answer})))
 
-;; --
-
-(defn contain-node-as-prerequisite?
-  "Checks if the candidate-node has the target-node listed in its prerequisites."
-  [node candidate-node]
-  (let [prereqs (get-in trace-scenarios [candidate-node :prerequisites] [])]
-    (some #{node} prereqs)))
-
 ;; ---------------------------------------------------------
 ;; ---   checking the assummed problem route ---------------------------------------------------------
 ;; ---------------------------------------------------------
@@ -649,6 +647,7 @@
        (every? true? (map (fn [c r] (or (= r :--any) (= c r)))
                           current-path route))))
 
+;; TODO: Actualy :matched-solution is a much better name than :matched-node
 (defn evaluate-routing
   "Returns a map {:matched-node matched-node :assumed-answer next-step :is-final? bool}
    for the first matching route in the priority list."
@@ -751,6 +750,24 @@
     [:> ReactMarkdown
      {:components (clj->js custom-components)
       :children content}]))
+
+(defn right-panel-view []
+  (let [selected-or-fallback-node (let [[selected-node & osn] @(re-frame/sub :flow {:id :f-selected-nodes})
+                                        _ (when (seq osn) (js/console.error "Mais de um Node selecionado:" (cons selected-node osn)))
+                                        visible-nodes (when-not selected-node @(re-frame/sub :flow {:id :f-visible-nodes}))]
+                                    (or selected-node
+                                        (util/get-pred #(clojure.string/starts-with? % "❓") visible-nodes)
+                                        (first visible-nodes)))
+        explanations (<sub [::looset-graph/explanation-content])
+        current-problem-path (<sub [::problem-path-taken])
+        matched-solution (:matched-node (<sub [::problem-evaluation]))
+        is-problem-node? (when selected-or-fallback-node (clojure.string/starts-with? selected-or-fallback-node "❓"))
+        markdown-content (or (get explanations {:type :node :id selected-or-fallback-node})
+                             (get explanations {:type :edge :src selected-or-fallback-node :edge-string "solved by" :target matched-solution})
+                             "Explanation not found.")]
+    [:div.node-details-panel
+     [:h2.node-title selected-or-fallback-node]
+     [:p.node-desc [markdown-view markdown-content]]]))
 
 ;; ---   PROBLEM QUIZ COMPONENT ---
 ;; ----    re-frame subs/events
@@ -868,18 +885,6 @@
       [:button.btn-continue
        {:on-click #(>evt [::commit-knowledge-answer])}
        "Continue ➔"]]]))
-
-(defn right-panel-view []
-  (let [selected-or-fallback-node (let [[selected-node & osn] @(re-frame/sub :flow {:id :f-selected-nodes})
-                                        _ (when (seq osn) (js/console.error "Mais de um Node selecionado:" (cons selected-node osn)))
-                                        visible-nodes (when-not selected-node @(re-frame/sub :flow {:id :f-visible-nodes}))]
-                                    (or selected-node
-                                        (util/get-pred #(clojure.string/starts-with? % "❓") visible-nodes)
-                                        (first visible-nodes)))
-        explanations (<sub [::looset-graph/explanation-content])]
-    [:div.node-details-panel
-     [:h2.node-title selected-or-fallback-node]
-     [:p.node-desc [markdown-view (get explanations {:type :node :id selected-or-fallback-node})]]]))
 
 ;; ---------------------------------------------------------
 ;; ---   Search UI Component
