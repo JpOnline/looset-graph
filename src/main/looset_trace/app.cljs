@@ -693,6 +693,17 @@
   (let [matched-key (first (filter #(question-match? current-path %) (keys questions-map)))]
     (get questions-map matched-key)))
 ;;--
+(defn node-color
+  [app-state node]
+  (case (question-result {:app-state app-state :node node})
+    :right LIGHT-GREEN
+    :no-answer LIGHT-YELLOW
+    :wrong LIGHT-RED))
+
+(defn nwphac ;; node-with-props-hidden-and-color)
+  [app-state node extra-props]
+  [node (merge {:hidden? false :color (node-color app-state node)}
+               extra-props)])
 ;; ---------------------------------------------------------
 ;; -- COMPONENTS---------------------------------------------------------
 ;; ---------------------------------------------------------
@@ -806,8 +817,8 @@
                           [:dispatch-later {:ms 100  :dispatch [::add-node-props [target  {:hidden? false :name target}]]}] ;; Remove target icon
                           [:dispatch-later {:ms 600  :dispatch [::add-node-props [problem {:hidden? false :edges-to {"solved by" #{target*}}}]]}] ;; Add edge to new target.
                           [:dispatch-later {:ms 600  :dispatch [::add-node-props [target* {:hidden? false :name (str "🎯 "target*) :color LIGHT-RED}]]}] ;; Add icon to new target
-                          [:dispatch-later {:ms 1200 :dispatch [::add-node-props [brain   {:hidden? false :name brain}]]}]
-                          [:dispatch-later {:ms 1200 :dispatch [::add-node-props [brain*  {:hidden? false :name (str "🧠 "brain*) :color LIGHT-YELLOW}]]}]]))]
+                          [:dispatch-later {:ms 1200 :dispatch [::add-node-props (nwphac app-state* brain   {:name brain})]}]
+                          [:dispatch-later {:ms 1200 :dispatch [::add-node-props (nwphac app-state* brain*  {:name (str "🧠 "brain*)})]}]]))]
     {:db app-state*
      :fx fx-seq}))
 (re-frame/reg-event-fx ::answered-problem answered-problem)
@@ -870,30 +881,29 @@
         question-id (:question-id staged)
         chosen-option (:answer staged)
         brain (brain-node [(target-node app-state evt) (answered-questions app-state)])
-        answered-right? (= :right (question-result {:node brain :question-id question-id :answer chosen-option}))
         app-state* (-> app-state
                      (assoc-in [:trace-ui :answered-questions brain question-id] chosen-option)
                      (assoc-in [:trace-ui :staged-knowledge-answer] nil))
         brain* (brain-node [(target-node app-state* evt) (answered-questions app-state*)])
         target (target-node app-state evt)
         target* (target-node app-state* evt)
-        brain-node-next-color (if answered-right? LIGHT-GREEN LIGHT-RED)
         fx-seq (cond-> []
                  (not= brain brain*)
-                 (concat [[:dispatch-later {:ms 100 :dispatch [::add-node-props [brain {:name brain :color brain-node-next-color}]]}]
-                          [:dispatch-later {:ms 100 :dispatch [::add-node-props [brain* {:name (str "🧠 "brain*)}]]}]
+                 (concat [[:dispatch-later {:ms 100 :dispatch [::add-node-props (nwphac app-state* brain {:name brain})]}]
+                          [:dispatch-later {:ms 100 :dispatch [::add-node-props (nwphac app-state* brain* {:name (str "🧠 "brain*)})]}]
                            ;; I can define a Node in trace-scenarios that is
                            ;; not in the graph-text, in this case it won't have
                            ;; connections, so let's create between it and the
                            ;; current-target.
                           (when (has-no-edge? brain*)
-                            [:dispatch-later {:ms 100 :dispatch [::add-node-props [target* {:edges-to (merge-with (comp set concat)
-                                                                                                                  (get-in app-state* [:domain :nodes-map target* :edges-to] {})
-                                                                                                                  {"depends of" #{brain*}})}]]}])])
+                            [:dispatch-later {:ms 100 :dispatch [::add-node-props (nwphac app-state* target*
+                                                                                          {:edges-to (merge-with (comp set concat)
+                                                                                                                 (get-in app-state* [:domain :nodes-map target* :edges-to] {})
+                                                                                                                 {"depends of" #{brain*}})})]}])])
 
                  (not= target target*)
-                 (concat [[:dispatch-later {:ms 100 :dispatch [::add-node-props [target {:name target}]]}]
-                          [:dispatch-later {:ms 100 :dispatch [::add-node-props [target* {:name (str "🎯 "target*)}]]}]]))]
+                 (concat [[:dispatch-later {:ms 100 :dispatch [::add-node-props (nwphac app-state* target {:name target})]}]
+                          [:dispatch-later {:ms 100 :dispatch [::add-node-props (nwphac app-state* target* {:name (str "🎯 "target*)})]}]]))]
     {:db app-state*
      :fx fx-seq}))
 (re-frame/reg-event-fx ::commit-knowledge-answer commit-knowledge-answer)
