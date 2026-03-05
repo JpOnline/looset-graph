@@ -502,6 +502,13 @@
                                                       {:id :unit-test :text "Unit tests"}
                                                       {:id :git-hooks :text "Git Hooks"}]}}}
 
+   "git reset"
+   {:prerequisites ["HEAD" "Staging Area" "Working Directory"]}
+
+   "HEAD"
+   {:questions {:1 {:description "A"
+                    :options [{:id :a :text "x"}]}}}
+
    ;; Knowledge Space
    "git revert"
    {
@@ -781,10 +788,29 @@
     (let [routing-vec (get-in trace-scenarios [node :routing] [])]
       (evaluate-routing routing-vec path))))
 
-;; Instant click event
-(re-frame/reg-event-db ::answered-problem
-  (fn [db [_ chosen-id]]
-    (update-in db [:trace-ui :answers-for-problem-questions] (fnil conj []) chosen-id)))
+(declare problem-node)
+(declare brain-node)
+(declare target-node)
+(declare answered-questions)
+(defn answered-problem
+  [{app-state :db} [evt chosen-id]]
+  (let [app-state* (update-in app-state [:trace-ui :answers-for-problem-questions] (fnil conj []) chosen-id)
+        problem (problem-node app-state evt)
+        brain (brain-node [(target-node app-state evt) (answered-questions app-state)])
+        brain* (brain-node [(target-node app-state* evt) (answered-questions app-state*)])
+        target (target-node app-state evt)
+        target* (target-node app-state* evt)
+        fx-seq (cond-> []
+                 (not= target target*)
+                 (concat [[:dispatch-later {:ms 100  :dispatch [::add-node-props [problem {:hidden? false :edges-to nil}]]}] ;; Remove edge
+                          [:dispatch-later {:ms 100  :dispatch [::add-node-props [target  {:hidden? false :name target}]]}] ;; Remove target icon
+                          [:dispatch-later {:ms 600  :dispatch [::add-node-props [problem {:hidden? false :edges-to {"solved by" #{target*}}}]]}] ;; Add edge to new target.
+                          [:dispatch-later {:ms 600  :dispatch [::add-node-props [target* {:hidden? false :name (str "🎯 "target*) :color LIGHT-RED}]]}] ;; Add icon to new target
+                          [:dispatch-later {:ms 1200 :dispatch [::add-node-props [brain   {:hidden? false :name brain}]]}]
+                          [:dispatch-later {:ms 1200 :dispatch [::add-node-props [brain*  {:hidden? false :name (str "🧠 "brain*) :color LIGHT-YELLOW}]]}]]))]
+    {:db app-state*
+     :fx fx-seq}))
+(re-frame/reg-event-fx ::answered-problem answered-problem)
 ;; ---
 (defn quiz-problem []
   (let [clicked-id (reagent.core/atom nil)]
@@ -836,6 +862,41 @@
  ::stage-knowledge-answer
  (fn [db [_ question-id chosen-option]]
    (assoc-in db [:trace-ui :staged-knowledge-answer] {:question-id question-id :answer chosen-option})))
+
+(defn commit-knowledge-answer
+  [{app-state :db} [evt]]
+  (let [has-no-edge? #(not (some #{:edges-to :edges-from} (keys (get-in app-state [:domain :nodes-map %]))))
+        staged (get-in app-state [:trace-ui :staged-knowledge-answer])
+        question-id (:question-id staged)
+        chosen-option (:answer staged)
+        brain (brain-node [(target-node app-state evt) (answered-questions app-state)])
+        answered-right? (= :right (question-result {:node brain :question-id question-id :answer chosen-option}))
+        app-state* (-> app-state
+                     (assoc-in [:trace-ui :answered-questions brain question-id] chosen-option)
+                     (assoc-in [:trace-ui :staged-knowledge-answer] nil))
+        brain* (brain-node [(target-node app-state* evt) (answered-questions app-state*)])
+        target (target-node app-state evt)
+        target* (target-node app-state* evt)
+        brain-node-next-color (if answered-right? LIGHT-GREEN LIGHT-RED)
+        fx-seq (cond-> []
+                 (not= brain brain*)
+                 (concat [[:dispatch-later {:ms 100 :dispatch [::add-node-props [brain {:name brain :color brain-node-next-color}]]}]
+                          [:dispatch-later {:ms 100 :dispatch [::add-node-props [brain* {:name (str "🧠 "brain*)}]]}]
+                           ;; I can define a Node in trace-scenarios that is
+                           ;; not in the graph-text, in this case it won't have
+                           ;; connections, so let's create between it and the
+                           ;; current-target.
+                          (when (has-no-edge? brain*)
+                            [:dispatch-later {:ms 100 :dispatch [::add-node-props [target* {:edges-to (merge-with (comp set concat)
+                                                                                                                  (get-in app-state* [:domain :nodes-map target* :edges-to] {})
+                                                                                                                  {"depends of" #{brain*}})}]]}])])
+
+                 (not= target target*)
+                 (concat [[:dispatch-later {:ms 100 :dispatch [::add-node-props [target {:name target}]]}]
+                          [:dispatch-later {:ms 100 :dispatch [::add-node-props [target* {:name (str "🎯 "target*)}]]}]]))]
+    {:db app-state*
+     :fx fx-seq}))
+(re-frame/reg-event-fx ::commit-knowledge-answer commit-knowledge-answer)
 
 ;; ---   KNOWLEDGE QUIZ COMPONENT ---
 (defn quiz-knowledge [brain-id question-id data]
@@ -986,8 +1047,6 @@
 ;; ---------------------------------------------------------
 ;; -- Main ---------------------------------------------------------
 ;; ---------------------------------------------------------
-
-;; ---------------------------------------------------------
 ;; ---   Re-frame Events/Subs
 ;; ---------------------------------------------------------
 (defn problem-node ;; Holds the ID of the selected question
@@ -1073,7 +1132,6 @@
   :<- [::answered-questions]
   brain-node)
 
-(defonce counter (atom 0))
 (def next-nodes
   [{:delay 100 :node-prop ["❓ Undo last commits" {:color LIGHT-RED :hidden? false}]}
    {:delay 800 :node-prop ["git revert" {:name "🎯 git revert" :color LIGHT-RED :hidden? false}]}
@@ -1085,45 +1143,12 @@
   {:fx (map #(into [:dispatch-later {:ms (:delay %) :dispatch [::add-node-props (:node-prop %)]}]) next-nodes)})
 (re-frame/reg-event-fx ::next-node next-node)
 
-(defn commit-knowledge-answer
-  [{app-state :db} [evt]]
-  (let [has-no-edge? #(not (some #{:edges-to :edges-from} (keys (get-in app-state [:domain :nodes-map %]))))
-        staged (get-in app-state [:trace-ui :staged-knowledge-answer])
-        question-id (:question-id staged)
-        chosen-option (:answer staged)
-        brain (brain-node [(target-node app-state evt) (answered-questions app-state)])
-        answered-right? (= :right (question-result {:node brain :question-id question-id :answer chosen-option}))
-        app-state* (-> app-state
-                     (assoc-in [:trace-ui :answered-questions brain question-id] chosen-option)
-                     (assoc-in [:trace-ui :staged-knowledge-answer] nil))
-        brain* (brain-node [(target-node app-state* evt) (answered-questions app-state*)])
-        target (target-node app-state evt)
-        target* (target-node app-state* evt)
-        brain-node-next-color (if answered-right? LIGHT-GREEN LIGHT-RED)
-        fx-seq (cond-> []
-                 (not= brain brain*)
-                 (concat [[:dispatch-later {:ms 100 :dispatch [::add-node-props [brain {:name brain :color brain-node-next-color}]]}]
-                          [:dispatch-later {:ms 100 :dispatch [::add-node-props [brain* {:name (str "🧠 "brain*)}]]}]
-                           ;; I can define a Node in trace-scenarios that is
-                           ;; not in the graph-text, in this case it won't have
-                           ;; connections, so let's create between it and the
-                           ;; current-target.
-                          (when (has-no-edge? brain*)
-                            [:dispatch-later {:ms 100 :dispatch [::add-node-props [target* {:edges-to (merge-with (comp set concat)
-                                                                                                                  (get-in app-state* [:domain :nodes-map target* :edges-to] {})
-                                                                                                                  {"depends of" #{brain*}})}]]}])])
-
-                 (not= target target*)
-                 (concat [[:dispatch-later {:ms 100 :dispatch [::add-node-props [target {:name target}]]}]
-                          [:dispatch-later {:ms 100 :dispatch [::add-node-props [target* {:name (str "🎯 "target*)}]]}]]))]
-    {:db app-state*
-     :fx fx-seq}))
-(re-frame/reg-event-fx ::commit-knowledge-answer commit-knowledge-answer)
-
 (comment
   (do
     (looset-graph.app/load-graph-text)
-    (re-frame/dispatch-sync [::reset-problem-node])))
+    (re-frame/dispatch-sync [::reset-problem-node])
+    [:dispatch-later {:ms 600  :dispatch [::add-node-props [problem {:hidden? false :edges-to {"solved by" target*}}]]}] ;; Add edge to new target.
+    (re-frame/dispatch-sync [::add-node-props ["❓ Undo last commits" {:hidden? false :edges-to {"solved by" #{"git reset"}}}]])))
 ;; (re-frame/dispatch-sync [::add-node-props ["git reset" {:color nil}]])
 ;; (re-frame/dispatch-sync [::add-node-props ["git revert" {:name "x git revert"}]])
 
