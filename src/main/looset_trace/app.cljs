@@ -1137,6 +1137,7 @@
 
              ;; Keyboard interaction (Enter to select)
              :on-key-down (fn [e]
+                            (.stopPropagation e)
                             (when (= (.-key e) "Enter")
                               (.preventDefault e)
                               (if no-matches?
