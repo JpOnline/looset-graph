@@ -478,22 +478,23 @@
 (def trace-scenarios
   {;; Problem Space
    "❓ Undo last commits"
-   {:routing [[:pushed :collaborating] "git revert"
-              [:pushed :personal-branch] "git push -f"
+   {:routing [
               [:local] "git reset"
-              [:local :keep] "git reset --soft"
-              [:local :delete] "git reset --hard"
+              [:pushed :collaborating] "git revert"
+              [:pushed :personal-branch] "git push -f"
               [:local :--any :premature] "git commit --amend --no-edit"
               [:local :--any :premature :git-hooks] "pre-commit git hook"]
+              [:local :keep] "git reset --soft"
+              [:local :delete] "git reset --hard"
     :questions {[] {:description "Have these commits already been pushed to a remote repository, or do they only exist locally on your computer?"
                     :options [{:id :local :text "I'm **local only**. I have not run a `git push` command yet."}
                               {:id :pushed :text "I've **already pushed** to a remote repository."}]}
                 [:local] {:description "Do you want to preserve the code changes you made, or permanently discard them?"
                           :options [{:id :keep :text "**Keep the changes**: I want to undo the commit but keep all the work I did as \"unstaged\" changes in my folder."}
                                     {:id :delete :text "**Delete the changes**: I want to completely delete the last commits and the work inside them (reset to a clean previous state)."}]}
-                [:pushed] {:description "Are you collaborating with others on this specific branch, or is it a personal branch where rewriting history is safe?"}
-                          :options [{:id :collaborating :text "Collaborating with others (Shared Branch)"}
-                                    {:id :personal-branch :text "Personal branch (Safe to rewrite history)"}]
+                [:pushed] {:description "Are you collaborating with others on this specific branch, or is it a personal branch where rewriting history is safe?"
+                           :options [{:id :collaborating :text "Collaborating with others (Shared Branch)"}
+                                     {:id :personal-branch :text "Personal branch (Safe to rewrite history)"}]}
                 [:local :--any] {:description "Why did these specific commits need to be undone in the first place?"
                                  :options [{:id :pramature :text "It was a premature commit. I need to add more things to the commit."}
                                            {:id :batched-work :text "Work is being batched together too broadly before being reviewed."}]}
@@ -692,7 +693,7 @@
 (defn get-question-for-path [questions-map current-path]
   (let [matched-key (first (filter #(question-match? current-path %) (keys questions-map)))]
     (get questions-map matched-key)))
-;;--
+;; ---
 (defn node-color
   [app-state node]
   (case (question-result {:app-state app-state :node node})
@@ -706,16 +707,6 @@
                extra-props)])
 ;; ---------------------------------------------------------
 ;; -- COMPONENTS---------------------------------------------------------
-;; ---------------------------------------------------------
-
-(defn node-link-clicked
-  [app-state [_ev node-id]]
-  (assoc-in app-state [:ui :selected-nodes] #{node-id}))
-(re-frame/reg-event-db ::node-link-clicked node-link-clicked)
-
-(defn all-resources-meta [app-state]
-  (get-in app-state [:domain :resources-meta] {}))
-(re-frame/reg-sub ::all-resources-meta all-resources-meta)
 
 (defn markdown-view [content]
   (let [custom-components
@@ -799,6 +790,13 @@
     (let [routing-vec (get-in trace-scenarios [node :routing] [])]
       (evaluate-routing routing-vec path))))
 
+(defn events-to-show-prerequisites
+  [{:keys [ms ms-step node app-state]
+    :or {ms-step 0}}] ;; Time between each prerequisite to show up.
+  (map-indexed
+    #(into [:dispatch-later {:ms (+ ms (* %1 ms-step)) :dispatch [::add-node-props (nwphac app-state %2 {})]}])
+    (get-in trace-scenarios [node :prerequisites] [])))
+
 (declare problem-node)
 (declare brain-node)
 (declare target-node)
@@ -818,11 +816,12 @@
                           [:dispatch-later {:ms 600  :dispatch [::add-node-props [problem {:hidden? false :edges-to {"solved by" #{target*}}}]]}] ;; Add edge to new target.
                           [:dispatch-later {:ms 600  :dispatch [::add-node-props [target* {:hidden? false :name (str "🎯 "target*) :color LIGHT-RED}]]}] ;; Add icon to new target
                           [:dispatch-later {:ms 1200 :dispatch [::add-node-props (nwphac app-state* brain   {:name brain})]}]
-                          [:dispatch-later {:ms 1200 :dispatch [::add-node-props (nwphac app-state* brain*  {:name (str "🧠 "brain*)})]}]]))]
+                          [:dispatch-later {:ms 1200 :dispatch [::add-node-props (nwphac app-state* brain*  {:name (str "🧠 "brain*)})]}]]
+                         (events-to-show-prerequisites {:ms 1800 :ms-step 600 :node target* :app-state app-state*})))]
     {:db app-state*
      :fx fx-seq}))
 (re-frame/reg-event-fx ::answered-problem answered-problem)
-;; ---
+;; ----
 (defn quiz-problem []
   (let [clicked-id (reagent.core/atom nil)]
     (fn [question-data assumed-answer]
@@ -862,7 +861,8 @@
                  [markdown-view text]]))]]]]))))
 
 ;; ---------------------------------------------------------
-;; ---   KNOWLEDGE QUIZ subs/events ---
+;; ---   KNOWLEDGE QUIZ COMPONENT ---
+;; ----    re-frame subs/events
 ;; ---------------------------------------------------------
 (re-frame/reg-sub
  ::staged-knowledge-answer
@@ -900,15 +900,15 @@
                                                                                           {:edges-to (merge-with (comp set concat)
                                                                                                                  (get-in app-state* [:domain :nodes-map target* :edges-to] {})
                                                                                                                  {"depends of" #{brain*}})})]}])])
-
                  (not= target target*)
-                 (concat [[:dispatch-later {:ms 100 :dispatch [::add-node-props (nwphac app-state* target {:name target})]}]
-                          [:dispatch-later {:ms 100 :dispatch [::add-node-props (nwphac app-state* target* {:name (str "🎯 "target*)})]}]]))]
+                 (concat [[:dispatch-later {:ms 700 :dispatch [::add-node-props (nwphac app-state* target {:name target})]}]
+                          [:dispatch-later {:ms 700 :dispatch [::add-node-props (nwphac app-state* target* {:name (str "🎯 "target*)})]}]]
+                         (events-to-show-prerequisites {:ms 1300 :ms-step 600 :node target* :app-state app-state*})))]
     {:db app-state*
      :fx fx-seq}))
 (re-frame/reg-event-fx ::commit-knowledge-answer commit-knowledge-answer)
-
-;; ---   KNOWLEDGE QUIZ COMPONENT ---
+;; ----
+;; ----     knowledge quiz component ---
 (defn quiz-knowledge [brain-id question-id data]
   (let [answered-map (<sub [::answered-questions])
         staged-data  (<sub [::staged-knowledge-answer])
@@ -1054,6 +1054,16 @@
                (when icon [:span {:style {:font-size "1.1em"}} icon])
                label])])]))))
 
+;; ---- Other re-frame subs/events -----------------------------------------------------
+(defn node-link-clicked
+  [app-state [_ev node-id]]
+  (assoc-in app-state [:ui :selected-nodes] #{node-id}))
+(re-frame/reg-event-db ::node-link-clicked node-link-clicked)
+
+(defn all-resources-meta [app-state]
+  (get-in app-state [:domain :resources-meta] {}))
+(re-frame/reg-sub ::all-resources-meta all-resources-meta)
+;; ----
 ;; ---------------------------------------------------------
 ;; -- Main ---------------------------------------------------------
 ;; ---------------------------------------------------------
@@ -1149,7 +1159,6 @@
    {:delay 1600 :node-prop ["Immutability" {:color LIGHT-YELLOW :hidden? false}]}])
 
 (defn next-node [_]
-  ; {:fx [[:dispatch-later {:ms 2000 :dispatch [::add-node-props ["git revert" {:color "#fff6c4"}]]}]]})
   {:fx (map #(into [:dispatch-later {:ms (:delay %) :dispatch [::add-node-props (:node-prop %)]}]) next-nodes)})
 (re-frame/reg-event-fx ::next-node next-node)
 
