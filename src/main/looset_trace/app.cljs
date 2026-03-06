@@ -498,10 +498,10 @@
 ;; -- DATA
 ;; ---------------------------------------------------------
 (def featured-questions
-  [{:id "❓ Undo last commits" :label "Undo last commits" :highlight? true :icon "🔥"}
-   {:id :pull-fetch :label "Difference between 'pull' and 'fetch'"}
-   {:id :delete-branch :label "Delete a branch locally and remotely"}
-   {:id :undo-add :label "Undo 'git add' before commit"}])
+  [{:label "❓ Undo last commits" :highlight? true :icon "🔥"}
+   {:label "Difference between 'pull' and 'fetch'"}
+   {:label "Delete a branch locally and remotely"}
+   {:label "Undo 'git add' before commit"}])
 
 (def mapped-questions
   [{:id :undo :label "Undo the most recent local commits"}
@@ -1041,10 +1041,11 @@
 ;; ---------------------------------------------------------
 (defn email-capture-prompt
   #_{:clj-kondo/ignore [:unused-binding]}
-  [query modal-state]
+  [modal-state]
   (let [email-input (reagent/atom "")]
-    (fn [query modal-state]
-      (when (or (= @modal-state :prompting) (= @modal-state :submitted))
+    (fn [modal-state]
+      (when (or (= (:state @modal-state) :prompting)
+                (= (:state @modal-state) :submitted))
         [:div.modal-overlay
          ;; Clicking the dark background closes the modal
          {:on-click #(reset! modal-state nil)}
@@ -1053,7 +1054,7 @@
           ;; Prevent clicks inside the white box from bubbling up and closing the modal
           {:on-click (fn [e] (.stopPropagation e))}
 
-          (if (= @modal-state :submitted)
+          (if (= (:state @modal-state) :submitted)
 
             ;; --- SUCCESS STATE ---
             [:div {:style {:text-align "center" :padding "16px 0"}}
@@ -1065,9 +1066,9 @@
 
             ;; --- PROMPT STATE ---
             [:div
-             [:h3 {:style {:margin-top "0" :color "#0f172a"}} "Vote recorded!"]
+             [:h3 {:style {:margin-top "0" :color "#0f172a"}} (:title @modal-state)]
              [:p {:style {:color "#475569" :font-size "0.95rem" :line-height "1.5" :margin-bottom "20px"}}
-              (str "Drop your email below if you want a quick ping when we release a map for \"") [:strong query] "\"."]
+              (str "Drop your email below if you want a quick ping when we release a map for \"") [:strong (:subject @modal-state)] "\"."]
 
              [:input.search-input
               {:type "email"
@@ -1080,7 +1081,7 @@
                               (when (= (.-key e) "Enter")
                                 (.preventDefault e)
                                 (>evt [::send-to-firestore "emails" {:email @email-input}])
-                                (reset! modal-state :submitted)))}]
+                                (reset! modal-state {:state :submitted})))}]
 
              [:div {:style {:display "flex" :justify-content "flex-end" :gap "12px"}}
               [:button {:style {:background "transparent" :border "none" :color "#64748b" :cursor "pointer" :font-weight "500"}
@@ -1107,12 +1108,17 @@
             problem-node   (<sub [::problem-node])
             is-tracing?    (some? problem-node)
             show-dropdown? (and @is-focused? has-query? (not is-tracing?))
-            start-trace!   (fn [id]
-                             (>evt [::start-trace id])
-                             (reset! search-text ""))
-            trigger-manual-vote! (fn [q]
-                                   (>evt [::send-to-firestore "votes" {:type "manual" :subject q}])
-                                   (reset! email-modal-state :prompting))]
+            trigger-vote! (fn [q title vote-type]
+                            (reset! email-modal-state {:state :prompting :subject q :title title})
+                            (>evt [::send-to-firestore "votes" {:subject q :type vote-type}]))
+            start-trace!   (fn [label]
+                             (if (contains? trace-scenarios label)
+                               (>evt [::start-trace label])
+                               (trigger-vote! label "Not mapped yet" "not in trace-scenarios"))
+                             (reset! search-text ""))]
+            ; trigger-not-mapped-featured (fn [featured-label]
+            ;                               (>evt [::send-to-firestore "votes" {:type "featured" :subject featured-label}])
+            ;                               (trigger-manual-vote! label "Not mapped yet"))]
 
         [:div.search-ui
          [:h1.trace-logo "Looset Trace"]
@@ -1134,10 +1140,10 @@
                             (when (= (.-key e) "Enter")
                               (.preventDefault e)
                               (if no-matches?
-                                (trigger-manual-vote! query) ;; Enter key triggers vote & modal
+                                (trigger-vote! query "Vote recorded!" "manual") ;; Enter key triggers vote & modal
                                 (let [target-id (if has-query?
-                                                  (:id (first matches))
-                                                  (:id (first featured-questions)))]
+                                                  (:label (first matches))
+                                                  (:label (first featured-questions)))]
                                   (when target-id (start-trace! target-id))))))
              :on-change (fn [e]
                           (let [v (-> e .-target .-value)]
@@ -1162,34 +1168,37 @@
                  ;; Click triggers the immediate vote AND opens the email modal.
                  {:on-mouse-down (fn [e]
                                    (.preventDefault e)
-                                   (trigger-manual-vote! query))}
+                                   (trigger-vote! query "Vote recorded!" "manual"))}
                  [:div.item-icon [:svg {:width "18" :height "18" :viewBox "0 0 24 24" :fill "none" :stroke "currentColor" :stroke-width "2"} [:path {:d "M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"}]]]
                  [:div [:div.item-text (str "\"" query "\"")] [:div.item-subtext "Not mapped yet. Click to vote to map this next."]]]
-                (for [{:keys [id label]} featured-questions] ;; featured list as fallback
-                  ^{:key (str "feat-" id)}
-                  [:div.dropdown-item {:on-mouse-down (fn [e] (.preventDefault e) (start-trace! id))}
+                (for [{:keys [label]} featured-questions] ;; featured list as fallback
+                  ^{:key (str "feat-" label)}
+                  [:div.dropdown-item {:on-mouse-down (fn [e] (.preventDefault e) (start-trace! label))}
                    [:div.item-icon [:svg {:width "16" :height "16" :viewBox "0 0 24 24" :fill "none" :stroke "currentColor" :stroke-width "2"} [:polyline {:points "20 6 9 17 4 12"}]]]
                    [:div.item-text label]])]
 
                ;; Scenario 2: With matches
-               (for [{:keys [id label]} matches]
-                 ^{:key id}
-                 [:div.dropdown-item {:on-mouse-down (fn [e] (.preventDefault e) (start-trace! id))}
+               (for [{:keys [label]} matches]
+                 ^{:key label}
+                 [:div.dropdown-item
+                  {:on-mouse-down (fn [e]
+                                    (.preventDefault e)
+                                    (start-trace! label))}
                   [:div.item-icon [:svg {:width "16" :height "16" :viewBox "0 0 24 24" :fill "none" :stroke "currentColor" :stroke-width "2"} [:circle {:cx "11" :cy "11" :r "8"}]]]
                   [:div.item-text label]]))])
 
           ;; Sits outside the normal flow, waiting for email-modal-state to not be nil.
-          [email-capture-prompt query email-modal-state]]
+          [email-capture-prompt email-modal-state]]
 
          (when (not show-dropdown?)
            [:div.cards-container
-            (for [{:keys [id label highlight? icon]} featured-questions]
-              ^{:key id}
+            (for [{:keys [label highlight? icon]} featured-questions]
+              ^{:key label}
               [:div.trace-card
                {:class (when highlight? "highlight")
-                :on-click #(start-trace! id)}
+                :on-click #(start-trace! label)}
                (when icon [:span {:style {:font-size "1.1em"}} icon])
-               label])])]))))
+               (str/replace label "❓ " "")])])]))))
 
 ;; ---- Other re-frame subs/events -----------------------------------------------------
 (defn node-link-clicked
