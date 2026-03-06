@@ -1,5 +1,7 @@
 (ns looset-trace.app
   (:require
+    ["firebase/app" :refer [initializeApp]]
+    ["firebase/firestore" :refer [getFirestore collection addDoc]]
     ["react-markdown" :default ReactMarkdown]
     [clojure.string :as str]
     [looset-graph.app :as looset-graph]
@@ -9,6 +11,33 @@
 
 (def show-tooltips? (< (rand) 0.5))
 
+;; ---------------------------------------------------------
+;; -- Firebase
+;; ---------------------------------------------------------
+(def firebase-config
+  #js {:apiKey "AIzaSyCAwzD3kjiEd8T3MJKWbsCsCr3cY7KYt1c"
+       :authDomain "looset-trace.firebaseapp.com"
+       :projectId "looset-trace"
+       :storageBucket "looset-trace.firebasestorage.app"
+       :messagingSenderId "351450280071"
+       :appId "1:351450280071:web:83b0d040e06927e32d0822"
+       :measurementId "G-VTGW1PZNVC"})
+
+(defonce firebase-app (initializeApp firebase-config))
+(defonce firestore-db (getFirestore firebase-app))
+
+(defn send-to-firestore
+  [_ [_ collection-name payload]]
+  (let [col (collection firestore-db collection-name)
+        js-payload (clj->js (assoc payload :timestamp (.toISOString (js/Date.))))]
+    (-> (addDoc col js-payload)
+      (.then #(js/console.log "Saved to Firebase!"))
+      (.catch #(js/console.error "Firebase save failed:" %)))
+    {}))
+(re-frame/reg-event-fx ::send-to-firestore send-to-firestore)
+
+(comment
+  (send-to-firestore "test" {:a "a" :b :b :c 1}))
 ;; ---------------------------------------------------------
 ;; -- STYLES
 ;; ---------------------------------------------------------
