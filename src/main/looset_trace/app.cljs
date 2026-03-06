@@ -7,6 +7,8 @@
     [re-frame.alpha :as re-frame]
     [reagent.core :as reagent]))
 
+(def show-tooltips? (< (rand) 0.5))
+
 ;; ---------------------------------------------------------
 ;; -- STYLES
 ;; ---------------------------------------------------------
@@ -765,12 +767,10 @@
                                         _ (when (seq osn) (js/console.error "Mais de um Node selecionado:" (cons selected-node osn)))
                                         visible-nodes (when-not selected-node @(re-frame/sub :flow {:id :f-visible-nodes}))]
                                     (or selected-node
-                                        (util/get-pred #(clojure.string/starts-with? % "❓") visible-nodes)
+                                        (util/get-pred #(when % (clojure.string/starts-with? % "❓")) visible-nodes)
                                         (first visible-nodes)))
         explanations (<sub [::looset-graph/explanation-content])
-        current-problem-path (<sub [::problem-path-taken])
         matched-solution (:matched-node (<sub [::problem-evaluation]))
-        is-problem-node? (when selected-or-fallback-node (clojure.string/starts-with? selected-or-fallback-node "❓"))
         markdown-content (or (get explanations {:type :node :id selected-or-fallback-node})
                              (get explanations {:type :edge :src selected-or-fallback-node :edge-string "solved by" :target matched-solution})
                              "Explanation not found.")]
@@ -831,7 +831,7 @@
             is-waiting? (some? @clicked-id)]
         [:div.quiz-container
          {:class (when is-waiting? "panel-info-gathered")
-          :title "Until you answer this question, your codebase is simultaneously perfectly fine and completely destroyed. I've highlighted my best guess below, but if you want the actual solution instead of a hallucinated one, you need to narrow down the variables. Work with me here; I promise I won't judge your commit message history."}
+          :title (when show-tooltips? "Until you answer this question, your codebase is simultaneously perfectly fine and completely destroyed. I've highlighted my best guess below, but if you want the actual solution instead of a hallucinated one, you need to narrow down the variables. Work with me here; I promise I won't judge your commit message history.")}
 
          [:div.panel-watermark.left "❓"]
 
@@ -923,7 +923,7 @@
     [:div.quiz-container
      ;; Correct/Wrong (green/red) background when answered
      {:class (when answered? (if is-correct? "panel-correct" "panel-wrong"))
-      :title "To execute this solution without setting the server on fire, you need to understand the underlying mechanics. If you miss this question, I'm going to dynamically rebuild your learning path to cover the basics. Don't complain to the UI; physics is physics, and Git is Git."}
+      :title (when show-tooltips? "To execute this solution without setting the server on fire, you need to understand the underlying mechanics. If you miss this question, I'm going to dynamically rebuild your learning path to cover the basics. Don't complain to the UI; physics is physics, and Git is Git.")}
 
      [:div.panel-watermark.right "🧠"]
 
@@ -959,6 +959,34 @@
 
 ;; ---------------------------------------------------------
 ;; ---   Search UI Component
+;; ---- re-frame subs/events
+(re-frame/reg-event-fx
+ ::start-trace
+ (fn [{app-state :db} [evt problem-id]]
+   (let [app-state* (-> app-state
+                        (assoc-in [:trace-ui :problem-node] problem-id)
+                        (assoc-in [:trace-ui :answers-for-problem-questions] [])
+                        (assoc-in [:trace-ui :answered-questions] {})
+                        (assoc-in [:trace-ui :staged-knowledge-answer] nil))
+         target (target-node app-state* evt)
+         brain  (brain-node [(target-node app-state* evt) (answered-questions app-state*)])
+         ; Opening Animation Sequence
+         fx-seq (cond-> []
+                  ;; Reveal the Problem Node
+                  true
+                  (concat [[:dispatch-later {:ms 100 :dispatch [::add-node-props [problem-id {:hidden? false :color LIGHT-RED}]]}]])
+                  ;; Draw the edge to the Initial Target and reveal it
+                  target
+                  (concat [[:dispatch-later {:ms 600 :dispatch [::add-node-props [problem-id {:edges-to {"solved by" #{target}}}]]}]
+                           [:dispatch-later {:ms 600 :dispatch [::add-node-props [target {:hidden? false :name (str "🎯 " target) :color LIGHT-RED}]]}]])
+                  ;; Reveal the Initial Brain
+                  brain
+                  (concat [[:dispatch-later {:ms 1200 :dispatch [::add-node-props (nwphac app-state* brain {:name (str "🧠 " brain)})]}]])
+                  ;; Pop in the Target's prerequisites sequentially
+                  target
+                  (concat (events-to-show-prerequisites {:ms 1800 :ms-step 600 :node target :app-state app-state*})))]
+     {:db app-state*
+      :fx fx-seq})))
 ;; ---------------------------------------------------------
 (defn search-ui []
   ;; Local state for the search input behavior
@@ -979,7 +1007,7 @@
             ;; Handler to start the trace using Re-frame
             start-trace!   (fn [id]
                              (js/console.log "Starting trace for:" id)
-                             (>evt [::set-problem-node id])
+                             (>evt [::start-trace id])
                              (reset! search-text ""))]
 
         [:div.search-ui
@@ -1074,14 +1102,14 @@
   (get-in app-state [:trace-ui :problem-node] nil))
 (re-frame/reg-sub ::problem-node problem-node)
 
-(defn set-problem-node [app-state [_e id]]
-  (assoc-in app-state [:trace-ui :problem-node] id))
-(re-frame/reg-event-db ::set-problem-node set-problem-node)
-
-(defn reset-problem-node [app-state]
-  (assoc-in app-state [:trace-ui :problem-node] nil))
-(re-frame/reg-event-db ::reset-problem-node reset-problem-node)
-
+; (defn set-problem-node [app-state [_e id]]
+;   (assoc-in app-state [:trace-ui :problem-node] id))
+; (re-frame/reg-event-db ::set-problem-node set-problem-node)
+;
+; (defn reset-problem-node [app-state]
+;   (assoc-in app-state [:trace-ui :problem-node] nil))
+; (re-frame/reg-event-db ::reset-problem-node reset-problem-node)
+;
 ;; this one doesn't belong here.. add to another Re-frame Events/Subs
 (defn add-node-props [app-state [_e [node props]]]
   (update-in app-state [:domain :nodes-map node] merge props))
@@ -1152,16 +1180,7 @@
   :<- [::answered-questions]
   brain-node)
 
-(def next-nodes
-  [{:delay 100 :node-prop ["❓ Undo last commits" {:color LIGHT-RED :hidden? false}]}
-   {:delay 800 :node-prop ["git revert" {:name "🎯 git revert" :color LIGHT-RED :hidden? false}]}
-   {:delay 1600 :node-prop ["Commit Object" {:name "🧠 Commit Object" :color LIGHT-YELLOW :hidden? false}]}
-   {:delay 1600 :node-prop ["Immutability" {:color LIGHT-YELLOW :hidden? false}]}])
-
-(defn next-node [_]
-  {:fx (map #(into [:dispatch-later {:ms (:delay %) :dispatch [::add-node-props (:node-prop %)]}]) next-nodes)})
-(re-frame/reg-event-fx ::next-node next-node)
-
+#_:clj-kondo/ignore
 (comment
   (do
     (looset-graph.app/load-graph-text)
@@ -1190,8 +1209,7 @@
         questions-map  (get-in trace-scenarios [current-brain :questions] {})
         [knowledge-question-id knowledge-question-data] (first questions-map)]
 
-    [:div.app-container {:class (when is-tracing? "state-trace")
-                         :on-click #(when (not is-tracing?) (>evt [::next-node]))}
+    [:div.app-container {:class (when is-tracing? "state-trace")}
      [trace-styles]
      [:div "debug"
        [:pre (str "problem-node: "problem-node)]
