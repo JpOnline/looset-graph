@@ -37,7 +37,7 @@
 (re-frame/reg-event-fx ::send-to-firestore send-to-firestore)
 
 (comment
-  (send-to-firestore "test" {:a "a" :b :b :c 1}))
+  (send-to-firestore {:app-state nil} [:evt "test" {:a "a" :b :b :c 1}]))
 ;; ---------------------------------------------------------
 ;; -- STYLES
 ;; ---------------------------------------------------------
@@ -470,6 +470,28 @@
       font-size: 0.9rem;
       line-height: 1.5;
     }
+    /* -----------------------------------------
+;; --- Email Capture Prompt (modal/popup)
+       ----------------------------------------- */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(15, 23, 42, 0.6); /* Dark slate overlay */
+      backdrop-filter: blur(4px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      width: 400px;
+      max-width: 90vw;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
   "])
 
 ;; ---------------------------------------------------------
@@ -748,8 +770,8 @@
                        ;; ReactMarkdown passes the text content as an array in children
                        children (.-children js-props)
                        raw-text (when (seq children) (first children))
-                       urls (some->> (clojure.string/split raw-text #"\n")
-                             (remove clojure.string/blank?))
+                       urls (some->> (str/split raw-text #"\n")
+                             (remove str/blank?))
                        resources (when (seq urls) (<sub [::all-resources-meta]))
                        raw-resources (map #(into (get resources % {:title % :depth 50}) {:url %}) urls)
                        resources-with-gradient (->> raw-resources
@@ -796,7 +818,7 @@
                                         _ (when (seq osn) (js/console.error "Mais de um Node selecionado:" (cons selected-node osn)))
                                         visible-nodes (when-not selected-node @(re-frame/sub :flow {:id :f-visible-nodes}))]
                                     (or selected-node
-                                        (util/get-pred #(when % (clojure.string/starts-with? % "❓")) visible-nodes)
+                                        (util/get-pred #(when % (str/starts-with? % "❓")) visible-nodes)
                                         (first visible-nodes)))
         explanations (<sub [::looset-graph/explanation-content])
         matched-solution (:matched-node (<sub [::problem-evaluation]))
@@ -1017,11 +1039,64 @@
      {:db app-state*
       :fx fx-seq})))
 ;; ---------------------------------------------------------
+(defn email-capture-prompt
+  #_{:clj-kondo/ignore [:unused-binding]}
+  [query modal-state]
+  (let [email-input (reagent/atom "")]
+    (fn [query modal-state]
+      (when (or (= @modal-state :prompting) (= @modal-state :submitted))
+        [:div.modal-overlay
+         ;; Clicking the dark background closes the modal
+         {:on-click #(reset! modal-state nil)}
+
+         [:div.modal-content
+          ;; Prevent clicks inside the white box from bubbling up and closing the modal
+          {:on-click (fn [e] (.stopPropagation e))}
+
+          (if (= @modal-state :submitted)
+
+            ;; --- SUCCESS STATE ---
+            [:div {:style {:text-align "center" :padding "16px 0"}}
+             [:h3 {:style {:color "#15803d" :margin-top "0"}} "✓ Email saved!"]
+             [:p {:style {:color "#475569"}} "We'll let you know when this topic is ready."]
+             [:button.btn-continue {:style {:margin-top "16px" :width "100%"}
+                                    :on-click #(reset! modal-state nil)}
+              "Close"]]
+
+            ;; --- PROMPT STATE ---
+            [:div
+             [:h3 {:style {:margin-top "0" :color "#0f172a"}} "Vote recorded!"]
+             [:p {:style {:color "#475569" :font-size "0.95rem" :line-height "1.5" :margin-bottom "20px"}}
+              (str "Drop your email below if you want a quick ping when we release a map for \"") [:strong query] "\"."]
+
+             [:input.search-input
+              {:type "email"
+               :auto-focus true
+               :placeholder "your@email.com (optional)"
+               :value @email-input
+               :style {:margin-bottom "20px" :width "100%" :box-sizing "border-box"}
+               :on-change #(reset! email-input (-> % .-target .-value))
+               :on-key-down (fn [e]
+                              (when (= (.-key e) "Enter")
+                                (.preventDefault e)
+                                (>evt [::send-to-firestore "emails" {:email @email-input}])
+                                (reset! modal-state :submitted)))}]
+
+             [:div {:style {:display "flex" :justify-content "flex-end" :gap "12px"}}
+              [:button {:style {:background "transparent" :border "none" :color "#64748b" :cursor "pointer" :font-weight "500"}
+                        :on-click #(reset! modal-state nil)}
+               "Skip"]
+              [:button.btn-continue
+               {:on-click (fn []
+                            (>evt [::send-to-firestore "emails" {:email @email-input}])
+                            (reset! modal-state :submitted))}
+               "Notify Me"]]])]]))))
+
 (defn search-ui []
-  ;; Local state for the search input behavior
-  (let [search-text (reagent/atom "")
-        is-focused? (reagent/atom false)
-        vote-timer  (atom nil)]
+  (let [search-text  (reagent/atom "")
+        is-focused?  (reagent/atom false)
+        vote-timer   (atom nil)
+        email-modal-state   (reagent/atom nil)] ;; Tracks modal: nil -> :prompting -> :submitted
     (fn []
       (let [query          @search-text
             matches        (search-questions query)
@@ -1032,12 +1107,12 @@
             problem-node   (<sub [::problem-node])
             is-tracing?    (some? problem-node)
             show-dropdown? (and @is-focused? has-query? (not is-tracing?))
-
-            ;; Handler to start the trace using Re-frame
             start-trace!   (fn [id]
-                             (js/console.log "Starting trace for:" id)
                              (>evt [::start-trace id])
-                             (reset! search-text ""))]
+                             (reset! search-text ""))
+            trigger-manual-vote! (fn [q]
+                                   (>evt [::send-to-firestore "votes" {:type "manual" :subject q}])
+                                   (reset! email-modal-state :prompting))]
 
         [:div.search-ui
          [:h1.trace-logo "Looset Trace"]
@@ -1059,22 +1134,22 @@
                             (when (= (.-key e) "Enter")
                               (.preventDefault e)
                               (if no-matches?
-                                (js/console.log "[AUTO-VOTE] Enter pressed on unmapped:" query)
+                                (trigger-manual-vote! query) ;; Enter key triggers vote & modal
                                 (let [target-id (if has-query?
                                                   (:id (first matches))
                                                   (:id (first featured-questions)))]
                                   (when target-id (start-trace! target-id))))))
-
              :on-change (fn [e]
                           (let [v (-> e .-target .-value)]
-                            (reset! search-text v) ;; Auto-Vote (1.5s debounce)
+                            (reset! search-text v)
                             (when @vote-timer (js/clearTimeout @vote-timer))
                             (when (not (str/blank? v))
                               (reset! vote-timer
                                       (js/setTimeout
                                        (fn []
                                          (when (empty? (search-questions @search-text))
-                                           (js/console.log "[AUTO-VOTE] User finished typing:" @search-text)))
+                                           ;; Silent auto-vote
+                                           (>evt [::send-to-firestore "votes" {:type "auto" :subject @search-text}])))
                                        1500)))))}]]
 
           ;; Dropdown Menu
@@ -1084,7 +1159,10 @@
              (if no-matches?
                [:<> ;; Manual vote option on top
                 [:div.dropdown-item.not-found-item
-                 {:on-mouse-down (fn [e] (.preventDefault e) (js/console.log "[MANUAL VOTE]:" query))}
+                 ;; Click triggers the immediate vote AND opens the email modal.
+                 {:on-mouse-down (fn [e]
+                                   (.preventDefault e)
+                                   (trigger-manual-vote! query))}
                  [:div.item-icon [:svg {:width "18" :height "18" :viewBox "0 0 24 24" :fill "none" :stroke "currentColor" :stroke-width "2"} [:path {:d "M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"}]]]
                  [:div [:div.item-text (str "\"" query "\"")] [:div.item-subtext "Not mapped yet. Click to vote to map this next."]]]
                 (for [{:keys [id label]} featured-questions] ;; featured list as fallback
@@ -1098,8 +1176,10 @@
                  ^{:key id}
                  [:div.dropdown-item {:on-mouse-down (fn [e] (.preventDefault e) (start-trace! id))}
                   [:div.item-icon [:svg {:width "16" :height "16" :viewBox "0 0 24 24" :fill "none" :stroke "currentColor" :stroke-width "2"} [:circle {:cx "11" :cy "11" :r "8"}]]]
-                  [:div.item-text label]]))]
-            )]
+                  [:div.item-text label]]))])
+
+          ;; Sits outside the normal flow, waiting for email-modal-state to not be nil.
+          [email-capture-prompt query email-modal-state]]
 
          (when (not show-dropdown?)
            [:div.cards-container
@@ -1196,7 +1276,7 @@
                             (remove answered-question?)
                             (filter has-question?)
                             (remove #{target-node})
-                            (remove #(clojure.string/starts-with? % "❓"))
+                            (remove #(str/starts-with? % "❓"))
                             (first)))]
     ;; TODO: What happens when the user answered everything?
     (or unanswered-prereq
