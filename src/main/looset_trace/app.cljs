@@ -444,6 +444,19 @@
       box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
     }
 
+    @keyframes highlight-update {
+      0% {
+        background-color: #fef8c7; /* Light yellow */
+      }
+      100% {
+        background-color: #ffffff;
+      }
+    }
+    .content-updated-flash {
+      /* Runs for 1.2 seconds, perfectly catching the eye without being annoying */
+      animation: highlight-update 1.2s ease-out;
+    }
+
     /* -----------------------------------------
 ;; --- Markdown Code Styles
        ----------------------------------------- */
@@ -825,7 +838,8 @@
         markdown-content (or (get explanations {:type :node :id selected-or-fallback-node})
                              (get explanations {:type :edge :src selected-or-fallback-node :edge-string "solved by" :target matched-solution})
                              "Explanation not found.")]
-    [:div.node-details-panel
+    ^{:key markdown-content}
+    [:div.node-details-panel.content-updated-flash
      [:h2.node-title selected-or-fallback-node]
      [:p.node-desc [markdown-view markdown-content]]]))
 
@@ -1268,7 +1282,6 @@
   (let [answered-question? #(not= :no-answer (question-result {:answered-questions answered-questions :node %}))
         has-question? #(:questions (get trace-scenarios % {}))
         target's-prerequisites (get-in trace-scenarios [target-node :prerequisites] []) ;; Hum, it's possible to name a var with '. It might bite me in the future..
-        ;; Test with prerequisites having one value;
         unanswered-prereq (->> target's-prerequisites
                             (remove answered-question?)
                             (filter has-question?)
@@ -1288,10 +1301,9 @@
                             (remove #{target-node})
                             (remove #(str/starts-with? % "❓"))
                             (first)))]
-    ;; TODO: What happens when the user answered everything?
     (or unanswered-prereq
         unanswered-advanced
-        any-unnanswered
+        any-unnanswered ;; TODO: Add an extra logic before the "any-unnanswered" rule.
         target-node)))
 (re-frame/reg-sub
   ::brain-node
