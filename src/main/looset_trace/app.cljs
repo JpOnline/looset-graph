@@ -252,6 +252,17 @@
     .trace-card:hover { background: #f9fafb; border-color: #d1d5db; }
     .trace-card.highlight { border-color: #3b82f6; color: #1d4ed8; background: #eff6ff; font-weight: 500; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1); }
 
+    .section-divider {
+      font-family: Quattrocento, serif;
+      margin-top: 3.5rem;    /* Larger space above to clearly separate sections */
+      margin-bottom: -0.5rem; /* Tighter space below to associate it with the next set of cards */
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+      font-weight: 600;
+    }
+
     /* -----------------------------------------
 ;; --- QUIZ PANELS & WATERMARKS
        ----------------------------------------- */
@@ -517,6 +528,13 @@
    {:label "Delete a branch locally and remotely"}
    {:label "Undo 'git add' before commit"}])
 
+(def other-subjects
+  [{:label "AI/LLM"}
+   {:label "Functional Programming"}
+   {:label "Software Architecture"}
+   {:label "Web Development"}
+   {:label "SQL"}])
+
 (def mapped-questions
   [{:id :undo :label "Undo the most recent local commits"}
    {:id :pull-fetch :label "Difference between 'pull' and 'fetch'"}
@@ -690,9 +708,9 @@
                                :why "..."}
                               {:id :c :text "It hashes the file's name, creation timestamp, and raw content."
                                :why "..."}
-                              {:id :d :text "It hashes only the file's raw content, ignoring any metadata or headers." ;; 
+                              {:id :d :text "It hashes only the file's raw content, ignoring any metadata or headers." ;;
                                :why "If Git hashed only the raw content, it wouldn't be able to distinguish between an empty tree and an empty blob."}
-                              {:id :e :text "It hashes a header containing the object type and size, followed by a null byte `\0`, and then the file's raw content." ;; 
+                              {:id :e :text "It hashes a header containing the object type and size, followed by a null byte `\0`, and then the file's raw content." ;;
                                :why "Git prepends a header (e.g., blob 1610) to the raw content before passing it to the SHA-1 algorithm, ensuring that even identical content of different object types yields different hashes."}]
                     :hint "..."
                     :correct-id :e}
@@ -1168,8 +1186,7 @@
 (defn email-capture-prompt
   #_{:clj-kondo/ignore [:unused-binding]}
   [modal-state]
-  (let [email-input (reagent/atom "")
-        subject (:subject @modal-state)]
+  (let [email-input (reagent/atom "")]
     (fn [modal-state]
       (when (or (= (:state @modal-state) :prompting)
                 (= (:state @modal-state) :submitted))
@@ -1195,7 +1212,7 @@
             [:div
              [:h3 {:style {:margin-top "0" :color "#0f172a"}} (:title @modal-state)]
              [:p {:style {:color "#475569" :font-size "0.95rem" :line-height "1.5" :margin-bottom "20px"}}
-              (str "Drop your email below if you want a quick ping when we release a map for \"") [:strong subject] "\"."]
+              (str "Drop your email below if you want a quick ping when we release a map for \"") [:strong (:subject @modal-state)] "\"."]
 
              [:input.search-input
               {:type "email"
@@ -1207,7 +1224,7 @@
                :on-key-down (fn [e]
                               (when (= (.-key e) "Enter")
                                 (.preventDefault e)
-                                (>evt [::send-to-firestore "emails" {:email @email-input :voted-subject subject}])
+                                (>evt [::send-to-firestore "emails" {:email @email-input :voted-subject (:subject @modal-state)}])
                                 (reset! modal-state {:state :submitted})))}]
 
              [:div {:style {:display "flex" :justify-content "flex-end" :gap "12px"}}
@@ -1216,7 +1233,7 @@
                "Skip"]
               [:button.btn-continue
                {:on-click (fn []
-                            (>evt [::send-to-firestore "emails" {:email @email-input :voted-subject subject}])
+                            (>evt [::send-to-firestore "emails" {:email @email-input :voted-subject (:subject @modal-state)}])
                             (reset! modal-state :submitted))}
                "Notify Me"]]])]]))))
 
@@ -1238,11 +1255,11 @@
             trigger-vote! (fn [q title vote-type]
                             (reset! email-modal-state {:state :prompting :subject q :title title})
                             (>evt [::send-to-firestore "votes" {:subject q :type vote-type}]))
-            start-trace!   (fn [label]
-                             (if (contains? trace-scenarios label)
-                               (>evt [::start-trace label])
-                               (trigger-vote! label "Not mapped yet" "not in trace-scenarios"))
-                             (reset! search-text ""))]
+            start-trace!  (fn [label]
+                            (if (contains? trace-scenarios label)
+                              (>evt [::start-trace label])
+                              (trigger-vote! label "Not mapped yet" "not in trace-scenarios"))
+                            (reset! search-text ""))]
             ; trigger-not-mapped-featured (fn [featured-label]
             ;                               (>evt [::send-to-firestore "votes" {:type "featured" :subject featured-label}])
             ;                               (trigger-manual-vote! label "Not mapped yet"))]
@@ -1320,6 +1337,7 @@
 
          (when (not show-dropdown?)
            [:<>
+             ;; --- Featured Questions ---
              [:div.cards-container
               (for [{:keys [label highlight? icon]} featured-questions]
                 ^{:key label}
@@ -1327,18 +1345,18 @@
                  {:class (when highlight? "highlight")
                   :on-click #(start-trace! label)}
                  (when icon [:span {:style {:font-size "1.1em"}} icon])
-                 (str/replace label "❓ " "")])]
+                 (clojure.string/replace label "❓ " "")])]
 
-             [:h3 "Other subjects"]
+             ;; --- Divider ---
+             [:div.section-divider "Other subjects"]
 
+             ;; --- Other Subjects Cards ---
              [:div.cards-container
-              (for [{:keys [label highlight? icon]} [{:label "AI/LLM"} {:label "Functional Programming"} {:label "Software Architecture"} {:label "Web Development"} {:label "SQL"}]]
+              (for [{:keys [label]} other-subjects]
                 ^{:key label}
                 [:div.trace-card
-                 {:class (when highlight? "highlight")
-                  :on-click #(start-trace! label)}
-                 (when icon [:span {:style {:font-size "1.1em"}} icon])
-                 (str/replace label "❓ " "")])]])]))))
+                 {:on-click #(start-trace! label)}
+                 label])]])]))))
 
 ;; ---- Other re-frame subs/events -----------------------------------------------------
 (defn node-link-clicked
@@ -1467,14 +1485,14 @@
 
     [:div.app-container {:class (when is-tracing? "state-trace")}
      [trace-styles]
-     [:div "debug"
-       [:pre (str "problem-node: "problem-node)]
-       [:pre (str "current-target "(<sub [::target-node]))]
-       [:pre (str "current-brain: "(<sub [::brain-node]))]
-       [:pre (str "problem-path-takeen: "(<sub [::problem-path-taken]))]
-       [:pre (str "Assumed id: "(<sub [::problem-evaluation]))]
-       [:pre (str "question-data: "problem-question-data)]
-       [:pre (str "knowledge-question-data: "knowledge-question-data)]]
+     ; [:div "debug"
+     ;   [:pre (str "problem-node: "problem-node)]
+     ;   [:pre (str "current-target "(<sub [::target-node]))]
+     ;   [:pre (str "current-brain: "(<sub [::brain-node]))]
+     ;   [:pre (str "problem-path-takeen: "(<sub [::problem-path-taken]))]
+     ;   [:pre (str "Assumed id: "(<sub [::problem-evaluation]))]
+     ;   [:pre (str "question-data: "problem-question-data)]
+     ;   [:pre (str "knowledge-question-data: "knowledge-question-data)]]
 
 
      ;; === BACKGROUND GRAPH LAYER (Moves from Full Screen to Bottom) ===
