@@ -544,14 +544,19 @@
 (def trace-scenarios
   {;; Problem Space
    "❓ Undo last commits"
-   {:routing [
-              [:local] "git reset"
+   {:routing [;; The first routing is an assumption of path. Be careful to
+              ; review the text of the first path to check if it doesn't says
+              ; words like "assumption", otherwise the order of the assumed path
+              ; shouldn't be changed freely (if a user actually took that path
+              ; it's weird to see a description saying it's assuming the answer,
+             ; but as a tutorial it's valid).
               [:pushed :collaborating] "git revert"
+              [:local] "git reset"
               [:pushed :personal-branch] "git push -f"
-              [:local :--any :premature] "git commit --amend --no-edit"
-              [:local :--any :premature :git-hooks] "pre-commit git hook"]
               [:local :keep] "git reset --soft"
               [:local :delete] "git reset --hard"
+              [:local :--any :premature] "git commit --amend"]
+              ; [:local :--any :premature :git-hooks] "pre-commit git hook"] ;; Let's not do this one for the first version
     :questions {[] {:description "Have these commits already been pushed to a remote repository, or do they only exist locally on your computer?"
                     :options [{:id :local :text "I'm **local only**. I have not run a `git push` command yet."}
                               {:id :pushed :text "I've **already pushed** to a remote repository."}]}
@@ -562,27 +567,41 @@
                            :options [{:id :collaborating :text "Collaborating with others (Shared Branch)"}
                                      {:id :personal-branch :text "Personal branch (Safe to rewrite history)"}]}
                 [:local :--any] {:description "Why did these specific commits need to be undone in the first place?"
-                                 :options [{:id :pramature :text "It was a premature commit. I need to add more things to the commit."}
+                                 :options [{:id :premature :text "It was a premature commit. I need to add more things to the commit."}
                                            {:id :batched-work :text "Work is being batched together too broadly before being reviewed."}]}
                 [:local :--any :premature] {:description "Which of the following could avoid the problem of happening again?"
                                             :options [{:id :checklist :text "Checklists"}
                                                       {:id :unit-test :text "Unit tests"}
                                                       {:id :git-hooks :text "Git Hooks"}]}}}
 
+   ;; Knowledge Space
    "git reset"
-   {:prerequisites ["HEAD" "Staging Area" "Working Directory"]}
+   {:prerequisites ["Staging Area (Index)" "HEAD"]}
+
+   "git reset --soft"
+   {:prerequisites ["HEAD"]}
 
    "HEAD"
-   {:questions {:1 {:description "A"
-                    :options [{:id :a :text "x"}]}}}
+   {:prerequisites ["Commit Object" "git checkout / git switch" "Branch" ".git/HEAD"]
+    :questions {:1 {:description "[WRITE SOME QUESTION]"}}}
 
-   ;; Knowledge Space
+   "Working Directory"
+   {:prerequisites ["git add" "git status" "git restore" "Repository (.git)"]}
+
+   "Staging Area (Index)"
+   {:prerequisites ["Snapshot" "Repository (.git)"]
+    :questions {:0 {:description "What happens to your changes when you execute 'git reset --soft'?"
+                    :options [
+                              {:id :a :text "The files are permanently deleted."}
+                              {:id :b :text "The files remain in the Staging Area."}]
+                    :correct-id :b}}}
+
    "git revert"
-   {
-    :prerequisites ["Commit Object" "Immutability"]}
+   {:prerequisites ["Commit Object"]
+    :questions {:0 {:title "More questions coming soon.."}}}
 
    "Commit Object"
-   {:prerequisites ["Immutability"] ;; TODO: I'm not sure if I'll keep it, only testing for now.
+   {:prerequisites ["Tree" "Snapshot" "SHA-1 Hash"]
     :questions {:1 {:description "If you execute `git commit --amend --no-edit` without staging any new changes, why does the resulting commit object resolve to a completely different SHA-1 hash than the original?"
                     :options [{:id :a :text "Git automatically injects a new cryptographic nonce into the commit header to enforce global graph uniqueness."}
                               {:id :b :text "The  `tree` object is recursively re-hashed to guarantee data integrity against the `.git/index.`"}
@@ -590,25 +609,27 @@
                               {:id :d :text "The parent pointer is reassigned to reference the original commit, strictly enforcing a linear Directed Acyclic Graph."}]
                     :correct-id :c}}}
 
-   "Immutability"
-   {:questions {:0 {:title "abc"
-                    :options [{:id :a :text "O a"}
-                              {:id :b :text "O b"}
-                              {:id :c :text "O c"}]
-                    :correct-id :b}}}
-   "advanced"
-   {:prerequisites ["git revert"]
-    :questions {:0 {:title "advanced"
-                    :options [{:id :a :text "any a"}
-                              {:id :b :text "any b"}
-                              {:id :c :text "any c"}]
-                    :correct-id :a}}}
-   "Any"
-   {:questions {:0 {:title "?"
-                    :options [{:id :a :text "any a"}
-                              {:id :b :text "any b"}
-                              {:id :c :text "any c"}]
-                    :correct-id :a}}}})
+   "Repository (.git)"
+   {:prerequisites ["Local Repository"]}
+
+   "Local Repository"
+   {:prerequisites ["Remote Repository"]}
+    ; :questions {:1 {:description "[WRITE SOME QUESTION]"}}}
+
+   "Snapshot"
+   {:prerequisites ["Tree"]
+    :questions {:1 {:description "[WRITE SOME QUESTION]"}}}
+
+   "Tree"
+   {:prerequisites ["SHA-1 Hash"]}
+
+   "Branch"
+   {:prerequisites ["git revert"]} ;; TODO: "git revert" is here only for attractig the brain icon in the demo.
+    ; :questions {:0 {:title "More questions coming soon.."}}}
+
+   "SHA-1 Hash"
+   {:prerequisites ["git revert"] ;; TODO: "git revert" is here only for attractig the brain icon in the demo.
+    :questions {:0 {:title "More questions coming soon.."}}}})
 
 ;; ---------------------------------------------------------
 ;; -- UTILITIES
@@ -739,6 +760,9 @@
             routes)))
 
 (comment
+  (evaluate-routing
+    (get-in trace-scenarios ["❓ Undo last commits" :routing])
+    [:local :keep :premature])
   (evaluate-routing
     [[:pushed :collaborating] "git revert"
      [:pushed :personal-branch] "git push -f"
@@ -966,9 +990,11 @@
                                                                                                                  (get-in app-state* [:domain :nodes-map target* :edges-to] {})
                                                                                                                  {"depends of" #{brain*}})})]}])])
                  (not= target target*)
-                 (concat [[:dispatch-later {:ms 700 :dispatch [::add-node-props (nwphac app-state* target {:name target})]}]
+                 (concat [[:dispatch-later {:ms 700 :dispatch [::add-node-props [target {:name target}]]}]
                           [:dispatch-later {:ms 700 :dispatch [::add-node-props (nwphac app-state* target* {:name (str "🎯 "target*)})]}]]
                          (events-to-show-prerequisites {:ms 1300 :ms-step 600 :node target* :app-state app-state*})))]
+    (tap> {:target* target*
+           :fx-seq fx-seq})
     {:db app-state*
      :fx fx-seq}))
 (re-frame/reg-event-fx ::commit-knowledge-answer commit-knowledge-answer)
@@ -1342,13 +1368,13 @@
 
     [:div.app-container {:class (when is-tracing? "state-trace")}
      [trace-styles]
-     [:div "debug"
-       [:pre (str "problem-node: "problem-node)]
-       [:pre (str "current-target "(<sub [::target-node]))]
-       [:pre (str "current-brain: "(<sub [::brain-node]))]
-       [:pre (str "problem-path-takeen: "(<sub [::problem-path-taken]))]
-       [:pre (str "Assumed id: "(<sub [::problem-evaluation]))]
-       [:pre (str "question-data: "problem-question-data)]]
+     ; [:div "debug"
+     ;   [:pre (str "problem-node: "problem-node)]
+     ;   [:pre (str "current-target "(<sub [::target-node]))]
+     ;   [:pre (str "current-brain: "(<sub [::brain-node]))]
+     ;   [:pre (str "problem-path-takeen: "(<sub [::problem-path-taken]))]
+     ;   [:pre (str "Assumed id: "(<sub [::problem-evaluation]))]
+     ;   [:pre (str "question-data: "problem-question-data)]]
 
 
      ;; === BACKGROUND GRAPH LAYER (Moves from Full Screen to Bottom) ===
@@ -1376,3 +1402,38 @@
       [:div.knowledge-panel
        (when (and is-tracing? knowledge-question-data)
          [quiz-knowledge current-brain knowledge-question-id knowledge-question-data])]]]))
+
+#_:clj-kondo/ignore
+(comment
+  (require '[cljs.core.async :refer [go <!]])
+  (require '[cljs.core.async.interop :refer-macros [<p!]])
+  trace-scenarios
+  (cljs.core.async/go
+    (looset-graph/init-state)
+    (looset-graph/load-graph-text)
+    (core/load-resources-meta!)
+    (re-frame/dispatch-sync [::looset-graph/fetch-markdown-explanation-content])
+    (cljs.core.async/<! (cljs.core.async/timeout 10))
+    (re-frame/dispatch-sync [:looset-trace.app/start-trace "❓ Undo last commits"])
+    (cljs.core.async/<! (cljs.core.async/timeout 1800))
+    (re-frame/dispatch-sync [:looset-trace.app/stage-knowledge-answer :1 :c])
+    (re-frame/dispatch-sync [:looset-trace.app/commit-knowledge-answer])
+    (cljs.core.async/<! (cljs.core.async/timeout 1800))
+    (re-frame/dispatch-sync [:looset-trace.app/answered-problem :local])
+    (cljs.core.async/<! (cljs.core.async/timeout 1800))
+    (re-frame/dispatch-sync [:looset-trace.app/stage-knowledge-answer :0 :a])
+    (re-frame/dispatch-sync [:looset-trace.app/commit-knowledge-answer])
+    (cljs.core.async/<! (cljs.core.async/timeout 1800))
+    (re-frame/dispatch-sync [:looset-trace.app/answered-problem :keep])
+    (cljs.core.async/<! (cljs.core.async/timeout 1800))
+    (re-frame/dispatch-sync [:looset-trace.app/answered-problem :premature]))
+
+
+  (some #{:xgame} (:media-type (second (first res))))
+  (map first (filter (fn [[k v]] (some #(re-find #"index" %) (:concepts-matched v))) res))
+  (map #(into {(first %) (:concepts-matched (second %))}) (filter (fn [[k v]] (and (some #{:game} (:media-type v))
+                                                                                   (some #(re-find #"amend" (.toLowerCase %)) (:concepts-matched v))))
+                                                                  res))
+  (filter #(:game-meta (keys (second %))) (keep 3 res))
+
+  res)
