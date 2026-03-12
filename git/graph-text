@@ -1,103 +1,5 @@
-"Tree":
- "Snapshot"
- "Tree Object"
-
-"Staging Area
-(Index)":
- "Staging Area"
- "Cache"
- ".git/index (Index)"
-
-=>"Architecture":
-  =>"Object Model"
-  =>"Data Zones"
-  =>"References"
-  =>"Storage"
-  =>"Configuration"
-
-=>"Commands":
-  =>"Setup"
-  =>"Core Loop"
-  =>"Navigation"
-  =>"Inspection"
-  =>"Plumbing"
-
-=>"Context":
-  =>"History"
-  =>"Philosophy"
-
-=>"History":
-  "More coming soon.."
-
-=>"Practice":
-  =>"Commands"
-  =>"Strategy"
-
-=>"Philosophy":
-  "More coming soon.."
-
-=>"Object Model":
-  "Blob Object"
-  "Commit Object"
-  "Tree Object"
-
-=>"Data Zones":
-  "Staging Area
-(Index)"
-  "Working Directory"
-  "Staging Area"
-
-=>"References":
-  "HEAD"
-
-=>"Storage":
-  ".git/index (Index)"
-  ".git/HEAD"
-  ".git/config"
-  ".git/objects"
-
-=>"Configuration":
-  "user.name"
-  "user.email"
-  "Local Config"
-
-=>"Setup":
-  "git init"
-
-=>"Core Loop":
-  "git add"
-  "git commit"
-  "git status"
-  "git log"
-
-=>"Navigation":
-  "More coming soon.."
-
-=>"Inspection":
-  "More coming soon.."
-
-=>"Plumbing":
-  "More coming soon.."
-
-=>"Strategy":
-  =>"Integration"
-  =>"Workflows"
-  =>"Recovery"
-
-=>"Integration":
-  "More coming soon.."
-
-=>"Workflows":
-  "More coming soon.."
-
-=>"Recovery":
-  "More coming soon.."
-
-=>"By Topics":
-  =>"Architecture"
-  =>"Context"
-  =>"Practice"
-  "More coming soon.."
+"git rebase":
+  "git rebase -i"
 
 =>"By Learning Levels":
   =>"1: Survival"
@@ -106,115 +8,471 @@
   =>"4*: Time Traveler"
   =>"5: Sage"
 
-=>"1: Survival":
-  "git add"
-  "Staging Area
-(Index)"
-  "Working Directory"
-  "Snapshot"
-  "Staging Area"
-  "Commit Object"
-  "Repository (.git)"
-  "user.name"
-  "user.email"
-  "git init"
-  "git commit"
-  "git status"
-  "git log"
+=>"Storage":
+  ".git/config"
+  ".git/HEAD"
+  ".git/index (Index)"
+  ".git/objects"
+  "Packfile"
+  "Reflog"
+
+=>"Synchronization":
+  "git fetch"
+  "git pull"
+  "git push"
 
 =>"2*: Explorer":
+  "Branch"
+  "git branch"
+  "git merge --ff-only"
+  "DAG (Directed Acyclic Graph"
+  "Detached HEAD"
+  "Tag (Lightweight)"
+  "git diff"
+  "git checkout / git switch"
+  "HEAD"
+  ".gitignore"
+
+"git merge":
+  "git merge --ff-only"
+
+=>"Collaboration":
+  "Pull Request / Merge Request"
+
+=>"Context":
+  =>"Collaboration"
+  =>"History"
+  =>"Philosophy"
+
+=>"Core Loop":
+  "git add"
+  "git commit"
+  "git log"
+  "git status"
+
+=>"Other Architecture Concepts":
+  "DAG (Directed Acyclic Graph"
+  "Detached HEAD"
+
+=>"Navigation":
+  "git branch"
+  "git checkout / git switch"
+  "git merge"
+  "git merge --ff-only"
   "More coming soon.."
 
-=>"3*: Collaborator":
+=>"By Topics":
+  =>"Architecture"
+  =>"Context"
+  =>"Practice"
   "More coming soon.."
+
+"git branch":
+  "git branch [name]"
 
 =>"4*: Time Traveler":
+  "git revert"
+  "git stash"
+  "Relative Refs"
+  "git commit --amend"
+  "Immutability"
+  "Reflog"
+  "git restore"
+  "Atomic Commits"
+  "git reset"
+  "SHA-1 Hash"
+
+"git commit":
+  "git commit --amend"
+
+=>"Commands":
+  =>"Core Loop"
+  =>"Inspection"
+  =>"Navigation"
+  =>"Other Commands"
+  =>"Plumbing"
+  =>"Setup"
+  =>"Synchronization"
+
+=>"Strategy":
+  =>"Integration"
+  =>"Recovery"
+  =>"Workflows"
+
+=>"History":
+  "More coming soon.."
+
+"git pull":
+  "git fetch"
+  "git merge"
+
+=>"References":
+  "Branch"
+  "HEAD"
+  "Relative Refs"
+  "Tag (Lightweight)"
+  "Tracking Branch"
+  "Upstream"
+
+=>"Plumbing":
+  "git cat-file"
+  "git ls-files"
+  "More coming soon.."
+
+"git checkout / git switch":
+  "git checkout [branch]"
+  "git checkout [hash]"
+
+=>"Workflows":
+  "More coming soon.."
+  "Workflows (Git Flow/Trunk)"
+
+"Staging Area (Index)":
+  ".git/index (Index)"
+  "Cache"
+  "Staging Area"
+
+=>"3*: Collaborator":
+  "Tracking Branch"
+  "git clone"
+  "git fetch"
+  "Local Repository"
+  "Upstream"
+  "git remote"
+  "git pull"
+  "Remote Repository"
+  "git push"
+  "Merge Conflicts"
+  "Pull Request / Merge Request"
+
+=>"Data Zones":
+  "Remote Repository"
+  "Staging Area"
+  "Staging Area (Index)"
+  "Working Directory"
+  "Local Repository"
+
+=>"Other Commands":
+  "git bisect"
+  "git cherry-pick"
+  "git rebase"
+  "git rebase -i"
+
+=>"Philosophy":
+  "Atomic Commits"
+  "Immutability"
   "More coming soon.."
 
 =>"5: Sage":
+  "Workflows (Git Flow/Trunk)"
+  "git rebase"
+  "git blame"
+  "Tag Object (Annotated)"
+  "git cat-file"
+  "git cherry-pick"
+  "Packfile"
+  "git reflog"
+  "git ls-files"
+  "git bisect"
+  "Tree"
+  ".git/index (Index)"
   "Blob Object"
   "Cache"
-  ".git/index (Index)"
+  "git rebase -i"
+
+=>"1: Survival":
+  "Repository (.git)"
+  "git add"
+  "git init"
+  "Staging Area"
+  "git commit"
+  "Staging Area (Index)"
+  "Snapshot"
+  "Working Directory"
+  "user.email"
+  "Commit Object"
+  "git status"
+  "git log"
+  "user.name"
+
+=>"Architecture":
+  =>"Configuration"
+  =>"Data Zones"
+  =>"Object Model"
+  =>"Other Architecture Concepts"
+  =>"References"
+  =>"Storage"
+
+"Commit Object":
+  "Commit Object v2"
+
+=>"Setup":
+  "git clone"
+  "git init"
+  "git remote"
+
+"Tree":
+  "Snapshot"
   "Tree Object"
+
+=>"Inspection":
+  "git blame"
+  "git diff"
+  "git reflog"
+  "More coming soon.."
+
+=>"Practice":
+  =>"Commands"
+  =>"Strategy"
+
+=>"Trace view":
+  "git rebase"
+  "git revert"
+  "Local Repository"
+  "git stash"
+  "Branch"
+  "Repository (.git)"
+  "git push -f"
+  "git cherry-pick"
+  "git add"
+  "DAG (Directed Acyclic Graph"
+  "git commit"
+  ".git/HEAD"
+  "❓ Undo last commits"
+  "git commit --amend"
+  "git reset --soft"
+  "git checkout / git switch"
+  "Remote Repository"
+  "Staging Area (Index)"
+  "git restore"
+  "Snapshot"
+  "HEAD"
+  "Atomic Commits"
+  "Working Directory"
+  "Commit Object"
   "Tree"
+  "git status"
+  "git reset"
+  "SHA-1 Hash"
+  "git log"
+  "git reset --hard"
 
-"git add" -"promotes changes from"-> "Working Directory"
-"git add" -"updates"-> "Staging Area
-(Index)"
-"git add" -"calculates the"-> "Blob Object"
-"git add" -"add Blob and file path in"-> "Staging Area
-(Index)"
-".git/index (Index)" -"formerly known as"-> "Cache"
-"Staging Area" -"stored in"-> ".git/index (Index)"
-".git/index (Index)" -"represents proposed"-> "Snapshot"
-"git init" -"creates"-> "Repository (.git)"
-"git commit" -"creates"-> "Commit Object"
-"Commit Object" -"contains"-> "Snapshot"
-"Commit Object" -"requires"-> "user.name"
-"Commit Object" -"requires"-> "user.email"
-"git status" -"inspects"-> "Working Directory"
-"git status" -"inspects"-> "Staging Area"
-"git log" -"reads"-> "Commit Object"
-"Snapshot" -"is represented by"-> "Tree Object"
-"Tree" -"implemented by"-> "Tree Object"
-"Staging Area" -"concept of"-> "Staging Area
-(Index)"
-"Commit Object" -"contains"-> "Tree Object"
-"Repository (.git)" -"stored in"-> "Working Directory"
-"Commit Object" -"stored in"-> ".git/objects"
-"Local Config" -"stored in"-> ".git/config"
-"HEAD" -"stored in"-> ".git/HEAD"
-".git/HEAD" -"stored in"-> "Repository (.git)"
+=>"Object Model":
+  "Blob Object"
+  "Commit Object"
+  "Tag Object (Annotated)"
+  "SHA-1 Hash"
+
+=>"Integration":
+  "Merge Conflicts"
+  "More coming soon.."
+
+=>"Recovery":
+  "git commit --amend"
+  "git reset"
+  "git restore"
+  "git revert"
+  "git stash"
+  "More coming soon.."
+
+=>"Configuration":
+  ".gitignore"
+  "Local Config"
+  "user.email"
+  "user.name"
+
+"git rebase" -"rewrites"-> "Commit Object"
+"git revert" -"inverts"-> "Commit Object"
+"git revert" -"creates"-> "Commit Object"
+"git revert" -"respects"-> "Immutability"
+"git clone" -"creates"-> "Remote Repository"
+"git checkout [branch]" -"updates"-> "HEAD"
+"git fetch" -"updates"-> "Tracking Branch"
+"Local Repository" -"synonym"-> "Repository (.git)"
+"git stash" -"restores baseline to"-> "HEAD"
+"git stash" -"saves state of"-> "Working Directory"
+"Branch" -"points to"-> "Commit Object"
+"git merge" -"resolves via"-> "Merge Conflicts"
 ".git/config" -"stored in"-> "Repository (.git)"
+"Repository (.git)" -"stored in"-> "Working Directory"
+"Local Config" -"stored in"-> ".git/config"
+"Relative Refs" -"navigates to"-> "Commit Object"
+"git add" -"calculates the"-> "Blob Object"
+"git add" -"updates"-> "Staging Area (Index)"
+"git add" -"add Blob and file path in"-> "Staging Area (Index)"
+"git add" -"promotes changes from"-> "Working Directory"
+"git init" -"creates"-> "Repository (.git)"
+"DAG (Directed Acyclic Graph" -"is composed of"-> "Commit Object"
+"Staging Area" -"stored in"-> ".git/index (Index)"
+"Staging Area" -"concept of"-> "Staging Area (Index)"
+"Packfile" -"compresses"-> "Blob Object"
+"git commit" -"creates"-> "Commit Object"
+".git/HEAD" -"stored in"-> "Repository (.git)"
+"git checkout [hash]" -"triggers"-> "Detached HEAD"
+"❓ Undo last commits" -"solved by"-> "git revert"
+"❓ Undo last commits" -"solved by"-> "git reset"
+"❓ Undo last commits" -"solved by"-> "git push -f"
+"❓ Undo last commits" -"solved by"-> "git commit --amend"
+"❓ Undo last commits" -"solved by"-> "git reset --soft"
+"❓ Undo last commits" -"solved by"-> "git reset --hard"
+"git commit --amend" -"replaces"-> "Commit Object"
+"git commit --amend" -"consumes"-> "Staging Area (Index)"
+"git commit --amend" -"respects"-> "Immutability"
+"Tree Object" -"references"-> "Blob Object"
+"Immutability" -"prevents editing of"-> "Blob Object"
+"Immutability" -"prevents editing of"-> "Commit Object"
+"Immutability" -"prevents editing of"-> "Tag Object (Annotated)"
+"Immutability" -"prevents editing of"-> "Tree Object"
+"Immutability" -"is enforced by"-> "SHA-1 Hash"
+"Reflog" -"rescues from"-> "git reset"
+"Reflog" -"records"-> "HEAD"
+"Reflog" -"tracks movement of"-> "HEAD"
+"Tag (Lightweight)" -"points to"-> "Commit Object"
+"git reset --soft" -"moves"-> "HEAD"
+"git reset --soft" -"is a variant of"-> "git reset"
 ".git/objects" -"stored in"-> "Repository (.git)"
+"git branch [name]" -"creates"-> "Branch"
+"Remote Repository" -"syncs with"-> "Local Repository"
+"Remote Repository" -"contains"-> "Tracking Branch"
+"git restore" -"un-stages from"-> "Staging Area"
+"git restore" -"discards changes in"-> "Working Directory"
+"Snapshot" -"is represented by"-> "Tree Object"
+"HEAD" -"stored in"-> ".git/HEAD"
+"HEAD" -"points to"-> "Branch"
+"HEAD" -"points to"-> "Commit Object"
+".gitignore" -"filters"-> "git status"
+"Atomic Commits" -"facilitates"-> "git cherry-pick"
+"Atomic Commits" -"facilitates"-> "git revert"
+"Commit Object" -"stored in"-> ".git/objects"
+"Commit Object" -"points to"-> "Commit Object"
+"Commit Object" -"contains"-> "Snapshot"
+"Commit Object" -"contains"-> "Tree Object"
+"Commit Object" -"requires"-> "user.email"
+"Commit Object" -"requires"-> "user.name"
+"Tree" -"implemented by"-> "Tree Object"
+"git status" -"inspects"-> "Staging Area"
+"git status" -"inspects"-> "Working Directory"
+".git/index (Index)" -"formerly known as"-> "Cache"
 ".git/index (Index)" -"stored in"-> "Repository (.git)"
+".git/index (Index)" -"represents proposed"-> "Snapshot"
+"git reset" -"moves"-> "HEAD"
+"git reset" -"uses"-> "Relative Refs"
+"git reset" -"clears"-> "Staging Area (Index)"
+"git push" -"updates"-> "Remote Repository"
+"Merge Conflicts" -"occur in"-> "Staging Area"
+"SHA-1 Hash" -"identifies"-> "Blob Object"
+"SHA-1 Hash" -"identifies"-> "Commit Object"
+"SHA-1 Hash" -"identifies"-> "Tag Object (Annotated)"
+"SHA-1 Hash" -"identifies"-> "Tree Object"
+"git log" -"reads"-> "Commit Object"
+"git reset --hard" -"overwrites"-> "Working Directory"
+"git reset --hard" -"clears"-> "Staging Area (Index)"
+"git reset --hard" -"is a variant of"-> "git reset"
 
-"More coming soon.." {:position {"x" -29, "y" -49}, :hidden? true}
-=>"By Learning Levels" {:opened? true, :position {"x" 20.601253040768086, "y" -36.00953707163726}, :hidden? true}
-=>"Storage" {:position {"x" -57, "y" 107}, :hidden? true, :opened? false}
-=>"2*: Explorer" {:position {"x" -31, "y" 155}, :hidden? true, :opened? true}
-".git/config" {:position {"x" 19, "y" 60}}
-"Repository (.git)" {:position {"x" -56, "y" -223}, :hidden? false}
-=>"Context" {:position {"x" 19, "y" 54}, :hidden? true, :opened? false}
-=>"Core Loop" {:position {"x" -4, "y" 69}, :hidden? true, :opened? true}
-"Local Config" {:position {"x" 66, "y" -337}}
-=>"Navigation" {:position {"x" 69, "y" -1}, :hidden? true, :opened? true}
-"git add" {:position {"x" 403, "y" -8}, :hidden? false, :opened? true}
-=>"By Topics" {:position {"x" -72, "y" 59}, :opened? false, :hidden? true}
-"git init" {:position {"x" -154, "y" 16}}
-=>"4*: Time Traveler" {:position {"x" 161, "y" 3}, :hidden? true, :opened? false}
-"Staging Area" {:position {"x" 252, "y" 57}}
-"git commit" {:position {"x" -429, "y" 143}, :opened? true}
-=>"Commands" {:position {"x" 13, "y" -157}, :hidden? true, :opened? true}
-".git/HEAD" {:position {"x" 121, "y" -3}}
-=>"Strategy" {:position {"x" 158, "y" -86}, :hidden? true}
-=>"History" {:position {"x" 19, "y" -62}, :opened? true}
-=>"References" {:position {"x" 22, "y" -3}, :hidden? true, :opened? false}
-"Tree Object" {:position {"x" -121, "y" 363}, :opened? true}
-=>"Plumbing" {:position {"x" -36, "y" -24}, :hidden? true}
-"Staging Area
-(Index)" {:position {"x" 291, "y" 219}}
-".git/objects" {:position {"x" 22, "y" -7}}
-=>"3*: Collaborator" {:position {"x" -49, "y" 207}, :hidden? true, :opened? false}
-=>"Data Zones" {:position {"x" 46, "y" -97}, :hidden? true, :opened? false}
-=>"Philosophy" {:position {"x" -64, "y" -5}, :opened? true}
-"Snapshot" {:position {"x" -89, "y" 239}}
-=>"5: Sage" {:position {"x" 138, "y" -140}, :hidden? true, :opened? false}
-"HEAD" {:position {"x" -78, "y" -331}}
-=>"1: Survival" {:position {"x" -181, "y" -195}, :hidden? true, :opened? true}
-=>"Architecture" {:position {"x" 57, "y" 7}, :opened? true, :hidden? true}
-"Working Directory" {:position {"x" 167, "y" -195}, :opened? true}
-"user.email" {:position {"x" -284, "y" -115}}
-"Commit Object" {:position {"x" -263, "y" 61}}
-=>"Setup" {:position {"x" -19, "y" -67}, :hidden? true, :opened? false}
-"Tree" {:position {"x" 112, "y" 209}, :opened? false}
-=>"Inspection" {:position {"x" 51, "y" 111}, :hidden? true}
-=>"Practice" {:position {"x" -6, "y" -97}, :opened? false, :hidden? true}
-"git status" {:position {"x" 170, "y" -45}, :hidden? false}
-".git/index (Index)" {:position {"x" 52, "y" 102}}
-=>"Object Model" {:position {"x" 10, "y" 114}, :opened? false, :hidden? true}
-"Blob Object" {:position {"x" 527, "y" -158}, :hidden? false}
-"Cache" {:position {"x" 27, "y" -73}}
-=>"Configuration" {:position {"x" -141, "y" -149}, :hidden? true, :opened? false}
-"git log" {:position {"x" -312, "y" 247}}
-"user.name" {:position {"x" -364, "y" -27}}
+"Workflows (Git Flow/Trunk)" {:position {"x" -447, "y" -65}, :hidden? true}
+"git rebase" {:position {"x" 736, "y" 27}, :hidden? true}
+"Tracking Branch" {:position {"x" 415, "y" -187}, :hidden? true}
+"More coming soon.." {:hidden? true, :position {"x" -171, "y" -102}}
+"git revert" {:position {"x" 661, "y" 472}, :hidden? true}
+"git blame" {:position {"x" -280, "y" 240}, :hidden? true}
+"Tag Object (Annotated)" {:position {"x" 209, "y" 272}, :hidden? true}
+=>"By Learning Levels" {:opened? false, :hidden? true}
+=>"Storage" {:hidden? true, :opened? true}
+"git clone" {:position {"x" 336, "y" 678}, :hidden? true}
+"git checkout [branch]" {:hidden? true}
+"git fetch" {:position {"x" -155, "y" -269}, :hidden? true}
+"Local Repository" {:position {"x" -121, "y" 686}, :hidden? true}
+"git stash" {:position {"x" 66, "y" 508}, :hidden? true}
+"git cat-file" {:position {"x" 714, "y" -190}, :hidden? true}
+=>"Synchronization" {:hidden? true, :opened? true}
+"Branch" {:position {"x" 532, "y" 487}, :hidden? true}
+=>"2*: Explorer" {:hidden? true, :opened? true}
+"git merge" {:hidden? true, :position {"x" -105, "y" 26}}
+".git/config" {:position {"x" -939, "y" 82}, :hidden? true}
+"Repository (.git)" {:position {"x" -308, "y" 447}, :hidden? true}
+"Commit Object v2" {:hidden? true}
+=>"Collaboration" {:opened? true, :hidden? true}
+=>"Context" {:hidden? true, :opened? true}
+"git push -f" {:position {"x" 63, "y" -55}, :hidden? true}
+=>"Core Loop" {:hidden? true, :opened? true}
+=>"Other Architecture Concepts" {:hidden? true, :opened? true}
+"Local Config" {:hidden? true}
+=>"Navigation" {:hidden? true, :opened? true}
+"Relative Refs" {:position {"x" 362, "y" 82}, :hidden? true}
+"git cherry-pick" {:position {"x" 932, "y" 524}, :hidden? true}
+"git add" {:position {"x" -156, "y" 324}, :hidden? true}
+"Upstream" {:position {"x" -103, "y" -19}, :hidden? true}
+=>"By Topics" {:opened? false, :hidden? true, :position {"x" 10, "y" -76}}
+"git branch" {:position {"x" -428, "y" 1330}, :hidden? true}
+"git init" {:position {"x" -991, "y" -151}, :hidden? true}
+"git merge --ff-only" {:position {"x" 168, "y" -102}, :hidden? true}
+=>"4*: Time Traveler" {:hidden? true, :opened? true}
+"DAG (Directed Acyclic Graph" {:position {"x" 843, "y" 179}, :hidden? true}
+"Staging Area" {:position {"x" -367, "y" 176}, :hidden? true}
+"git remote" {:position {"x" 69, "y" 349}, :hidden? true}
+"Packfile" {:position {"x" 404, "y" -964}, :hidden? true}
+"git commit" {:position {"x" 931, "y" 258}, :hidden? true}
+=>"Commands" {:hidden? true, :opened? true}
+".git/HEAD" {:position {"x" 71, "y" 562}, :hidden? true}
+"git checkout [hash]" {:hidden? true}
+=>"Strategy" {:hidden? true, :opened? true}
+"git reflog" {:position {"x" 431, "y" 170}, :hidden? true}
+"git ls-files" {:position {"x" 15, "y" -227}, :hidden? true}
+=>"History" {:hidden? true, :opened? true}
+"git pull" {:position {"x" 1420, "y" -187}, :hidden? true}
+"❓ Undo last commits" {:color "#ffd7d7", :hidden? true, :position {"x" 513, "y" 271}}
+"git bisect" {:position {"x" 777, "y" -79}, :hidden? true}
+"git commit --amend" {:position {"x" 361, "y" 47}, :hidden? true}
+=>"References" {:hidden? true, :opened? true}
+"Detached HEAD" {:position {"x" -1387, "y" 834}, :hidden? true}
+"Tree Object" {:position {"x" 587, "y" 57}, :hidden? true}
+"Immutability" {:position {"x" 1321, "y" 359}, :hidden? true}
+"Reflog" {:position {"x" 247, "y" 382}, :hidden? true}
+=>"Plumbing" {:hidden? true, :opened? true}
+"Tag (Lightweight)" {:position {"x" -322, "y" 0}, :hidden? true}
+"git diff" {:position {"x" 421, "y" 378}, :hidden? true}
+"git reset --soft" {:hidden? true, :position {"x" 403, "y" 216}}
+"git checkout / git switch" {:position {"x" 555, "y" 677}, :hidden? true}
+".git/objects" {:position {"x" -818, "y" -310}, :hidden? true}
+"git branch [name]" {:hidden? true}
+=>"Workflows" {:hidden? true, :opened? true}
+"Remote Repository" {:position {"x" 186, "y" 704}, :hidden? true}
+"Staging Area (Index)" {:name "Staging Area\n(Index)", :hidden? true, :opened? false, :position {"x" -656, "y" 297}}
+"git restore" {:position {"x" -44, "y" 281}, :hidden? true}
+=>"3*: Collaborator" {:hidden? true, :opened? true}
+=>"Data Zones" {:hidden? true, :opened? true}
+=>"Other Commands" {:hidden? true, :opened? true}
+=>"Philosophy" {:hidden? true, :opened? true}
+"Snapshot" {:position {"x" 389, "y" -26}, :hidden? true}
+=>"5: Sage" {:hidden? true, :opened? true}
+"HEAD" {:hidden? true, :position {"x" 295, "y" 376}}
+".gitignore" {:position {"x" 918, "y" 199}, :hidden? true}
+"Atomic Commits" {:position {"x" 702, "y" 598}, :hidden? true}
+=>"1: Survival" {:hidden? true, :opened? true}
+=>"Architecture" {:hidden? true, :opened? true}
+"Working Directory" {:hidden? true, :position {"x" 134, "y" 412}}
+"user.email" {:position {"x" 670, "y" 173}, :hidden? true}
+"Commit Object" {:hidden? true, :position {"x" 660, "y" 294}}
+=>"Setup" {:hidden? true, :opened? true}
+"Tree" {:position {"x" 681, "y" -112}, :hidden? true, :opened? false}
+=>"Inspection" {:hidden? true, :opened? true}
+=>"Practice" {:hidden? true, :opened? true}
+"git status" {:position {"x" -272, "y" 370}, :hidden? true}
+=>"Trace view" {:position {"x" 76, "y" 9}, :opened? true, :hidden? true}
+".git/index (Index)" {:position {"x" -555, "y" 96}, :hidden? true}
+"git reset" {:hidden? true, :opened? false, :position {"x" 312, "y" 129}}
+=>"Object Model" {:hidden? true, :opened? true}
+=>"Integration" {:hidden? true, :opened? true}
+"git push" {:position {"x" -235, "y" 565}, :hidden? true}
+"Blob Object" {:position {"x" 99, "y" -800}, :hidden? true}
+"Merge Conflicts" {:position {"x" 1171, "y" -124}, :hidden? true}
+=>"Recovery" {:hidden? true, :opened? true}
+"SHA-1 Hash" {:position {"x" 1131, "y" 311}, :hidden? true}
+"Cache" {:position {"x" -560, "y" -80}, :hidden? true}
+=>"Configuration" {:hidden? true, :position {"x" -80, "y" 73}}
+"git log" {:position {"x" 489, "y" 227}, :hidden? true}
+"git rebase -i" {:position {"x" 733, "y" 75}, :hidden? true}
+"git reset --hard" {:hidden? true, :position {"x" 160, "y" 215}}
+"user.name" {:position {"x" 15.700279665012452, "y" -34.655206480938446}, :hidden? true}
+"Pull Request / Merge Request" {:position {"x" 252, "y" 475}, :hidden? true}
+

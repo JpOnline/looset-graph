@@ -1,0 +1,3321 @@
+{"https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ&t=2460"
+  {:title "Introduction to Git Branching: The Kitchen Analogy"
+   :summary "Explains the concept of branching as a safe environment for experimentation using a restaurant kitchen analogy, and demonstrates how to list and create branches."
+   :diataxis-type #{:tutorial :explanation}
+   :media-type #{:video}
+   :segment-info {:is-segment? true
+                  :segment-focus "Branching conceptual model and basic creation"}
+   :concepts-matched ["Branch"
+                      "git branch"
+                      "git branch [name]"
+                      "git checkout / git switch"
+                      "git merge"
+                      "Feature Branching"]
+   :concepts-new ["Main vs Master Naming" "Kitchen Analogy"]
+   :commands-mentioned ["git branch" "git checkout"]
+   :safety {:level :safe
+            :reason "Operations are read-only (listing) or additive (creating). No destructive actions performed."
+            :mentions-reflog? false}
+   :interface-type :cli
+   :estimated-minutes 3
+   :straight-to-the-point :medium
+   :didactic-score 5
+   :experience-level :beginner
+   :visual-score 3
+   :production-quality 3
+
+   :youtube-data
+   {:title "Git & GitHub Crash Course for Beginners [2026]"
+    :channel-name "freeCodeCamp.org"
+    :channel-url "https://www.youtube.com/@freeCodeCamp"
+    :total-duration "1:21:14"
+    :chapter-name "Git Branching Explained"
+    :chapter-starts-at "0:40:58"
+    :chapter-duration "0:02:55"}}
+
+ "https://youtu.be/mAFoROnOfHs?si=xla2SiApGOEnnuoV&t=2634"
+ {:title "Branch Isolation and Working Directory Updates"
+  :summary "Demonstrates how commits are isolated to specific branches and how Git modifies the filesystem visibility when switching contexts."
+
+  ;; Diátaxis Classification
+  :diataxis-type #{:tutorial :explanation}
+
+  ;; Content Format
+  :media-type #{:video}
+  :segment-info {:is-segment? true
+                 :segment-focus "Demonstrating file visibility across branches"}
+
+  ;; Concept Mapping
+  :concepts-matched ["git status"
+                     "Working Directory"
+                     "git add"
+                     "git commit"
+                     "git checkout / git switch"
+                     "Branch"
+                     "Crafting a Commit"]
+
+  :concepts-new ["Branch Isolation"
+                 "File System Control"]
+
+  :commands-mentioned ["git status"
+                       "git add ."
+                       "git commit -m"
+                       "git checkout"]
+
+  :safety
+  {:level :safe
+   :reason "Standard commit and checkout operations; no history rewriting or destructive actions."
+   :mentions-reflog? false}
+
+  :interface-type :cli
+  :estimated-minutes 2
+  :straight-to-the-point :medium
+  :didactic-score 5
+  :experience-level :beginner
+  :visual-score 3
+  :production-quality 3
+
+  :youtube-data
+  {:title "Git & GitHub Crash Course for Beginners [2026]"
+   :channel-name "freeCodeCamp.org"
+   :channel-url "https://www.youtube.com/@freeCodeCamp"
+   :total-duration "1:21:14"
+   :chapter-name "git checkout: Switching Branches"
+   :chapter-starts-at "0:43:53"
+   :chapter-duration "0:01:57"}}
+
+ "https://youtu.be/mAFoROnOfHs?si=F6YVvZqBrP5QO5SU&t=2751"
+ {:title "Bidirectional Merging: Syncing Main and Development"
+  :summary "A walkthrough of committing changes on the main branch, synchronizing the development branch with those changes, and finally merging development back into main."
+
+  :diataxis-type #{:tutorial :how-to}
+
+  :media-type #{:video}
+  :segment-info {:is-segment? true
+                 :segment-focus "Basic Merging Workflow"}
+
+  :concepts-matched ["git add"
+                     "git commit"
+                     "git status"
+                     "git checkout / git switch"
+                     "git merge"
+                     "Branch"
+                     "Basic Merging"
+                     "Feature Branching"
+                     "Syncing with Remotes"] ;; Although local, the logic mirrors syncing
+
+  :concepts-new ["Bidirectional Sync"]
+  :commands-mentioned ["git status"
+                       "git add ."
+                       "git commit -m"
+                       "git checkout"
+                       "git merge"]
+
+  :safety
+  {:level :safe
+   :reason "Standard merge operations without force flags or history rewriting."
+   :mentions-reflog? false}
+
+  :interface-type :cli
+  :estimated-minutes 2
+  :straight-to-the-point :straight
+  :didactic-score 4
+  :experience-level :beginner
+  :visual-score 2
+  :production-quality 3
+
+  :youtube-data
+  {:title "Git & GitHub Crash Course for Beginners [2026"
+   :channel-name "freeCodeCamp.org"
+   :channel-url "https://www.youtube.com/@freeCodeCamp"
+   :total-duration "1:21:14"
+   :chapter-name "git merge: Combining Branches"
+   :chapter-starts-at "0:45:50"
+   :chapter-duration "0:01:53"}}
+
+ "https://youtu.be/mAFoROnOfHs?si=scekhM1QckKLJ8DH&t=2865"
+ {:title "Simulating and Resolving Merge Conflicts"
+  :summary "A step-by-step simulation of creating a merge conflict by modifying the same file in different branches, followed by the manual process of identifying conflict markers and committing the resolution."
+
+  :diataxis-type #{:tutorial :how-to}
+
+  :media-type #{:video}
+  :segment-info {:is-segment? true
+                 :segment-focus "Resolving Merge Conflicts"}
+
+  :concepts-matched ["Merge Conflicts"
+                     "git branch"
+                     "git checkout / git switch"
+                     "git add"
+                     "git commit"
+                     "git status"
+                     "git merge"
+                     "Branch"
+                     "Working Directory"]
+
+  :concepts-new ["Conflict Markers" "Manual Resolution"]
+
+  :commands-mentioned ["git branch"
+                       "git checkout"
+                       "git add"
+                       "git commit"
+                       "git status"
+                       "git merge"]
+
+  :safety
+  {:level :safe
+   :reason "Standard conflict resolution workflow. Mentions manual editing of files to resolve conflicts, which is a safe operation."
+   :mentions-reflog? false}
+
+  :interface-type :cli
+  :estimated-minutes 5
+  :straight-to-the-point :medium
+  :didactic-score 5
+  :experience-level :beginner
+  :visual-score 4
+  :production-quality 3
+
+  :youtube-data
+  {:title "Git & GitHub Crash Course for Beginners [2026]"
+   :channel-name "freeCodeCamp.org"
+   :channel-url "https://www.youtube.com/@freeCodeCamp"
+   :total-duration "1:21:14"
+   :chapter-name "Resolving Merge Conflicts"
+   :chapter-starts-at "0:47:43"
+   :chapter-duration "0:04:30"}}
+
+ "https://youtu.be/mAFoROnOfHs?si=Ca6PbaEZA81d4A8c&t=3133"
+ {:title "Checking Out Previous Commits (Time Travel)"
+  :summary "A guided demonstration of navigating the commit history by checking out a specific commit hash to view the project's past state (Detached HEAD) and returning to the main branch."
+
+  ;; Diátaxis Classification
+  :diataxis-type #{:tutorial :how-to}
+
+  ;; Content Format
+  :media-type #{:video}
+  :segment-info {:is-segment? true
+                 :segment-focus "Navigating to a specific commit hash (Detached HEAD state)"}
+
+  ;; Concept Mapping
+  :concepts-matched ["git log"
+                     "git add"
+                     "git commit"
+                     "git checkout [hash]"
+                     "Detached HEAD"
+                     "HEAD"
+                     "main"
+                     "Working Directory"]
+  :concepts-new ["Time Travel (Metaphor)"]
+  :commands-mentioned ["git log --oneline"
+                       "git add ."
+                       "git commit -m"
+                       "git checkout [hash]"
+                       "git checkout main"]
+
+  :safety
+  {:level :risky
+   :reason "Introduces Detached HEAD state. While the tutorial shows how to return to main, beginners often get lost or lose commits created while in a detached state if not warned explicitly about creating new branches."
+   :mentions-reflog? false}
+
+  :interface-type :cli
+  :estimated-minutes 2
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :beginner
+  :visual-score 3
+  :production-quality 3
+
+  :youtube-data
+  {:title "Git & GitHub Crash Course for Beginners [2026]"
+   :channel-name "freeCodeCamp.org"
+   :channel-url "https://www.youtube.com/@freeCodeCamp"
+   :total-duration "1:21:14"
+   :chapter-name "Checking Out Previous Commits (Time Travel)"
+   :chapter-starts-at "0:52:13"
+   :chapter-duration "0:02:13"}}
+
+ "https://youtu.be/mAFoROnOfHs?si=5k458po2A8GKv9Px&t=3267"
+ {:title "Comparing Specific Commits with git diff"
+  :summary "Demonstrates how to identify commit hashes using git log and compare two specific points in history to view added and removed lines, emphasizing the importance of argument order."
+
+  :diataxis-type #{:tutorial :how-to}
+
+  :media-type #{:video}
+  :segment-info {:is-segment? true
+                 :segment-focus "Comparing changes between two specific commit hashes"}
+
+  :concepts-matched ["git diff"
+                     "git log"
+                     "Commit Object"
+                     "Inspection"]
+
+  :concepts-new ["Diff Argument Order"
+                 "Diff Output Colors"]
+
+  :commands-mentioned ["git diff" "git log"]
+
+  :safety
+  {:level :safe
+   :reason "Read-only inspection command; no risk of data loss."
+   :mentions-reflog? false}
+
+  :interface-type :cli
+  :estimated-minutes 2
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :beginner
+  :visual-score 2
+  :production-quality 3
+
+  :youtube-data
+  {:title "Git & GitHub Crash Course for Beginners [2026]"
+   :channel-name "freeCodeCamp.org"
+   :channel-url "https://www.youtube.com/@freeCodeCamp"
+   :total-duration "1:21:14"
+   :chapter-name "Git diff: comparing commits"
+   :chapter-starts-at "0:54:28"
+   :chapter-duration "0:01:16"}}
+
+ "https://youtu.be/mAFoROnOfHs?si=c78DSGxRarfZzA8y&t=3356"
+ {:title "Conceptual Overview of Syncing Commands: Push, Fetch, and Pull"
+  :summary "Defines the relationship between local and remote repositories and distinguishes the mechanics of git fetch versus git pull."
+
+  ;; Diátaxis Classification
+  :diataxis-type :explanation
+
+  ;; Content Format
+  :media-type #{:video}
+  :segment-info {:is-segment? true
+                 :segment-focus "Conceptual difference between Fetch and Pull"}
+
+  ;; Concept Mapping
+  :concepts-matched ["Remote Repository"
+                     "git push"
+                     "git fetch"
+                     "git pull"
+                     "git merge"
+                     "Working Directory"
+                     "git log"]
+  :concepts-new ["Exiting Less/Log (Q)"]
+  :commands-mentioned ["git push" "git fetch" "git pull" "git merge"]
+
+  :safety
+  {:level :safe
+   :reason "Conceptual explanation only; no state-changing commands executed in this segment."
+   :mentions-reflog? false}
+
+  :interface-type :cli
+  :estimated-minutes 2
+  :straight-to-the-point :medium
+  :didactic-score 5
+  :experience-level :beginner
+  :visual-score 2
+  :production-quality 3
+
+  :youtube-data
+  {:title "Git & GitHub Crash Course for Beginners [2026]"
+   :channel-name "freeCodeCamp.org"
+   :channel-url "https://www.youtube.com/@freeCodeCamp"
+   :total-duration "1:21:14"
+   :chapter-name "Understanding Push, Fetch, and Pull"
+   :chapter-starts-at "0:55:50"
+   :chapter-duration "0:01:28"}}
+
+ "https://youtu.be/mAFoROnOfHs?si=EBcHEc1WmtY2A1Ny&t=3441"
+ {:title "Pushing Local Branches to Remote Repositories"
+  :summary "A walkthrough demonstrating how to push commits from specific local branches (main, staging, development) to a remote repository, including how this creates corresponding branches on the remote."
+
+  :diataxis-type #{:tutorial :explanation}
+
+  :media-type #{:video}
+  :segment-info {:is-segment? true
+                 :segment-focus "Pushing specific branches and understanding 'origin'"}
+
+  :concepts-matched ["git push"
+                     "Remote Repository"
+                     "Branch"
+                     "git checkout / git switch"]
+
+  :concepts-new ["Origin Alias"
+                 "Remote Branch Creation"]
+
+  :commands-mentioned ["git push"
+                       "git checkout"]
+
+  :safety {:level :safe
+           :reason "Standard push operations are demonstrated without force flags or destructive history rewriting."
+           :mentions-reflog? false}
+
+  :interface-type :cli
+  :estimated-minutes 2
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :beginner
+  :visual-score 2
+  :production-quality 3
+
+  :youtube-data
+  {:title "Git & GitHub Crash Course for Beginners [2026]"
+   :channel-name "freeCodeCamp.org"
+   :channel-url "https://www.youtube.com/@freeCodeCamp"
+   :total-duration "1:21:14"
+   :chapter-name "git push: Uploading to GitHub"
+   :chapter-starts-at "0:57:18"
+   :chapter-duration "0:01:25"}}
+
+ "https://youtu.be/mAFoROnOfHs?si=SMVz-lGiPX5_7hH0&t=3527"
+ {:title "Git Fetch vs. Git Pull: Syncing Strategies"
+  :summary "Demonstrates the practical difference between syncing changes via `git fetch` followed by a merge, versus using `git pull` to perform both actions simultaneously."
+
+  :diataxis-type #{:tutorial :explanation}
+
+  :media-type #{:video}
+  :segment-info {:is-segment? true
+                 :segment-focus "The difference between git fetch and git pull"}
+
+  :concepts-matched ["git fetch"
+                     "git pull"
+                     "git merge"
+                     "Remote Repository"
+                     "Working Directory"
+                     "Syncing with Remotes"
+                     "git commit"]
+
+  :concepts-new []
+  :commands-mentioned ["git fetch" "git merge" "git pull"]
+
+  :safety
+  {:level :safe
+   :reason "Standard synchronization commands; no history rewriting or destructive resets demonstrated."
+   :mentions-reflog? false}
+
+  :interface-type :mixed ;; CLI for local commands, Web UI (GitHub) for remote changes
+  :estimated-minutes 2
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :beginner
+  :visual-score 3
+  :production-quality 3
+
+  :youtube-data
+  {:title "Git & GitHub Crash Course for Beginners [2026]"
+   :channel-name "freeCodeCamp.org"
+   :channel-url "https://www.youtube.com/freecodecamp"
+   :total-duration "1:21:14"
+   ;; Information of the chapter in the time 58:47
+   :chapter-name "git fetch vs. git pull"
+   :chapter-starts-at "0:58:43"
+   :chapter-duration "0:01:41"}}
+
+ "https://youtu.be/mAFoROnOfHs?si=kTSMIrdK_txghDli&t=3627"
+ {:title "Discarding Local Changes with git restore"
+  :summary "Demonstrates how to use git restore to discard uncommitted changes in the working directory and how to unstage files while keeping modifications."
+
+  :diataxis-type #{:tutorial :explanation}
+
+  :media-type #{:video}
+  :segment-info {:is-segment? true
+                 :segment-focus "Undoing local and staged changes"}
+
+  :concepts-matched ["git restore"
+                     "Working Directory"
+                     "Staging Area\n(Index)"
+                     "git add"
+                     "git stash"]
+
+  :concepts-new ["--staged"
+                 "discard changes"]
+
+  :commands-mentioned ["git restore <file>"
+                       "git restore ."
+                       "git restore --staged <file>"
+                       "git restore --staged ."]
+
+  :safety
+  {:level :risky
+   :reason "The command 'git restore' (without --staged) permanently discards local uncommitted changes, which cannot be recovered via Reflog."
+   :mentions-reflog? false}
+
+  :interface-type :cli
+  :estimated-minutes 3
+  :straight-to-the-point :medium
+  :didactic-score 4
+  :experience-level :beginner
+  :visual-score 2
+  :production-quality 3
+
+  :youtube-data
+  {:title "Git & GitHub Crash Course for Beginners [2026]"
+   :channel-name "freeCodeCamp.org"
+   :channel-url "https://www.youtube.com/freecodecamp"
+   :total-duration "1:21:14"
+   ;; Information of the chapter in the time 1:00:27
+   :chapter-name "git restore: Discarding Local Changes"
+   :chapter-starts-at "1:00:24"
+   :chapter-duration "0:02:52"}}
+
+ "https://youtu.be/mAFoROnOfHs?si=K4QwP0P3iKefR1u0&t=3799"
+ {:title "Saving Unfinished Work with Git Stash"
+  :summary "A guide on using git stash to temporarily save uncommitted changes when switching branches, including how to list, apply, pop, and drop stashed entries."
+
+  :diataxis-type #{:tutorial :explanation}
+
+  :media-type #{:text}
+  :segment-info {:is-segment? true
+                 :segment-focus "git stash workflow"}
+
+  :concepts-matched ["Working Directory"
+                     "git checkout / git switch"
+                     "git status"
+                     "Switching Branches"]
+
+  :concepts-new ["git stash"
+                 "Stash Stack"
+                 "Stash Identifiers (stash@{n})"
+                 "pop vs apply"]
+
+  :commands-mentioned ["git stash"
+                       "git checkout"
+                       "git restore"
+                       "git stash pop"
+                       "git stash apply"
+                       "git stash list"
+                       "git stash drop"
+                       "git status"]
+
+  :safety
+  {:level :safe
+   :reason "Stashing is non-destructive to the working history. 'drop' deletes the stash, but usually after application."
+   :mentions-reflog? false}
+
+  :interface-type :cli
+  :estimated-minutes 6
+  :straight-to-the-point :medium
+  :didactic-score 5
+  :experience-level :intermediate
+  :visual-score 3
+  :production-quality 3
+
+  :youtube-data
+  {:title "Git & GitHub Crash Course for Beginners [2026]"
+   :channel-name "freeCodeCamp.org"
+   :channel-url "https://www.youtube.com/freecodecamp"
+   :total-duration "1:21:14"
+   ;; Information of the chapter in the time 1:03:19
+   :chapter-name "git stash: Saving Unfinished Work"
+   :chapter-starts-at "1:03:16"
+   :chapter-duration "0:06:31"}}
+
+ "https://youtu.be/mAFoROnOfHs?si=G-ibDDoKzriwO2hI&t=4191"
+ {:title "Undoing Commits Safely with Git Revert"
+  :summary "Explains the concept of undoing changes by creating a new inverse commit using git revert, using a cooking analogy and contrasting it with the history-altering git reset command."
+
+  :diataxis-type #{:explanation :how-to}
+
+  :media-type #{:video}
+  :segment-info {:is-segment? true
+                 :segment-focus "git revert"}
+
+  :concepts-matched ["git revert"
+                     "git reset"
+                     "Commit Object"
+                     "git log"
+                     "git add"
+                     "git commit"
+                     "Remote Repository"
+                     "Immutability"]
+
+  :concepts-new ["Inverse Commit"
+                 "Safe Undoing"]
+
+  :commands-mentioned ["git revert"
+                       "git add"
+                       "git commit"
+                       "git log"
+                       "git reset"]
+
+  :safety
+  {:level :safe
+   :reason "The segment explicitly recommends git revert over git reset for collaboration safety, preserving history rather than destroying it."
+   :mentions-reflog? false}
+
+  :interface-type :cli
+  :estimated-minutes 3
+  :straight-to-the-point :medium
+  :didactic-score 5
+  :experience-level :beginner
+  :visual-score 4
+  :production-quality 3
+
+  :youtube-data
+  {:title "Git & GitHub Crash Course for Beginners [2026]"
+   :channel-name "freeCodeCamp.org"
+   :channel-url "https://www.youtube.com/freecodecamp"
+   :total-duration "1:21:14"
+   :chapter-name "git revert: Undoing Commits Safely"
+   :chapter-starts-at "1:09:47"
+   :chapter-duration "0:02:31"}}
+
+ "https://youtu.be/mAFoROnOfHs?si=q2o_6Mcygscr1qfV&t=4345"
+ {:title "Git Rebase: Linearizing History vs Merging"
+  :summary "Explains the difference between merging and rebasing when updating a feature branch, demonstrating how to use git rebase to maintain a linear commit history."
+
+  ;; Diátaxis Classification
+  :diataxis-type #{:tutorial :explanation}
+
+  ;; Content Format
+  :media-type #{:video}
+  :segment-info {:is-segment? true
+                 :segment-focus "git rebase vs git merge"}
+
+  ;; Concept Mapping
+  :concepts-matched ["git rebase"
+                     "git merge"
+                     "git log"
+                     "Feature Branching"
+                     "git checkout / git switch"
+                     "git add"
+                     "git commit"
+                     "Commit Object"
+                     "Branch"]
+  :concepts-new ["Linear History" "Rewriting History" "Upstream Sync"]
+  :commands-mentioned ["git log"
+                       "git branch feature"
+                       "git checkout feature"
+                       "git add ."
+                       "git commit -m"
+                       "git checkout main"
+                       "git rebase main"]
+
+  :safety
+  {:level :risky
+   :reason "Rebase rewrites commit history (changing IDs). The content explicitly warns against using it on shared/public branches."
+   :mentions-reflog? false}
+
+  :interface-type :cli
+  :estimated-minutes 5
+  :straight-to-the-point :medium
+  :didactic-score 5
+  :experience-level :intermediate
+  :visual-score 4
+  :production-quality 3
+
+  :youtube-data
+  {:title "Git & GitHub Crash Course for Beginners [2026]"
+   :channel-name "freeCodeCamp.org"
+   :channel-url "https://www.youtube.com/freecodecamphttps://www.youtube.com/freecodecamp"
+   :total-duration "1:21:14"
+   ;; Information of the chapter in the time 1:12:25
+   :chapter-name "git rebase: Cleaning Up History"
+   :chapter-starts-at "1:12:18"
+   :chapter-duration "0:04:30"}}
+
+ "https://youtu.be/mAFoROnOfHs?si=waRCYIP6c78VaPSF&t=4617"
+ {:title "Pull Requests: Concept and GitHub Workflow"
+  :summary "Explains the definition of a Pull Request as a permission-based collaboration tool and provides a step-by-step walkthrough of creating, reviewing, and merging a PR in the GitHub web interface."
+
+  :diataxis-type #{:tutorial :explanation}
+
+  :media-type #{:video}
+  :segment-info {:is-segment? true
+                 :segment-focus "Pull Requests and GitHub Collaboration"}
+
+  :concepts-matched ["Pull Request / Merge Request"
+                     "Remote Repository"
+                     "Branch"
+                     "Feature Branching"
+                     "Basic Merging"
+                     "Collaboration"]
+
+  :concepts-new ["Base Branch"
+                 "Compare Branch"
+                 "Code Review"
+                 "GitHub UI"]
+
+  :commands-mentioned ["git push"
+                       "git merge"]
+
+  :safety
+  {:level :safe
+   :reason "Operations are performed via the GitHub web interface (GUI), mitigating the risk of destructive CLI commands. The process follows a standard review workflow."
+   :mentions-reflog? false}
+
+  :interface-type :gui
+  :estimated-minutes 3
+  :straight-to-the-point :medium
+  :didactic-score 5
+  :experience-level :beginner
+  :visual-score 3
+  :production-quality 3
+
+  :youtube-data
+  {:title "Git & GitHub Crash Course for Beginners [2026]"
+   :channel-name "freeCodeCamp.org"
+   :channel-url "https://www.youtube.com/freecodecamp"
+   :total-duration "1:21:14"
+   ;; Information of the chapter in the time 1:16:57
+   :chapter-name "Pull Requests (PR) & Collaboration"
+   :chapter-starts-at "1:16:48"
+   :chapter-duration "0:03:09"}}
+
+ "https://stackoverflow.com/questions/927358/how-do-i-undo-the-most-recent-local-commits-in-git/927386#927386"
+ {:title "Undo the last commit but keep changes (Soft/Mixed Reset)"
+  :summary "Uses git reset to move the HEAD pointer back one step while preserving file changes in the working directory."
+  :diataxis-type {:how-to 0.4 :tutorial 0.2 :explanation 0.4 :reference 0.0}
+  :media-type #{:text :Q&A}
+  :segment-info {:is-segment? false
+                 :segment-focus "Core Logic"}
+  :concepts-matched ["git reset" "HEAD" "Working Directory" ".git/index (Index)" "Commit Object"]
+  :concepts-new ["ORIG_HEAD"]
+  :commands-mentioned ["git reset HEAD~" "git add" "git commit -c ORIG_HEAD" "git commit -C"]
+  :safety {:level :safe
+           :reason "By default, git reset (mixed) preserves modifications in the working directory, only uncommitting the code."}
+  :interface-type :cli
+  :estimated-minutes 2
+  :straight-to-the-point :medium
+  :didactic-score 5
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 3
+
+  :stackoverflow-meta-answer
+  {:type :accepted-answer
+   :author "CodeWizard"
+   :votes 30078
+   :is-accepted? true
+   :date-answered "2009-05-29T18:13:42Z"
+   :last-updated-date "2024-12-10T12:20:09Z"
+   :answer-url "https://stackoverflow.com/questions/927358/how-do-i-undo-the-most-recent-local-commits-in-git/927386#927386"
+   :key-snippet "git reset HEAD~"}
+
+  :stackoverflow-meta-question
+  {:title "How do I undo the most recent local commits in Git?"
+   :date-asked "2009-05-29T18:09:14Z"
+   :last-updated-date "2026-01-20T08:11:20Z"
+   :viewed-count 16563858
+   :upvotes 27191
+   :primary-tags ["git" "version-control" "git-commit" "undo"]
+   :question-url "https://stackoverflow.com/questions/927358/how-do-i-undo-the-most-recent-local-commits-in-git"}}
+
+ "https://stackoverflow.com/questions/927358/how-do-i-undo-the-most-recent-local-commits-in-git/927386#927386?alternative-strategy"
+ {:title "Modify the last commit (Amend)"
+  :summary "Instead of undoing, this approach modifies the previous commit to include new changes or fix the message."
+  :diataxis-type {:how-to 0.8 :tutorial 0.0 :explanation 0.2 :reference 0.0}
+  :media-type #{:text :Q&A}
+  :segment-info {:is-segment? true
+                 :segment-focus "Alternative Strategy"}
+  :concepts-matched ["git commit --amend" "Atomic Commits"]
+  :concepts-new []
+  :commands-mentioned ["git commit --amend"]
+  :safety {:level :risky
+           :reason "Rewrites history. Safe for local commits, dangerous if the commit was already pushed."}
+  :interface-type :cli
+  :estimated-minutes 1
+  :straight-to-the-point :straight
+  :didactic-score 4
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 2
+
+  :stackoverflow-meta-answer
+  {:type :accepted-answer
+   :author "CodeWizard"
+   :votes 30078
+   :is-accepted? true
+   :date-answered "2009-05-29T18:13:42Z"
+   :last-updated-date "2024-12-10T12:20:09Z"
+   :answer-url "https://stackoverflow.com/questions/927358/how-do-i-undo-the-most-recent-local-commits-in-git/927386#927386"
+   :key-snippet "git commit --amend"}
+
+  :stackoverflow-meta-question
+  {:title "How do I undo the most recent local commits in Git?"
+   :date-asked "2009-05-29T18:09:14Z"
+   :last-updated-date "2026-01-20T08:11:20Z"
+   :viewed-count 16563858
+   :upvotes 27191
+   :primary-tags ["git" "version-control" "git-commit" "undo"]
+   :question-url "https://stackoverflow.com/questions/927358/how-do-i-undo-the-most-recent-local-commits-in-git"}}
+
+ "https://stackoverflow.com/questions/927358/how-do-i-undo-the-most-recent-local-commits-in-git/927386#comment97845110_927358"
+ {:title "Undo using Visual Studio Code GUI"
+  :summary "A graphical approach for VS Code users to undo the last commit via the Source Control menu."
+  :diataxis-type {:how-to 1.0 :tutorial 0.0 :explanation 0.0 :reference 0.0}
+  :media-type #{:text :Q&A}
+  :segment-info {:is-segment? true
+                 :segment-focus "IDE Workflow"}
+  :concepts-matched ["Inspection" "Undo"]
+  :concepts-new ["VS Code Source Control"]
+  :commands-mentioned []
+  :safety {:level :safe
+           :reason "Executes a soft undo via the GUI, preserving changes."}
+  :interface-type :ide
+  :estimated-minutes 1
+  :straight-to-the-point :straight
+  :didactic-score 3
+  :experience-level :beginner
+  :visual-score 1
+  :production-quality 2
+
+  :stackoverflow-meta-answer
+  {:type :comment-gem
+   :author "ashad"
+   :votes 208
+   :is-accepted? false
+   :date-answered "2019-04-08T12:15:40Z"
+   :last-updated-date "2019-04-08T12:15:40Z"
+   :answer-url "https://stackoverflow.com/questions/927358/how-do-i-undo-the-most-recent-local-commits-in-git/927386#comment97845110_927358"
+   :key-snippet "Ctrl + Shift + G -> More Actions -> Undo Last Commit"}
+
+  :stackoverflow-meta-question
+  {:title "How do I undo the most recent local commits in Git?"
+   :date-asked "2009-05-29T18:09:14Z"
+   :last-updated-date "2026-01-20T08:11:20Z"
+   :viewed-count 16563858
+   :upvotes 27191
+   :primary-tags ["git" "version-control" "git-commit" "undo"]
+   :question-url "https://stackoverflow.com/questions/927358/how-do-i-undo-the-most-recent-local-commits-in-git"}}
+
+ "https://stackoverflow.com/questions/927358/how-do-i-undo-the-most-recent-local-commits-in-git/927386#comment6443962_927386"
+ {:title "Troubleshooting: Windows CMD/ZSH Syntax"
+  :summary "Fixes specific syntax errors when using HEAD^ on Windows Command Prompt or ZSH shells."
+  :diataxis-type {:how-to 0.2 :tutorial 0.0 :explanation 0.8 :reference 0.0}
+  :media-type #{:text :Q&A}
+  :segment-info {:is-segment? true
+                 :segment-focus "Platform Specifics"}
+  :concepts-matched ["Terminal" "Shell Escaping"] ;; Acho que não tenho isso não.
+  :concepts-new ["Windows CMD" "ZSH globbing"]
+  :commands-mentioned ["git reset HEAD~1" "git reset --soft HEAD\\^"]
+  :safety {:level :safe
+           :reason "Syntax correction only."}
+  :interface-type :cli
+  :estimated-minutes 1
+  :straight-to-the-point :verbose
+  :didactic-score 3
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 2
+
+  :stackoverflow-meta-answer
+  {:type :comment-gem
+   :author "Ryan Lundy / tnajdek"
+   :votes 605
+   :is-accepted? false
+   :date-answered "2011-04-13T14:15:10Z"
+   :last-updated-date "2013-02-21T17:47:56Z"
+   :answer-url "https://stackoverflow.com/questions/927358/how-do-i-undo-the-most-recent-local-commits-in-git/927386#comment6443962_927386"
+   :key-snippet "git reset --soft HEAD~1"}
+
+  :stackoverflow-meta-question
+  {:title "How do I undo the most recent local commits in Git?"
+   :date-asked "2009-05-29T18:09:14Z"
+   :last-updated-date "2026-01-20T08:11:20Z"
+   :viewed-count 16563858
+   :upvotes 27191
+   :primary-tags ["git" "version-control" "git-commit" "undo"]
+   :question-url "https://stackoverflow.com/questions/927358/how-do-i-undo-the-most-recent-local-commits-in-git"}}
+
+ "https://stackoverflow.com/questions/927358/how-do-i-undo-the-most-recent-local-commits-in-git/927386#comment122335349_927386"
+ {:title "Create a 'git undo' Alias"
+  :summary "Configures a persistent git alias to simplify the undo process for future use."
+  :diataxis-type {:how-to 1.0 :tutorial 0.0 :explanation 0.0 :reference 0.0}
+  :media-type #{:text :Q&A}
+  :segment-info {:is-segment? true
+                 :segment-focus "Workflow Optimization"}
+  :concepts-matched ["Local Config" ".git/config"]
+  :concepts-new ["Git Alias"]
+  :commands-mentioned ["git config --global alias.undo 'reset --soft HEAD^'"]
+  :safety {:level :safe
+           :reason "Only modifies configuration, does not touch data directly until invoked."}
+  :interface-type :cli
+  :estimated-minutes 2
+  :straight-to-the-point :straight
+  :didactic-score 4
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 2
+
+  :stackoverflow-meta-answer
+  {:type :comment-gem
+   :author "chrisan"
+   :votes 3
+   :is-accepted? false
+   :date-answered "2021-09-16T21:23:14Z"
+   :last-updated-date "2021-09-16T21:23:14Z"
+   :answer-url "https://stackoverflow.com/questions/927358/how-do-i-undo-the-most-recent-local-commits-in-git/927386#comment122335349_927386"
+   :key-snippet "git config --global alias.undo 'reset --soft HEAD^'"}
+
+  :stackoverflow-meta-question
+  {:title "How do I undo the most recent local commits in Git?"
+   :date-asked "2009-05-29T18:09:14Z"
+   :last-updated-date "2026-01-20T08:11:20Z"
+   :viewed-count 16563858
+   :upvotes 27191
+   :primary-tags ["git" "version-control" "git-commit" "undo"]
+   :question-url "https://stackoverflow.com/questions/927358/how-do-i-undo-the-most-recent-local-commits-in-git"}}
+
+ "https://stackoverflow.com/questions/927358/how-do-i-undo-the-most-recent-local-commits-in-git/927386#comment125120131_927386"
+ {:title "Using git-extras Tool"
+  :summary "Suggests using the external 'git-extras' utility pack which includes a built-in undo command."
+  :diataxis-type {:how-to 0.2 :tutorial 0.0 :explanation 0.0 :reference 0.8}
+  :media-type #{:text :Q&A}
+  :segment-info {:is-segment? true
+                 :segment-focus "External Tools"}
+  :concepts-matched ["Commands"]
+  :concepts-new ["git-extras"]
+  :commands-mentioned ["git undo"]
+  :safety {:level :safe
+           :reason "Relies on a maintained external utility."}
+  :interface-type :cli
+  :estimated-minutes 5
+  :straight-to-the-point :straight
+  :didactic-score 2
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 2
+
+  :stackoverflow-meta-answer
+  {:type :comment-gem
+   :author "Dr. Mike Hopper"
+   :votes 6
+   :is-accepted? false
+   :date-answered "2022-01-19T17:39:46Z"
+   :last-updated-date "2022-01-19T17:39:46Z"
+   :answer-url "https://stackoverflow.com/questions/927358/how-do-i-undo-the-most-recent-local-commits-in-git/927386#comment125120131_927386"
+   :key-snippet "git undo"}
+
+  :stackoverflow-meta-question
+  {:title "How do I undo the most recent local commits in Git?"
+   :date-asked "2009-05-29T18:09:14Z"
+   :last-updated-date "2026-01-20T08:11:20Z"
+   :viewed-count 16563858
+   :upvotes 27191
+   :primary-tags ["git" "version-control" "git-commit" "undo"]
+   :question-url "https://stackoverflow.com/questions/927358/how-do-i-undo-the-most-recent-local-commits-in-git"}}
+
+ "https://stackoverflow.com/a/2003515"
+ {:title "Standard Local and Remote Deletion"
+  :summary "Explains the standard commands for deleting branches locally using branch -d and remotely using push --delete."
+  :diataxis-type {:how-to 0.7 :tutorial 0.0 :explanation 0.1 :reference 0.2}
+  :media-type #{:text :Q&A}
+  :segment-info {:is-segment? false
+                 :segment-focus "Local and remote branch deletion commands"}
+  :concepts-matched ["git branch" "git push" "Branch" "git fetch"]
+  :concepts-new ["git branch -d" "git branch -D" "git push --delete"]
+  :commands-mentioned ["git push -d <remote_name> <branchname>"
+                       "git branch -d <branchname>"
+                       "git branch -D <branch_name>"
+                       "git push <remote_name> --delete <branch_name>"
+                       "git fetch --all --prune"]
+  :safety {:level :risky
+           :reason "Mentions -D which force-deletes a branch irrespective of its merged status. Warns about this behavior."}
+  :interface-type :cli
+  :estimated-minutes 2
+  :straight-to-the-point :straight
+  :didactic-score 4
+  :experience-level :beginner
+  :visual-score 1
+  :production-quality 3
+
+  :stackoverflow-meta-answer
+  {:type :accepted-answer
+   :author "Matthew Rankin"
+   :votes 26800
+   :is-accepted? true
+   :date-answered "2010-01-05T01:13:55Z"
+   :last-updated-date "2025-01-16T08:39:12Z"
+   :answer-url "https://stackoverflow.com/a/2003515"
+   :key-snippet "git branch -d <branchname>"}
+
+  :stackoverflow-meta-question
+  {:title "How do I delete a Git branch locally and remotely?"
+   :date-asked "2010-01-05T01:12:15Z"
+   :last-updated-date "2026-02-05T06:41:58Z"
+   :viewed-count 13297781
+   :upvotes 20361
+   :primary-tags ["git" "version-control" "git-branch" "git-push" "git-remote"]
+   :question-url "https://stackoverflow.com/questions/2003505/how-do-i-delete-a-git-branch-locally-and-remotely"}}
+
+ "https://stackoverflow.com/a/23961231"
+ {:title "The Three Branches Concept"
+  :summary "Provides a comprehensive explanation distinguishing between local, remote, and remote-tracking branches."
+  :diataxis-type {:how-to 0.4 :tutorial 0.0 :explanation 0.6 :reference 0.0}
+  :media-type #{:text :Q&A}
+  :segment-info {:is-segment? false
+                 :segment-focus "Understanding the three types of branches involved in deletion"}
+  :concepts-matched ["git push" "git branch" "Branch" "Remote Repository" "Tracking Branch" "git fetch"]
+  :concepts-new ["Remote-tracking branch" "git branch --remotes"]
+  :commands-mentioned ["git push origin --delete <branch>"
+                       "git branch -d <branch>"
+                       "git branch -D <branch>"
+                       "git branch -dr <remote>/<branch>"
+                       "git fetch <remote> --prune"
+                       "git branch -a"]
+  :safety {:level :safe
+           :reason "Clearly distinguishes the safe ways to delete various references without losing untracked work inadvertently."}
+  :interface-type :cli
+  :estimated-minutes 5
+  :straight-to-the-point :medium
+  :didactic-score 5
+  :experience-level :intermediate
+  :visual-score 3
+  :production-quality 3
+
+  :stackoverflow-meta-answer
+  {:type :community-answer
+   :author "user456814"
+   :votes 2840
+   :is-accepted? false
+   :date-answered "2014-05-30T18:32:35Z"
+   :last-updated-date "2022-03-24T03:42:55Z"
+   :answer-url "https://stackoverflow.com/a/23961231"
+   :key-snippet "git push origin --delete <branch>"}
+
+  :stackoverflow-meta-question
+  {:title "How do I delete a Git branch locally and remotely?"
+   :date-asked "2010-01-05T01:12:15Z"
+   :last-updated-date "2026-02-05T06:41:58Z"
+   :viewed-count 13297781
+   :upvotes 20361
+   :primary-tags ["git" "version-control" "git-branch" "git-push" "git-remote"]
+   :question-url "https://stackoverflow.com/questions/2003505/how-do-i-delete-a-git-branch-locally-and-remotely"}}
+
+ "https://stackoverflow.com/questions/2003505/how-do-i-delete-a-git-branch-locally-and-remotely/2003515#comment49055443_2003515"
+ {:title "Prune Obsolete Tracking Branches"
+  :summary "A highly upvoted comment reminding users to fetch and prune on other machines to remove obsolete tracking branches."
+  :diataxis-type {:how-to 1.0 :tutorial 0.0 :explanation 0.0 :reference 0.0}
+  :media-type #{:text :Q&A}
+  :segment-info {:is-segment? true
+                 :segment-focus "Syncing branch deletion to other machines"}
+  :concepts-matched ["git fetch" "Tracking Branch"]
+  :concepts-new ["--prune"]
+  :commands-mentioned ["git fetch --all --prune" "git branch -a"]
+  :safety {:level :safe
+           :reason "Only removes local references to already deleted remote branches, avoiding data loss."}
+  :interface-type :cli
+  :estimated-minutes 1
+  :straight-to-the-point :straight
+  :didactic-score 3
+  :experience-level :beginner
+  :visual-score 1
+  :production-quality 2
+
+  :stackoverflow-meta-answer
+  {:type :comment-gem
+   :author "Trevor Boyd Smith"
+   :votes 596
+   :is-accepted? false
+   :date-answered "2015-05-27T16:51:36Z"
+   :last-updated-date "2015-05-27T16:51:36Z"
+   :answer-url "https://stackoverflow.com/questions/2003505/how-do-i-delete-a-git-branch-locally-and-remotely/2003515#comment49055443_2003515"
+   :key-snippet "git fetch --all --prune"}
+
+  :stackoverflow-meta-question
+  {:title "How do I delete a Git branch locally and remotely?"
+   :date-asked "2010-01-05T01:12:15Z"
+   :last-updated-date "2026-02-05T06:41:58Z"
+   :viewed-count 13297781
+   :upvotes 20361
+   :primary-tags ["git" "version-control" "git-branch" "git-push" "git-remote"]
+   :question-url "https://stackoverflow.com/questions/2003505/how-do-i-delete-a-git-branch-locally-and-remotely"}}
+
+ "https://stackoverflow.com/a/292359"
+ {:title "Conceptual Difference: Git Fetch vs Git Pull"
+  :summary "Explains the core conceptual difference, clarifying that git pull is essentially a git fetch followed by a git merge."
+  :diataxis-type {:how-to 0.0 :tutorial 0.0 :explanation 0.8 :reference 0.2}
+  :media-type #{:Q&A :text}
+  :segment-info {:is-segment? true
+                 :segment-focus "Core definitions and behavior"}
+  :concepts-matched ["git pull" "git fetch" "git merge" "git rebase" "Tracking Branch"]
+  :concepts-new ["remote-tracking branches"]
+  :commands-mentioned ["git pull" "git fetch" "git merge" "git rebase"]
+  :safety {:level :safe
+           :reason "Purely explanatory, no destructive commands presented."}
+  :interface-type :cli
+  :estimated-minutes 2
+  :straight-to-the-point :straight
+  :didactic-score 4
+  :experience-level :beginner
+  :visual-score 1
+  :production-quality 2
+
+  :stackoverflow-meta-answer
+  {:type :accepted-answer
+   :author "Greg Hewgill"
+   :votes 11693
+   :is-accepted? true
+   :date-answered "2008-11-15T09:52:40Z"
+   :last-updated-date "2024-11-17T12:49:41Z"
+   :answer-url "https://stackoverflow.com/a/292359"
+   :key-snippet "git pull runs git fetch with the given parameters and then depending on configuration options or command line flags, will call either git rebase or git merge"}
+
+  :stackoverflow-meta-question
+  {:title "What is the difference between 'git pull' and 'git fetch'?"
+   :date-asked "2008-11-15T09:51:09Z"
+   :last-updated-date "2025-10-10T04:36:48Z"
+   :viewed-count 3724701
+   :upvotes 14037
+   :primary-tags ["git" "version-control" "git-pull" "git-fetch"]
+   :question-url "https://stackoverflow.com/questions/292357/what-is-the-difference-between-git-pull-and-git-fetch"}}
+
+ "https://stackoverflow.com/questions/292357/what-is-the-difference-between-git-pull-and-git-fetch#comment35959558_292357"
+ {:title "Force Sync with Remote Master"
+  :summary "Discards any local changes and forcefully synchronizes the local branch with the remote master."
+  :diataxis-type {:how-to 0.8 :tutorial 0.0 :explanation 0.2 :reference 0.0}
+  :media-type #{:Q&A :text}
+  :segment-info {:is-segment? true
+                 :segment-focus "Undoing Mistakes / Forced Syncing"}
+  :concepts-matched ["git fetch" "git reset --hard" "git stash"]
+  :concepts-new ["Hard Reset to Remote"]
+  :commands-mentioned ["git fetch; git reset --hard origin/master" "git stash"]
+  :safety {:level :dangerous
+           :reason "Uses reset --hard which completely blows away uncommitted local changes."}
+  :interface-type :cli
+  :estimated-minutes 1
+  :straight-to-the-point :straight
+  :didactic-score 3
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 2
+
+  :stackoverflow-meta-answer
+  {:type :comment-gem
+   :author "Michael Durrant"
+   :votes 75
+   :is-accepted? false
+   :date-answered "2014-05-04T14:32:18Z"
+   :last-updated-date "2014-05-04T14:32:18Z"
+   :answer-url "https://stackoverflow.com/questions/292357/what-is-the-difference-between-git-pull-and-git-fetch#comment35959558_292357"
+   :key-snippet "git fetch; git reset --hard origin/master"}
+
+  :stackoverflow-meta-question
+  {:title "What is the difference between 'git pull' and 'git fetch'?"
+   :date-asked "2008-11-15T09:51:09Z"
+   :last-updated-date "2025-10-10T04:36:48Z"
+   :viewed-count 3724701
+   :upvotes 14037
+   :primary-tags ["git" "version-control" "git-pull" "git-fetch"]
+   :question-url "https://stackoverflow.com/questions/292357/what-is-the-difference-between-git-pull-and-git-fetch"}}
+
+ "https://stackoverflow.com/a/2791156"
+ {:title "Preview Remote Changes Before Merging"
+  :summary "Demonstrates how to fetch remote updates and inspect them with a diff before committing to a merge."
+  :diataxis-type {:how-to 0.9 :tutorial 0.0 :explanation 0.1 :reference 0.0}
+  :media-type #{:Q&A :text}
+  :segment-info {:is-segment? true
+                 :segment-focus "Inspection / Safe Merging"}
+  :concepts-matched ["git fetch" "git diff" "git pull"]
+  :concepts-new ["Comparing local with remote tracking"]
+  :commands-mentioned ["git fetch" "git diff ...origin"]
+  :safety {:level :safe
+           :reason "Diffing allows safe inspection of changes; it does not alter any code or history."}
+  :interface-type :cli
+  :estimated-minutes 2
+  :straight-to-the-point :straight
+  :didactic-score 3
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 2
+
+  :stackoverflow-meta-answer
+  {:type :community-answer
+   :author "mepster"
+   :votes 605
+   :is-accepted? false
+   :date-answered "2010-05-07T19:23:37Z"
+   :last-updated-date "2024-12-18T07:23:19Z"
+   :answer-url "https://stackoverflow.com/a/2791156"
+   :key-snippet "git fetch\ngit diff ...origin"}
+
+  :stackoverflow-meta-question
+  {:title "What is the difference between 'git pull' and 'git fetch'?"
+   :date-asked "2008-11-15T09:51:09Z"
+   :last-updated-date "2025-10-10T04:36:48Z"
+   :viewed-count 3724701
+   :upvotes 14037
+   :primary-tags ["git" "version-control" "git-pull" "git-fetch"]
+   :question-url "https://stackoverflow.com/questions/292357/what-is-the-difference-between-git-pull-and-git-fetch"}}
+
+ "https://stackoverflow.com/a/34438903"
+ {:title "Sync with Pull Rebase to Avoid Merge Commits"
+  :summary "Uses the --rebase flag during pull to place local commits smoothly on top of remote changes, keeping the history linear."
+  :diataxis-type {:how-to 0.6 :tutorial 0.0 :explanation 0.2 :reference 0.2}
+  :media-type #{:Q&A :text}
+  :segment-info {:is-segment? true
+                 :segment-focus "Clean commit history"}
+  :concepts-matched ["git pull" "git rebase" "Syncing with Remotes"]
+  :concepts-new ["pull --rebase"]
+  :commands-mentioned ["git pull --rebase"]
+  :safety {:level :risky
+           :reason "Rebasing rewrites local history, which can lead to complications if the branch is shared."}
+  :interface-type :cli
+  :estimated-minutes 3
+  :straight-to-the-point :straight
+  :didactic-score 3
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 2
+
+  :stackoverflow-meta-answer
+  {:type :community-answer
+   :author "Sazzad Hissain Khan"
+   :votes 152
+   :is-accepted? false
+   :date-answered "2015-12-23T15:31:03Z"
+   :last-updated-date "2024-11-17T12:53:28Z"
+   :answer-url "https://stackoverflow.com/a/34438903"
+   :key-snippet "git pull --rebase"}
+
+  :stackoverflow-meta-question
+  {:title "What is the difference between 'git pull' and 'git fetch'?"
+   :date-asked "2008-11-15T09:51:09Z"
+   :last-updated-date "2025-10-10T04:36:48Z"
+   :viewed-count 3724701
+   :upvotes 14037
+   :primary-tags ["git" "version-control" "git-pull" "git-fetch"]
+   :question-url "https://stackoverflow.com/questions/292357/what-is-the-difference-between-git-pull-and-git-fetch"}}
+
+ "https://stackoverflow.com/a/6591218"
+ {:title "Rename the Current or a Specific Local Branch"
+  :summary "Provides the standard Git commands to rename a branch locally, update the remote, and handle case-insensitive filesystem conflicts."
+  :diataxis-type {:how-to 0.8 :tutorial 0.0 :explanation 0.0 :reference 0.2}
+  :media-type #{:Q&A :text}
+  :segment-info {:is-segment? false
+                 :segment-focus "Standard renaming process"}
+  :concepts-matched ["git branch" "Branch" "git push" "Upstream" "Local Config"]
+  :concepts-new ["Branch Renaming" "Case-Insensitive Filesystems"]
+  :commands-mentioned ["git branch -m <newname>" "git branch -m <oldname> <newname>" "git push origin -u <newname>" "git push origin --delete <oldname>" "git config --global alias.rename 'branch -m'" "git branch -M <newname>"]
+  :safety {:level :safe
+           :reason "Standard operations. Covers the '-M' flag edge case to prevent errors on Windows filesystems."}
+  :interface-type :cli
+  :estimated-minutes 2
+  :straight-to-the-point :straight
+  :didactic-score 4
+  :experience-level :beginner
+  :visual-score 1
+  :production-quality 3
+
+  :stackoverflow-meta-answer
+  {:type :accepted-answer
+   :author "siride"
+   :votes 19708
+   :is-accepted? true
+   :date-answered "2011-07-06T03:21:42Z"
+   :last-updated-date "2022-09-04T13:58:19Z"
+   :answer-url "https://stackoverflow.com/a/6591218"
+   :key-snippet "git branch -m <newname>"}
+
+  :stackoverflow-meta-question
+  {:title "How can I rename a local Git branch?"
+   :date-asked "2011-07-06T03:20:36Z"
+   :last-updated-date "2026-02-13T14:10:13Z"
+   :viewed-count 6338035
+   :upvotes 12009
+   :primary-tags ["git" "version-control" "git-branch"]
+   :question-url "https://stackoverflow.com/questions/6591213/how-can-i-rename-a-local-git-branch"}}
+
+ "https://stackoverflow.com/a/37320788"
+ {:title "Rename Local Branch but Keep Old Remote Name"
+  :summary "Explains how to rename a branch in your local repository while continuing to track and push changes to the old branch name on the remote."
+  :diataxis-type {:how-to 0.7 :tutorial 0.0 :explanation 0.3 :reference 0.0}
+  :media-type #{:Q&A :text}
+  :segment-info {:is-segment? true
+                 :segment-focus "Decoupled Local/Remote Naming"}
+  :concepts-matched ["git push" "Tracking Branch" "Remote Repository"]
+  :concepts-new ["Refspec Mapping"]
+  :commands-mentioned ["git branch -m old_branch new_branch" "git push --set-upstream origin new_branch:old_branch"]
+  :safety {:level :safe
+           :reason "Technically safe, but mentally taxing. It is explicitly warned that maintaining decoupled names can cause confusion."}
+  :interface-type :cli
+  :estimated-minutes 1
+  :straight-to-the-point :straight
+  :didactic-score 3
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 2
+
+  :stackoverflow-meta-answer
+  {:type :community-answer
+   :author "Pierre-Olivier Vares"
+   :votes 71
+   :is-accepted? false
+   :date-answered "2016-05-19T10:39:47Z"
+   :last-updated-date "2021-07-16T16:56:52Z"
+   :answer-url "https://stackoverflow.com/a/37320788"
+   :key-snippet "git push --set-upstream origin new_branch:old_branch"}
+
+  :stackoverflow-meta-question
+  {:title "How can I rename a local Git branch?"
+   :date-asked "2011-07-06T03:20:36Z"
+   :last-updated-date "2026-02-13T14:10:13Z"
+   :viewed-count 6338035
+   :upvotes 12009
+   :primary-tags ["git" "version-control" "git-branch"]
+   :question-url "https://stackoverflow.com/questions/6591213/how-can-i-rename-a-local-git-branch"}}
+
+ "https://stackoverflow.com/questions/6591213/how-can-i-rename-a-local-git-branch/6591218#comment127825860_6591218"
+ {:title "Dangers of Using Push Mirror for Renaming"
+  :summary "A crucial warning against using the mirror flag to rename branches, as it overrides the remote repository state and can catastrophically delete team data."
+  :diataxis-type {:how-to 0.0 :tutorial 0.0 :explanation 1.0 :reference 0.0}
+  :media-type #{:Q&A :text}
+  :segment-info {:is-segment? true
+                 :segment-focus "Repository Safety & Destructive Commands"}
+  :concepts-matched ["git push" "Remote Repository" "Syncing with Remotes"]
+  :concepts-new ["Repository Mirroring" "Team Collaboration Safety"]
+  :commands-mentioned ["git push -f --mirror"]
+  :safety {:level :safe
+           :reason "Wans against the command that forces the remote repository to exactly match the local state, instantaneously deleting all branches and pull requests not present locally."}
+  :interface-type :cli
+  :estimated-minutes 1
+  :straight-to-the-point :straight
+  :didactic-score 4
+  :experience-level :advanced
+  :visual-score 1
+  :production-quality 2
+
+  :stackoverflow-meta-answer
+  {:type :comment-gem
+   :author "Deborah"
+   :votes 3
+   :is-accepted? false
+   :date-answered "2022-05-23T23:54:52Z"
+   :last-updated-date "2022-05-23T23:54:52Z"
+   :answer-url "https://stackoverflow.com/questions/6591213/how-can-i-rename-a-local-git-branch/6591218#comment127825860_6591218"
+   :key-snippet "git push -f --mirror"}
+
+  :stackoverflow-meta-question
+  {:title "How can I rename a local Git branch?"
+   :date-asked "2011-07-06T03:20:36Z"
+   :last-updated-date "2026-02-13T14:10:13Z"
+   :viewed-count 6338035
+   :upvotes 12009
+   :primary-tags ["git" "version-control" "git-branch"]
+   :question-url "https://stackoverflow.com/questions/6591213/how-can-i-rename-a-local-git-branch"}}
+
+ "https://stackoverflow.com/a/348234"
+ {:title "Unstage Files Using git reset"
+  :summary "Uses the standard git reset command to remove files from the index without altering the working directory."
+  :diataxis-type {:how-to 0.7 :tutorial 0.0 :explanation 0.2 :reference 0.1}
+  :media-type #{:text :Q&A}
+  :segment-info {:is-segment? false
+                 :segment-focus "Unstaging files from the index"}
+  :concepts-matched ["git reset" "Staging Area\n(Index)" "Working Directory" "HEAD"]
+  :concepts-new []
+  :commands-mentioned ["git reset <file>" "git reset"]
+  :safety {:level :safe
+           :reason "Only modifies the staging area (index), leaving the working directory and actual file contents completely unchanged."}
+  :interface-type :cli
+  :estimated-minutes 2
+  :straight-to-the-point :straight
+  :didactic-score 4
+  :experience-level :beginner
+  :visual-score 1
+  :production-quality 3
+
+  :stackoverflow-meta-answer
+  {:type :accepted-answer
+   :author "genehack"
+   :votes 13872
+   :is-accepted? true
+   :date-answered "2008-12-07T22:30:48Z"
+   :last-updated-date "2023-10-11T02:02:19Z"
+   :answer-url "https://stackoverflow.com/a/348234"
+   :key-snippet "git reset <file>"}
+
+  :stackoverflow-meta-question
+  {:title "How do I undo 'git add' before commit?"
+   :date-asked "2008-12-07T21:57:46Z"
+   :last-updated-date "2025-01-05T04:38:28Z"
+   :viewed-count 6319725
+   :upvotes 11603
+   :primary-tags ["git" "git-commit" "undo" "git-add"]
+   :question-url "https://stackoverflow.com/questions/348170/how-do-i-undo-git-add-before-commit"}}
+
+ "https://stackoverflow.com/a/62569076"
+ {:title "Unstage Files in Modern Git (v2.23+)"
+  :summary "Utilizes the newer 'git restore' command explicitly designed for unstaging files, introduced in Git 2.23."
+  :diataxis-type {:how-to 0.8 :tutorial 0.0 :explanation 0.0 :reference 0.2}
+  :media-type #{:text :Q&A}
+  :segment-info {:is-segment? false
+                 :segment-focus "Modern Git staging manipulation"}
+  :concepts-matched ["Staging Area\n(Index)" "Commands"]
+  :concepts-new ["git restore"]
+  :commands-mentioned ["git restore --staged <file>" "git restore --staged ."]
+  :safety {:level :safe
+           :reason "Specifically designed to manipulate the index without touching the working tree when used with the --staged flag."}
+  :interface-type :cli
+  :estimated-minutes 2
+  :straight-to-the-point :straight
+  :didactic-score 4
+  :experience-level :beginner
+  :visual-score 1
+  :production-quality 3
+
+  :stackoverflow-meta-answer
+  {:type :community-answer
+   :author "prosoitos"
+   :votes 113
+   :is-accepted? false
+   :date-answered "2020-06-25T06:23:30Z"
+   :last-updated-date "2025-01-05T04:38:28Z"
+   :answer-url "https://stackoverflow.com/a/62569076"
+   :key-snippet "git restore --staged <file>"}
+
+  :stackoverflow-meta-question
+  {:title "How do I undo 'git add' before commit?"
+   :date-asked "2008-12-07T21:57:46Z"
+   :last-updated-date "2025-01-05T04:38:28Z"
+   :viewed-count 6319725
+   :upvotes 11603
+   :primary-tags ["git" "git-commit" "undo" "git-add"]
+   :question-url "https://stackoverflow.com/questions/348170/how-do-i-undo-git-add-before-commit"}}
+
+ "https://stackoverflow.com/a/682343"
+ {:title "Unstage Files on Initial Commit (No HEAD)"
+  :summary "Solves the 'fatal: Failed to resolve HEAD' error encountered when trying to unstage files on a repository's very first commit."
+  :diataxis-type {:how-to 0.4 :tutorial 0.0 :explanation 0.6 :reference 0.0}
+  :media-type #{:text :Q&A}
+  :segment-info {:is-segment? false
+                 :segment-focus "Initial commit edge case"}
+  :concepts-matched ["Cache" "HEAD" "Staging Area\n(Index)" "git init"]
+  :concepts-new ["git rm --cached"]
+  :commands-mentioned ["git rm --cached <added_file_to_undo>" "git rm -r --cached ."]
+  :safety {:level :safe
+           :reason "Using the --cached flag guarantees that the local working copy of the file is not deleted, only removed from tracking."}
+  :interface-type :cli
+  :estimated-minutes 4
+  :straight-to-the-point :medium
+  :didactic-score 4
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 3
+
+  :stackoverflow-meta-answer
+  {:type :highest-voted
+   :author "Rhubarb"
+   :votes 2505
+   :is-accepted? false
+   :date-answered "2009-03-25T16:20:04Z"
+   :last-updated-date "2018-09-13T00:05:11Z"
+   :answer-url "https://stackoverflow.com/a/682343"
+   :key-snippet "git rm --cached <added_file_to_undo>"}
+
+  :stackoverflow-meta-question
+  {:title "How do I undo 'git add' before commit?"
+   :date-asked "2008-12-07T21:57:46Z"
+   :last-updated-date "2025-01-05T04:38:28Z"
+   :viewed-count 6319725
+   :upvotes 11603
+   :primary-tags ["git" "git-commit" "undo" "git-add"]
+   :question-url "https://stackoverflow.com/questions/348170/how-do-i-undo-git-add-before-commit"}}
+
+ "https://stackoverflow.com/questions/348170/how-do-i-undo-git-add-before-commit/348234#comment64260353_348234"
+ {:title "Interactive Unstaging (Patch Mode)"
+  :summary "Allows interactive, granular unstaging of specific hunks or lines using the patch flag."
+  :diataxis-type {:how-to 0.6 :tutorial 0.0 :explanation 0.0 :reference 0.4}
+  :media-type #{:text :Q&A}
+  :segment-info {:is-segment? true
+                 :segment-focus "Granular control over the index"}
+  :concepts-matched ["git reset"]
+  :concepts-new ["Patch Mode (-p)"]
+  :commands-mentioned ["git reset -p"]
+  :safety {:level :safe
+           :reason "Prompts the user interactively, reducing the chance of bulk mistakes."}
+  :interface-type :cli
+  :estimated-minutes 1
+  :straight-to-the-point :straight
+  :didactic-score 1
+  :experience-level :advanced
+  :visual-score 1
+  :production-quality 2
+
+  :stackoverflow-meta-answer
+  {:type :comment-gem
+   :author "donquixote"
+   :votes 24
+   :is-accepted? false
+   :date-answered "2016-07-17T23:23:05Z"
+   :last-updated-date "2016-07-17T23:23:05Z"
+   :answer-url "https://stackoverflow.com/questions/348170/how-do-i-undo-git-add-before-commit/348234#comment64260353_348234"
+   :key-snippet "git reset -p"}
+
+  :stackoverflow-meta-question
+  {:title "How do I undo 'git add' before commit?"
+   :date-asked "2008-12-07T21:57:46Z"
+   :last-updated-date "2025-01-05T04:38:28Z"
+   :viewed-count 6319725
+   :upvotes 11603
+   :primary-tags ["git" "git-commit" "undo" "git-add"]
+   :question-url "https://stackoverflow.com/questions/348170/how-do-i-undo-git-add-before-commit"}}
+
+ "https://stackoverflow.com/questions/348170/how-do-i-undo-git-add-before-commit/348234#comment87147903_348234"
+ {:title "Recover Overwritten Staged Changes"
+  :summary "Recovers files that were previously staged but accidentally overwritten by a subsequent 'git add' command before committing."
+  :diataxis-type {:how-to 0.8 :tutorial 0.0 :explanation 0.2 :reference 0.0}
+  :media-type #{:text :Q&A}
+  :segment-info {:is-segment? true
+                 :segment-focus "Data recovery from git objects"}
+  :concepts-matched ["Plumbing" "Recovery" "Blob Object"]
+  :concepts-new ["git fsck" "Dangling Objects"]
+  :commands-mentioned ["git fsck --unreachable" "git show SHA-1_ID" "git fsck --lost-found"]
+  :safety {:level :safe
+           :reason "Safe read operations to locate dangling blobs in the local object database."}
+  :interface-type :cli
+  :estimated-minutes 1
+  :straight-to-the-point :straight
+  :didactic-score 2
+  :experience-level :advanced
+  :visual-score 1
+  :production-quality 2
+
+  :stackoverflow-meta-answer
+  {:type :comment-gem
+   :author "iolsmit"
+   :votes 1
+   :is-accepted? false
+   :date-answered "2018-04-27T15:27:59Z"
+   :last-updated-date "2018-04-27T15:27:59Z"
+   :answer-url "https://stackoverflow.com/questions/348170/how-do-i-undo-git-add-before-commit/348234#comment87147903_348234"
+   :key-snippet "git fsck --unreachable"}
+
+  :stackoverflow-meta-question
+  {:title "How do I undo 'git add' before commit?"
+   :date-asked "2008-12-07T21:57:46Z"
+   :last-updated-date "2025-01-05T04:38:28Z"
+   :viewed-count 6319725
+   :upvotes 11603
+   :primary-tags ["git" "git-commit" "undo" "git-add"]
+   :question-url "https://stackoverflow.com/questions/348170/how-do-i-undo-git-add-before-commit"}}
+
+ "https://learngitbranching.js.org/?level=intro1"
+ {:title "Introduction to Git Commits"
+  :summary "Learn the basics of creating Git commits and understand them as lightweight snapshots of your project's history."
+
+  ;; Diátaxis Classification
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+
+  ;; Content Format
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "The Git Commit Object and creating basic commits"}
+
+  ;; Concept Mapping
+  :concepts-matched ["Commit Object" "Snapshot" "git commit"]
+  :concepts-new ["Delta" "Ancestor Commits"]
+  :commands-mentioned ["git commit"]
+
+  :safety
+  {:level :safe
+   :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+   :mentions-reflog? false}
+
+  :interface-type :cli
+  :estimated-minutes 5
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :beginner
+  :visual-score 5
+  :production-quality 3
+
+  ;; Metadata specific to the game platform
+  :game-meta
+  {:game-name "Learn Git Branching"
+   :game-url "https://learngitbranching.js.org/"
+   :level-id "intro1"
+   :objective-summary "Create two new commits in the repository visualization to complete the level."
+   :required-commands ["git commit" "git commit"]}}
+
+ "https://learngitbranching.js.org/?level=intro2"
+ {:title "Introduction to Git Branches"
+  :summary "Learn the fundamentals of creating and switching between lightweight branches in Git."
+
+  ;; Diátaxis Classification
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+
+  ;; Content Format
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Understanding branches as lightweight commit pointers and checking them out."}
+
+  ;; Concept Mapping
+  :concepts-matched ["Branch" "git branch" "git checkout / git switch"]
+  :concepts-new []
+  :commands-mentioned ["git branch" "git checkout" "git switch" "git checkout -b"]
+
+  :safety
+  {:level :safe
+   :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+   :mentions-reflog? false}
+
+  :interface-type :cli
+  :estimated-minutes 5
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :beginner
+  :visual-score 5
+  :production-quality 3
+
+  ;; Metadata specific to the game platform
+  :game-meta
+  {:game-name "Learn Git Branching"
+   :game-url "https://learngitbranching.js.org/"
+   :level-id "intro2"
+   :objective-summary "Make a new branch named bugFix and switch to that branch."
+   :required-commands ["git branch bugFix" "git checkout bugFix"]}}
+
+ "https://learngitbranching.js.org/?level=intro3"
+ {:title "Branches and Merging"
+  :summary "Learn how to combine work from two different branches into a single commit with two parents using git merge."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "The core git merge mechanism and commit ancestry"}
+  :concepts-matched ["Branch" "git merge" "git commit" "git checkout / git switch" "Basic Merging"]
+  :concepts-new ["Merge Commit" "Commit Parents" "Commit Ancestry"]
+  :commands-mentioned ["git branch" "git checkout" "git checkout -b" "git commit" "git merge"]
+  :safety {:level :safe
+           :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+           :mentions-reflog? false}
+  :interface-type :cli
+  :estimated-minutes 10
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :beginner
+  :visual-score 5
+  :production-quality 3
+  :game-meta {:game-name "Learn Git Branching"
+              :game-url "https://learngitbranching.js.org/"
+              :level-id "intro3"
+              :objective-summary "Create a bugFix branch, create divergent commits on both bugFix and main, and then merge bugFix into main."
+              :required-commands ["git checkout -b bugFix"
+                                  "git commit"
+                                  "git checkout main"
+                                  "git commit"
+                                  "git merge bugFix"]}}
+
+ "https://learngitbranching.js.org/?level=intro4"
+ {:title "Introduction to Git Rebase"
+  :summary "Learn how to use git rebase to combine work between branches by creating a clean, linear sequence of commits. "
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Rebasing branches for linear history"}
+  :concepts-matched ["Branch" "git rebase" "git commit" "git checkout [branch]"]
+  :concepts-new ["Linear History"]
+  :commands-mentioned ["git rebase" "git checkout" "git commit" "git checkout -b"]
+  :safety
+  {:level :safe
+   :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+   :mentions-reflog? false}
+  :interface-type :simulator
+  :estimated-minutes 10
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :intermediate
+  :visual-score 5
+  :production-quality 3
+  :game-meta
+  {:game-name "Learn Git Branching"
+   :game-url "https://learngitbranching.js.org/"
+   :level-id "intro4"
+   :objective-summary "Create parallel commits on both the main and bugFix branches, then use git rebase to stack the bugFix work cleanly on top of main."
+   :required-commands ["git checkout -b bugFix" "git commit" "git checkout main" "git commit" "git checkout bugFix" "git rebase main"]}}
+
+ "https://learngitbranching.js.org/?level=rampup1"
+ {:title "Moving Around in Git: Detaching HEAD"
+  :summary "Understand the HEAD reference and learn how to navigate the commit tree by detaching HEAD from a branch and attaching it directly to a commit. "
+
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Understanding the HEAD reference and Detached HEAD state"}
+
+  :concepts-matched ["HEAD" "Detached HEAD" "git checkout [hash]"]
+  :concepts-new []
+  :commands-mentioned ["git checkout"]
+
+  :safety
+  {:level :safe
+   :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+   :mentions-reflog? false}
+
+  :interface-type :simulator
+  :estimated-minutes 5
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :beginner
+  :visual-score 5
+  :production-quality 3
+
+  :game-meta
+  {:game-name "Learn Git Branching"
+   :game-url "https://learngitbranching.js.org/"
+   :level-id "rampup1"
+   :objective-summary "Detach HEAD from the bugFix branch and attach it directly to the commit C4 by specifying its hash."
+   :required-commands ["git checkout C4"]}}
+
+ "https://learngitbranching.js.org/?level=rampup2"
+ {:title "Relative Refs: The Caret Operator"
+  :summary "Learn how to navigate the commit tree using the caret (^) relative reference operator to move up one commit at a time."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Relative references using the Caret (^)"}
+  :concepts-matched ["Relative Refs" "HEAD" "Detached HEAD" "git log"]
+  :concepts-new ["Caret Operator"]
+  :commands-mentioned ["git log" "git checkout"]
+  :safety {:level :safe
+           :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+           :mentions-reflog? false}
+  :interface-type :simulator
+  :estimated-minutes 5
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :beginner
+  :visual-score 5
+  :production-quality 3
+  :game-meta {:game-name "Learn Git Branching"
+              :game-url "https://learngitbranching.js.org/"
+              :level-id "rampup2"
+              :objective-summary "Check out the parent commit of the bugFix branch using a relative reference to detach HEAD."
+              :required-commands ["git checkout bugFix^"]}}
+
+ "https://learngitbranching.js.org/?level=rampup3"
+ {:title "Relative Refs #2: The Tilde Operator and Branch Forcing"
+  :summary "Learn how to use the tilde (~) operator to navigate upwards in the commit tree and use branch forcing to move branches around. "
+
+  ;; Diátaxis Classification
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+
+  ;; Content Format
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "The ~ operator and branch forcing (-f)"}
+
+  ;; Concept Mapping
+  :concepts-matched ["Relative Refs" "Branch" "HEAD" "git branch" "git checkout / git switch"]
+  :concepts-new ["Branch forcing"]
+  :commands-mentioned ["git branch -f" "git checkout"]
+
+  :safety
+  {:level :safe
+   :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+   :mentions-reflog? false}
+
+  :interface-type :simulator
+  :estimated-minutes 5
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :beginner
+  :visual-score 5
+  :production-quality 3
+
+  ;; Metadata specific to the game platform
+  :game-meta
+  {:game-name "Learn Git Branching"
+   :game-url "https://learngitbranching.js.org/"
+   :level-id "rampup3"
+   :objective-summary "Move HEAD, main, and bugFix to their goal destinations using relative references and branch forcing."
+   :required-commands ["git branch -f main C6" "git checkout HEAD~1" "git branch -f bugFix HEAD~1"]}}
+
+ "https://learngitbranching.js.org/?level=rampup4"
+ {:title "Reversing Changes in Git: Reset vs Revert"
+  :summary "Learn how to undo commits locally using git reset and safely undo shared commits using git revert. "
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Undoing Mistakes"}
+  :concepts-matched ["git reset" "git revert" "Undoing Mistakes" "Relative Refs" "HEAD" "Local Branch"]
+  :concepts-new ["Rewriting History"]
+  :commands-mentioned ["git reset" "git revert" "git checkout"]
+  :safety {:level :safe
+           :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+           :mentions-reflog? false}
+  :interface-type :simulator
+  :estimated-minutes 10
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :beginner
+  :visual-score 5
+  :production-quality 3
+  :game-meta {:game-name "Learn Git Branching"
+              :game-url "https://learngitbranching.js.org/"
+              :level-id "rampup4"
+              :objective-summary "Reverse the most recent commit on a local branch using reset, and on a pushed branch using revert."
+              :required-commands ["git reset HEAD~1" "git checkout pushed" "git revert HEAD"]}}
+
+ "https://learngitbranching.js.org/?level=move1"
+ {:title "Moving Work Around: Git Cherry-pick"
+  :summary "Learn how to use git cherry-pick to selectively copy specific commits into your current branch."
+
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "git cherry-pick command and concept"}
+
+  :concepts-matched ["git cherry-pick" "HEAD" "Branch" "Commit Object"]
+  :concepts-new ["Selective Commit Copying"]
+  :commands-mentioned ["git cherry-pick"]
+
+  :safety
+  {:level :safe
+   :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+   :mentions-reflog? false}
+
+  :interface-type :simulator
+  :estimated-minutes 5
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :intermediate
+  :visual-score 5
+  :production-quality 3
+
+  :game-meta
+  {:game-name "Learn Git Branching"
+   :game-url "https://learngitbranching.js.org/"
+   :level-id "move1"
+   :objective-summary "Copy specific commits from three different branches into the main branch using git cherry-pick."
+   :required-commands ["git cherry-pick C3 C4 C7"]}}
+
+ "https://learngitbranching.js.org/?level=move2"
+ {:title "Git Interactive Rebase"
+  :summary "Learn how to use interactive rebasing to review, reorder, and selectively drop commits in your commit history."
+
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Interactive rebasing and commit history manipulation"}
+
+  :concepts-matched ["git rebase -i" "Relative Refs" "History"]
+  :concepts-new ["Reordering Commits" "Dropping Commits" "Interactive Rebase Dialog"]
+  :commands-mentioned ["git rebase -i" "git rebase"]
+
+  :safety
+  {:level :safe
+   :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+   :mentions-reflog? false}
+
+  :interface-type :simulator
+  :estimated-minutes 10
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :intermediate
+  :visual-score 5
+  :production-quality 3
+
+  :game-meta
+  {:game-name "Learn Git Branching"
+   :game-url "https://learngitbranching.js.org/"
+   :level-id "move2"
+   :objective-summary "Perform an interactive rebase to achieve the exact order of commits shown in the goal visualization by reordering and picking specific commits."
+   :required-commands ["git rebase -i overHere"]}}
+
+ "https://learngitbranching.js.org/?level=mixed1"
+ {:title "Locally Stacked Commits"
+  :summary "Learn how to selectively copy a specific bug fix commit to the main branch while leaving unwanted intermediate debugging commits behind."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Selectively applying commits using interactive rebase or cherry-pick"}
+  :concepts-matched ["git rebase -i" "git cherry-pick" "git rebase" "Branch"]
+  :concepts-new []
+  :commands-mentioned ["git rebase -i" "git cherry-pick" "git rebase"]
+  :safety {:level :safe
+           :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+           :mentions-reflog? false}
+  :interface-type :simulator
+  :estimated-minutes 10
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :intermediate
+  :visual-score 5
+  :production-quality 3
+  :game-meta {:game-name "Learn Git Branching"
+              :game-url "https://learngitbranching.js.org/"
+              :level-id "mixed1"
+              :objective-summary "Extract a single bug fix commit from a branch of stacked debugging commits and integrate it into the main branch."
+              :required-commands ["git rebase -i main" "git rebase bugFix main"]}}
+
+ "https://learngitbranching.js.org/?level=mixed2"
+ {:title "Juggling Commits: Modifying History with Interactive Rebase"
+  :summary "Learn how to use interactive rebase and commit --amend to modify a specific commit deep in your history without losing sequential changes."
+
+  :diataxis-type {:how-to 0.2
+                  :tutorial 0.6
+                  :explanation 0.2
+                  :reference 0.0}
+
+  :media-type #{:simulation :game}
+
+  :segment-info {:is-segment? true
+                 :segment-focus "Modifying older commits using interactive rebasing and amending"}
+
+  :concepts-matched ["git rebase -i" "git commit --amend" "Relative Refs" "Branch"]
+  :concepts-new ["Commit Reordering"]
+  :commands-mentioned ["git rebase -i" "git commit --amend" "git rebase"]
+
+  :safety {:level :safe
+           :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+           :mentions-reflog? false}
+
+  :interface-type :simulator
+  :estimated-minutes 10
+  :straight-to-the-point :medium
+  :didactic-score 5
+  :experience-level :intermediate
+  :visual-score 5
+  :production-quality 3
+
+  :game-meta {:game-name "Learn Git Branching"
+              :game-url "https://learngitbranching.js.org/"
+              :level-id "mixed2"
+              :objective-summary "Reorder commits to place an older target commit at the top using interactive rebase, amend it to apply modifications, and reorder the commits back to their original sequence."
+              :required-commands ["git rebase -i HEAD~2"
+                                  "git commit --amend"
+                                  "git rebase -i HEAD~2"
+                                  "git rebase caption main"]}}
+
+ "https://learngitbranching.js.org/?level=mixed3"
+ {:title "Juggling Commits #2: Amending with Cherry-Pick"
+  :summary "Learn an alternative method to amend an older commit by using git cherry-pick instead of interactive rebase to avoid merge conflicts. "
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.7
+                  :explanation 0.3
+                  :reference 0.0}
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Using git cherry-pick for safe history modification"}
+  :concepts-matched ["git cherry-pick" "git commit --amend" "git checkout / git switch" "Crafting a Commit"]
+  :concepts-new ["Rebase Conflicts"]
+  :commands-mentioned ["git checkout" "git cherry-pick" "git commit --amend" "git rebase -i"]
+  :safety {:level :safe
+           :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+           :mentions-reflog? false}
+  :interface-type :simulator
+  :estimated-minutes 10
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :intermediate
+  :visual-score 5
+  :production-quality 3
+  :game-meta {:game-name "Learn Git Branching"
+              :game-url "https://learngitbranching.js.org/"
+              :level-id "mixed3"
+              :objective-summary "Amend an older commit (C2) using git cherry-pick instead of interactive rebase, and update main to reflect the newly ordered history."
+              :required-commands ["git checkout main" "git cherry-pick C2" "git commit --amend" "git cherry-pick C3"]}}
+
+ "https://learngitbranching.js.org/?level=mixed4"
+ {:title "Git Tags"
+  :summary "Learn how to use Git tags to permanently mark historical points as anchors in the commit tree."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Git Tags and Detached HEAD state"}
+  :concepts-matched ["Tag (Lightweight)" "Branch" "HEAD" "Detached HEAD" "Relative Refs"]
+  :concepts-new []
+  :commands-mentioned ["git tag" "git checkout"]
+  :safety {:level :safe
+           :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+           :mentions-reflog? false}
+  :interface-type :simulator
+  :estimated-minutes 5
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :beginner
+  :visual-score 5
+  :production-quality 3
+  :game-meta {:game-name "Learn Git Branching"
+              :game-url "https://learngitbranching.js.org/"
+              :level-id "mixed4"
+              :objective-summary "Create tags v1 and v0 at specific ancestor commits using relative references, and then checkout v1 to observe the detached HEAD state."
+              :required-commands ["git tag v1 side~1" "git tag v0 main~2" "git checkout v1"]}}
+
+ "https://learngitbranching.js.org/?level=mixed5"
+ {:title "Git Describe"
+  :summary "Learn how to use git describe to determine your location relative to the closest anchor tag in the repository history."
+
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.5
+                  :explanation 0.5
+                  :reference 0.0}
+
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "The git describe command and its output format"}
+
+  :concepts-matched ["git commit" "git bisect" "HEAD" "Tag (Lightweight)"]
+  :concepts-new ["git describe"]
+  :commands-mentioned ["git describe" "git commit" "git bisect"]
+
+  :safety
+  {:level :safe
+   :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+   :mentions-reflog? false}
+
+  :interface-type :simulator
+  :estimated-minutes 5
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :intermediate
+  :visual-score 5
+  :production-quality 3
+
+  :game-meta
+  {:game-name "Learn Git Branching"
+   :game-url "https://learngitbranching.js.org/"
+   :level-id "mixed5"
+   :objective-summary "Experiment with the git describe command to understand its output format, then make a single commit to pass the level."
+   :required-commands ["git commit"]}}
+
+ "https://learngitbranching.js.org/?level=advanced1"
+ {:title "Rebasing Multiple Branches"
+  :summary "Learn to sequentially rebase multiple feature branches onto the main branch to maintain a clean, linear commit history."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.8
+                  :explanation 0.2
+                  :reference 0.0}
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Sequential Rebasing"}
+  :concepts-matched ["git rebase" "Branch" "git reset"]
+  :concepts-new ["Sequential History"]
+  :commands-mentioned ["git rebase" "git reset"]
+  :safety {:level :safe
+           :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+           :mentions-reflog? false}
+  :interface-type :simulator
+  :estimated-minutes 10
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :advanced
+  :visual-score 5
+  :production-quality 3
+  :game-meta {:game-name "Learn Git Branching"
+              :game-url "https://learngitbranching.js.org/"
+              :level-id "advanced1"
+              :objective-summary "Rebase multiple branches (bugFix, side, another) sequentially onto main, ensuring the final tree has the commits in proper sequential order before updating main."
+              :required-commands ["git rebase main bugFix" "git rebase bugFix side" "git rebase side another" "git rebase another main"]}}
+
+ "https://learngitbranching.js.org/?level=advanced2"
+ {:title "Specifying Merge Parents with Relative Refs"
+  :summary "Learn how to navigate complex commit histories and specify specific parents of merge commits using the ^ modifier."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Navigating merge parents using the ^ modifier"}
+  :concepts-matched ["Relative Refs" "Branch" "git branch"]
+  :concepts-new ["Caret Modifier (^)" "Merge Parent Routing" "Modifier Chaining"]
+  :commands-mentioned ["git checkout" "git branch"]
+  :safety {:level :safe
+           :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+           :mentions-reflog? false}
+  :interface-type :simulator
+  :estimated-minutes 10
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :advanced
+  :visual-score 5
+  :production-quality 3
+  :game-meta {:game-name "Learn Git Branching"
+              :game-url "https://learngitbranching.js.org/"
+              :level-id "advanced2"
+              :objective-summary "Create a new branch at a specified commit destination by chaining relative reference modifiers."
+              :required-commands ["git branch bugWork main^^2^"]}}
+
+ "https://learngitbranching.js.org/?level=advanced3"
+ {:title "Branch Spaghetti"
+  :summary "Update multiple branches with reordered and selected commits from main using cherry-pick and force branch."
+  :diataxis-type {:how-to 0.2
+                  :tutorial 0.8
+                  :explanation 0.0
+                  :reference 0.0}
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Advanced commit reordering using cherry-pick and forcing branches"}
+  :concepts-matched ["Branch" "git checkout / git switch" "git cherry-pick" "git branch [name]"]
+  :concepts-new ["Forcing a Branch Update"]
+  :commands-mentioned ["git branch" "git checkout" "git cherry-pick" "echo"]
+  :safety {:level :safe
+           :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+           :mentions-reflog? false}
+  :interface-type :simulator
+  :estimated-minutes 10
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :advanced
+  :visual-score 5
+  :production-quality 3
+  :game-meta {:game-name "Learn Git Branching"
+              :game-url "https://learngitbranching.js.org/"
+              :level-id "advanced3"
+              :objective-summary "Update branches one, two, and three with specific modified and reordered subsets of commits from the main branch."
+              :required-commands ["git checkout one" "git cherry-pick C4 C3 C2" "git checkout two" "git cherry-pick C5 C4 C3 C2" "git branch -f three C2"]}}
+
+ "https://learngitbranching.js.org/?level=remote1"
+ {:title "Introduction to Git Remotes"
+  :summary "An explanation of remote repositories and creating a remote backup with the git clone command. "
+
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.3
+                  :explanation 0.7
+                  :reference 0.0}
+
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Understanding remote repositories and the git clone command"}
+
+  :concepts-matched ["Remote Repository" "git clone"]
+  :concepts-new []
+  :commands-mentioned ["git clone"]
+
+  :safety
+  {:level :safe
+   :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+   :mentions-reflog? false}
+
+  :interface-type :simulator
+  :estimated-minutes 5
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :beginner
+  :visual-score 5
+  :production-quality 3
+
+  :game-meta
+  {:game-name "Learn Git Branching"
+   :game-url "https://learngitbranching.js.org/"
+   :level-id "remote1"
+   :objective-summary "Clone the existing local repository to create a visual remote repository representation."
+   :required-commands ["git clone"]}}
+
+ "https://learngitbranching.js.org/?level=remote2"
+ {:title "Git Remote Branches"
+  :summary "An introduction to remote branches, how they reflect the state of a remote repository, and how checking them out leads to a detached HEAD state."
+
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.4
+                  :explanation 0.6
+                  :reference 0.0}
+
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Remote Branches"}
+
+  :concepts-matched ["Remote Repository" "Detached HEAD" "git clone" "git commit" "Branch"]
+  :concepts-new ["Remote Branch" "origin"]
+  :commands-mentioned ["git clone" "git checkout" "git commit"]
+
+  :safety {:level :safe
+           :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+           :mentions-reflog? false}
+
+  :interface-type :simulator
+  :estimated-minutes 5
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :beginner
+  :visual-score 5
+  :production-quality 3
+
+  :game-meta {:game-name "Learn Git Branching"
+              :game-url "https://learngitbranching.js.org/"
+              :level-id "remote2"
+              :objective-summary "Commit once on the main branch, then check out the remote branch o/main and commit again to observe the detached HEAD behavior."
+              :required-commands ["git commit" "git checkout o/main" "git commit"]}}
+
+ "https://learngitbranching.js.org/?level=remote3"
+ {:title "Introduction to Git Fetch"
+  :summary "Learn how git fetch downloads missing commits from a remote repository and updates remote tracking branches without altering your local working directory."
+
+  ;; Diátaxis Classification
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+
+  ;; Content Format
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Understanding the git fetch command and remote branch synchronization"}
+
+  ;; Concept Mapping
+  :concepts-matched ["git fetch" "Remote Repository" "Tracking Branch" "Syncing with Remotes"]
+  :concepts-new ["Local Representation of Remote"]
+  :commands-mentioned ["git fetch"]
+
+  :safety
+  {:level :safe
+   :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+   :mentions-reflog? false}
+
+  :interface-type :simulator
+  :estimated-minutes 5
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :beginner
+  :visual-score 5
+  :production-quality 3
+
+  ;; Metadata specific to the game platform
+  :game-meta
+  {:game-name "Learn Git Branching"
+   :game-url "https://learngitbranching.js.org/"
+   :level-id "remote3"
+   :objective-summary "Execute git fetch to successfully download all missing commits from the remote repository to your local representation."
+   :required-commands ["git fetch"]}}
+
+ "https://learngitbranching.js.org/?level=remote4"
+ {:title "Git Pull: The Fetch and Merge Shorthand"
+  :summary "Learn how git pull serves as a convenient single command to fetch remote changes and immediately merge them into your local branch."
+
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Understanding git pull as a combination of fetch and merge"}
+
+  :concepts-matched ["git pull" "git fetch" "git merge" "Remote Repository" "Syncing with Remotes"]
+  :concepts-new []
+  :commands-mentioned ["git pull" "git fetch" "git merge" "git cherry-pick" "git rebase"]
+
+  :safety
+  {:level :safe
+   :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+   :mentions-reflog? false}
+
+  :interface-type :simulator
+  :estimated-minutes 5
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :beginner
+  :visual-score 5
+  :production-quality 3
+
+  :game-meta
+  {:game-name "Learn Git Branching"
+   :game-url "https://learngitbranching.js.org/"
+   :level-id "remote4"
+   :objective-summary "Incorporate new remote commits into the local main branch using a single git pull command."
+   :required-commands ["git pull"]}}
+
+ "https://learngitbranching.js.org/?level=remote5"
+ {:title "Simulating Collaboration and Remote Changes"
+  :summary "Learn how to simulate updates from coworkers on a remote repository and integrate those changes locally."
+
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Simulating remote repository updates and syncing with local changes"}
+
+  :concepts-matched ["git clone" "git fetch" "git pull" "git commit" "Remote Repository" "Syncing with Remotes" "Merge Conflicts"]
+  :concepts-new ["git fakeTeamwork"]
+  :commands-mentioned ["git clone" "git fetch" "git pull" "git commit" "git fakeTeamwork"]
+
+  :safety
+  {:level :safe
+   :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+   :mentions-reflog? false}
+
+  :interface-type :simulator
+  :estimated-minutes 10
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :intermediate
+  :visual-score 5
+  :production-quality 3
+
+  :game-meta
+  {:game-name "Learn Git Branching"
+   :game-url "https://learngitbranching.js.org/"
+   :level-id "remote5"
+   :objective-summary "Clone a remote, simulate teammate commits on the remote using fakeTeamwork, create a local commit, and finally pull and merge the remote changes."
+   :required-commands ["git clone" "git fakeTeamwork 2" "git commit" "git pull"]}}
+
+ "https://learngitbranching.js.org/?level=remote6"
+ {:title "Introduction to Git Push"
+  :summary "Learn how to upload and share your local commits with a remote repository using git push."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Publishing local changes to a remote repository"}
+  :concepts-matched ["git push" "Remote Repository" "Tracking Branch" "Syncing with Remotes"]
+  :concepts-new ["push.default"]
+  :commands-mentioned ["git push" "git pull" "git commit"]
+  :safety {:level :safe
+           :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+           :mentions-reflog? false}
+  :interface-type :simulator
+  :estimated-minutes 5
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :beginner
+  :visual-score 5
+  :production-quality 3
+  :game-meta {:game-name "Learn Git Branching"
+              :game-url "https://learngitbranching.js.org/"
+              :level-id "remote6"
+              :objective-summary "Create two new commits and share them with the remote repository."
+              :required-commands ["git commit" "git commit" "git push"]}}
+
+ "https://learngitbranching.js.org/?level=remote7"
+ {:title "Diverged Work: Syncing with Remotes"
+  :summary "Learn how to resolve diverged remote history using fetch, merge, and rebase strategies before pushing your local changes."
+
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Resolving diverged remote history"}
+
+  :concepts-matched ["Remote Repository" "Syncing with Remotes" "git push" "git fetch" "git pull" "git clone" "git commit" "git merge" "git rebase"]
+  :concepts-new ["Diverged History" "git pull --rebase" "git fakeTeamwork"]
+  :commands-mentioned ["git push" "git fetch" "git pull" "git merge" "git rebase" "git clone" "git commit"]
+
+  :safety
+  {:level :safe
+   :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+   :mentions-reflog? false}
+
+  :interface-type :simulator
+  :estimated-minutes 10
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :intermediate
+  :visual-score 5
+  :production-quality 3
+
+  :game-meta
+  {:game-name "Learn Git Branching"
+   :game-url "https://learngitbranching.js.org/"
+   :level-id "remote7"
+   :objective-summary "Clone the repository, simulate diverged remote history by faking teamwork and committing locally, then resolve and publish your work using a pull with rebase."
+   :required-commands ["git clone" "git fakeTeamwork" "git commit" "git pull --rebase" "git push"]}}
+
+ "https://learngitbranching.js.org/?level=remote8"
+ {:title "Remote Rejected! (Locked Branch Recovery)"
+  :summary "Learn how to recover from pushing to a protected branch by moving local commits to a feature branch and syncing local main with the remote."
+
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Recovering from pushing to a protected/locked remote branch"}
+
+  :concepts-matched ["Remote Repository"
+                     "Pull Request / Merge Request"
+                     "git push"
+                     "git branch"
+                     "git checkout / git switch"
+                     "git reset"]
+  :concepts-new ["Branch Protection Policy" "Remote Rejected"]
+  :commands-mentioned ["git push" "git branch" "git checkout" "git reset"]
+
+  :safety
+  {:level :safe
+   :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+   :mentions-reflog? false}
+
+  :interface-type :simulator
+  :estimated-minutes 10
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :intermediate
+  :visual-score 5
+  :production-quality 3
+
+  :game-meta
+  {:game-name "Learn Git Branching"
+   :game-url "https://learngitbranching.js.org/"
+   :level-id "remote8"
+   :objective-summary "Create a feature branch for the rejected local commits, reset the local main branch to mirror the remote main, and push the new feature branch."
+   :required-commands ["git branch -f main o/main"
+                       "git checkout -b feature C2"
+                       "git push origin feature"]}}
+
+ "https://learngitbranching.js.org/?level=remoteAdvanced1"
+ {:title "Merging Feature Branches and Pushing to Remotes"
+  :summary "Learn to integrate multiple feature branches sequentially by rebasing them onto updated remote commits and pushing the final integration."
+
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Sequentially rebasing local feature branches onto remote updates and publishing"}
+
+  :concepts-matched ["Feature Branching" "Remote Repository" "Tracking Branch" "git fetch" "git rebase" "git push"]
+  :concepts-new []
+  :commands-mentioned ["git fetch" "git pull" "git push" "git rebase"]
+
+  :safety
+  {:level :safe
+   :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+   :mentions-reflog? false}
+
+  :interface-type :simulator
+  :estimated-minutes 12
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :advanced
+  :visual-score 5
+  :production-quality 3
+
+  :game-meta
+  {:game-name "Learn Git Branching"
+   :game-url "https://learngitbranching.js.org/"
+   :level-id "remoteAdvanced1"
+   :objective-summary "Fetch remote updates, rebase three feature branches sequentially to incorporate the new remote work, update main, and push."
+   :required-commands ["git fetch"
+                       "git rebase o/main side1"
+                       "git rebase side1 side2"
+                       "git rebase side2 side3"
+                       "git rebase side3 main"
+                       "git push"]}}
+
+ "https://learngitbranching.js.org/?level=remoteAdvanced2"
+ {:title "Merging vs Rebasing with Remotes"
+  :summary "Learn the philosophical tradeoffs between merging and rebasing when integrating remote changes, and practice by merging multiple branches before pushing."
+
+  ;; Diátaxis Classification
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+
+  ;; Content Format
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Comparing git merge and git rebase workflows for remote integration"}
+
+  ;; Concept Mapping
+  :concepts-matched ["git merge" "git rebase" "git pull" "git push" "Remote Repository" "Branch" "Immutability"]
+  :concepts-new ["Rebase vs Merge Tradeoffs" "Linear History"]
+  :commands-mentioned ["git checkout" "git pull" "git merge" "git push" "git rebase"]
+
+  :safety
+  {:level :safe
+   :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+   :mentions-reflog? false}
+
+  :interface-type :simulator
+  :estimated-minutes 10
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :intermediate
+  :visual-score 5
+  :production-quality 3
+
+  ;; Metadata specific to the game platform
+  :game-meta
+  {:game-name "Learn Git Branching"
+   :game-url "https://learngitbranching.js.org/"
+   :level-id "remoteAdvanced2"
+   :objective-summary "Incorporate the latest changes from the remote using git pull, merge three side branches (side1, side2, side3) into main to preserve apparent history, and push the result."
+   :required-commands ["git checkout main" "git pull" "git merge side1" "git merge side2" "git merge side3" "git push"]}}
+
+ "https://learngitbranching.js.org/?level=remoteAdvanced3"
+ {:title "Remote-Tracking Branches"
+  :summary "Understand and configure remote tracking properties to set implied push destinations and merge targets for local branches."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Remote tracking properties and branch configuration"}
+  :concepts-matched ["Tracking Branch" "Upstream" "git clone" "git pull" "git push" "Remote Repository" "git branch" "git checkout / git switch"]
+  :concepts-new ["Remote Tracking"]
+  :commands-mentioned ["git clone" "git checkout -b" "git branch -u" "git branch" "git pull" "git pull --rebase" "git push" "git commit"]
+  :safety
+  {:level :safe
+   :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+   :mentions-reflog? false}
+  :interface-type :simulator
+  :estimated-minutes 10
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :intermediate
+  :visual-score 5
+  :production-quality 3
+  :game-meta
+  {:game-name "Learn Git Branching"
+   :game-url "https://learngitbranching.js.org/"
+   :level-id "remoteAdvanced3"
+   :objective-summary "Create a local branch named side that tracks a remote branch, commit work, sync using pull --rebase, and push changes to the remote."
+   :required-commands ["git checkout -b side o/main" "git commit" "git pull --rebase" "git push"]}}
+
+ "https://learngitbranching.js.org/?level=remoteAdvanced4"
+ {:title "Git Push Arguments"
+  :summary "Understand how to specify remote and place arguments for git push to target specific branches directly, bypassing the currently checked-out branch."
+
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Understanding git push <remote> <place> arguments"}
+
+  :concepts-matched ["git push" "Remote Repository" "Tracking Branch" "HEAD" "git checkout"]
+  :concepts-new ["Push Arguments"]
+  :commands-mentioned ["git push" "git checkout"]
+
+  :safety
+  {:level :safe
+   :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+   :mentions-reflog? false}
+
+  :interface-type :simulator
+  :estimated-minutes 8
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :intermediate
+  :visual-score 5
+  :production-quality 3
+
+  :game-meta
+  {:game-name "Learn Git Branching"
+   :game-url "https://learngitbranching.js.org/"
+   :level-id "remoteAdvanced4"
+   :objective-summary "Update both the 'foo' and 'main' branches on the remote repository without using the git checkout command."
+   :required-commands ["git push origin main" "git push origin foo"]}}
+
+ "https://learngitbranching.js.org/?level=remoteAdvanced5"
+ {:title "Git Push Arguments: Colon Refspecs"
+  :summary "Learn how to use colon refspecs with git push to independently specify source and destination branches, even creating new remote branches on the fly. "
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "The <source>:<destination> colon refspec argument in git push"}
+  :concepts-matched ["git push" "Remote Repository" "Branch" "Relative Refs"]
+  :concepts-new ["Refspec" "Colon Refspec"]
+  :commands-mentioned ["git push"]
+  :safety {:level :safe
+           :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+           :mentions-reflog? false}
+  :interface-type :simulator
+  :estimated-minutes 5
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :advanced
+  :visual-score 5
+  :production-quality 3
+  :game-meta {:game-name "Learn Git Branching"
+              :game-url "https://learngitbranching.js.org/"
+              :level-id "remoteAdvanced5"
+              :objective-summary "Reach the goal state by pushing specific local commits to different remote branches using colon refspecs, including resolving relative references and creating a new remote branch."
+              :required-commands ["git push origin main^:foo" "git push origin foo:main"]}}
+
+ "https://learngitbranching.js.org/?level=remoteAdvanced6"
+ {:title "Git Fetch Arguments and Refspecs"
+  :summary "Learn to use the <place> parameter and colon refspecs (<source>:<destination>) with git fetch to control exactly where remote commits are downloaded."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "git fetch arguments and refspecs"}
+  :concepts-matched ["git fetch" "Remote Repository" "Branch" "git checkout" "git merge"]
+  :concepts-new ["Refspec" "Source and Destination arguments"]
+  :commands-mentioned ["git fetch" "git checkout" "git merge"]
+  :safety {:level :safe
+           :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+           :mentions-reflog? false}
+  :interface-type :simulator
+  :estimated-minutes 10
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :advanced
+  :visual-score 5
+  :production-quality 3
+  :game-meta {:game-name "Learn Git Branching"
+              :game-url "https://learngitbranching.js.org/"
+              :level-id "remoteAdvanced6"
+              :objective-summary "Fetch specified commits using exact source and destination refspecs, then checkout and merge the branches to match the goal visualization."
+              :required-commands ["git fetch origin c3:foo"
+                                  "git fetch origin c6:main"
+                                  "git checkout foo"
+                                  "git merge main"]}}
+
+ "https://learngitbranching.js.org/?level=remoteAdvanced7"
+ {:title "Oddities of the Source Parameter"
+  :summary "Learn to use empty source parameters to delete remote branches with git push and create local branches with git fetch."
+
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Empty <source> parameter behavior in push and fetch"}
+
+  :concepts-matched ["git push" "git fetch" "Branch" "Remote Repository"]
+  :concepts-new ["Empty source parameter" "Deleting remote branches"]
+  :commands-mentioned ["git push" "git fetch"]
+
+  :safety
+  {:level :safe
+   :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+   :mentions-reflog? false}
+
+  :interface-type :simulator
+  :estimated-minutes 5
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :advanced
+  :visual-score 5
+  :production-quality 3
+
+  :game-meta
+  {:game-name "Learn Git Branching"
+   :game-url "https://learngitbranching.js.org/"
+   :level-id "remoteAdvanced7"
+   :objective-summary "Delete the remote foo branch and create a local bar branch using empty source arguments in git push and git fetch."
+   :required-commands ["git push origin :foo" "git fetch origin :bar"]}}
+
+ "https://learngitbranching.js.org/?level=remoteAdvanced8"
+ {:title "Git pull arguments"
+  :summary "Learn how git pull uses source and destination arguments as a shorthand for executing git fetch followed by a git merge."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+  :media-type #{:simulation :game}
+  :segment-info {:is-segment? true
+                 :segment-focus "Advanced git pull operations using refspecs for source and destination mapping"}
+  :concepts-matched ["git pull" "git fetch" "git merge" "Branch" "Remote Repository"]
+  :concepts-new ["pull arguments" "refspecs"]
+  :commands-mentioned ["git pull" "git fetch" "git merge"]
+  :safety {:level :safe
+           :reason "Operations are performed in an isolated browser-based simulation sandbox. No risk to actual local repositories."
+           :mentions-reflog? false}
+  :interface-type :simulator
+  :estimated-minutes 10
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :advanced
+  :visual-score 5
+  :production-quality 3
+  :game-meta {:game-name "Learn Git Branching"
+              :game-url "https://learngitbranching.js.org/"
+              :level-id "remoteAdvanced8"
+              :objective-summary "Download commits, create new branches, and merge those branches into currently checked out branches using git pull with source and destination refspecs."
+              :required-commands ["git pull origin c3:foo" "git pull origin c2:side"]}}
+
+ "https://www.atlassian.com/git/tutorials/undoing-changes/git-revert"
+ {:title "Git Revert: A Safe, Forward-Moving Undo"
+  :summary "Explains how to safely undo changes by using git revert to append a new commit that inverses the target commit, and contrasts this safe approach with git reset."
+  :diataxis-type {:how-to 0.1
+                  :tutorial 0.3
+                  :explanation 0.5
+                  :reference 0.1}
+  :media-type #{:text :tutorial}
+  :segment-info {:is-segment? false
+                 :segment-focus nil}
+  :prerequisites-matched ["Repository (.git)" "Commit Object" "HEAD" "Working Directory" "Staging Area\n(Index)"]
+  :prerequisites-new ["Basic CLI terminal commands (mkdir, touch, echo, cd)"]
+  :concepts-matched ["History" "Immutability" "git revert" "git reset" "git checkout" "git init" "git add" "git commit" "git log"]
+  :concepts-new ["Forward-moving undo" "Revert commit" "Inverted changes"]
+  :commands-mentioned ["git revert" "git reset" "git checkout" "git init" "git add" "git commit" "git log"]
+  :safety {:level :safe
+           :reason "Explicitly designated as a safe operation because it does not alter or orphan existing project history, avoiding the dangers of altering shared history."
+           :mentions-reflog? false}
+  :interface-type :cli
+  :estimated-minutes 8
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :beginner
+  :visual-score 2
+  :production-quality 3
+  :tutorial-meta {:author "Unknown"
+                  :platform "Atlassian Git Tutorials"
+                  :publication-date nil
+                  :last-updated-date nil
+                  :repository-url nil
+                  :step-count 4
+                  :has-sample-code? true
+                  :series-name "Undoing changes"}}
+
+ "https://git-scm.com/book/en/v2/Git-Tools-Advanced-Merging"
+ {:title "Advanced Merging and Conflict Resolution"
+  :summary "A comprehensive guide on handling complex Git merge conflicts, utilizing advanced merge strategies, and safely undoing merge mistakes."
+  :diataxis-type {:how-to 0.5
+                  :tutorial 0.1
+                  :explanation 0.3
+                  :reference 0.1}
+  :media-type #{:text :book}
+  :segment-info {:is-segment? true
+                 :segment-focus "Deep dive into edge cases of merging, resolving complex conflicts, undoing merges, and alternative merging strategies like subtrees."}
+  :prerequisites-matched ["git merge" "git commit" "Branch" "Working Directory" "git checkout [branch]" "git log" "git reset" "git diff"]
+  :prerequisites-new ["Basic Merge Conflicts" "Reset Demystified"]
+  :concepts-matched ["Merge Conflicts" "git merge" "git merge --abort" "git reset --hard" "git revert" "git diff" "git log" "git checkout [branch]" "git branch [name]" "git status" "git fetch" "git pull"]
+  :concepts-new ["Combined Diff" "Subtree Merging" "git merge-file" "git read-tree" "git diff-tree" "Recursive Merge Strategy" "Merge Conflict Markers" "Triple Dot Syntax" "Ours/Theirs Preference"]
+  :commands-mentioned ["git merge" "git merge --abort" "git reset --hard HEAD" "git show" "git ls-files -u" "git merge-file" "git diff" "git diff --ours" "git diff --theirs" "git diff --base" "git clean -f" "git checkout --conflict" "git config --global" "git log --merge" "git log --cc" "git revert" "git read-tree" "git diff-tree" "git checkout -b" "git commit -am" "git fetch"]
+  :safety {:level :risky
+           :reason "Teaches destructive commands like git reset --hard for undoing merges, but explicitly warns about the dangers of rewriting shared history and losing uncommitted work. Provides git revert as a safe alternative."
+           :mentions-reflog? false}
+  :interface-type :cli
+  :estimated-minutes 25
+  :straight-to-the-point :medium
+  :didactic-score 5
+  :experience-level :advanced
+  :visual-score 3
+  :production-quality 3
+  :book-meta {:book-title "Pro Git"
+              :author "Scott Chacon"
+              :publisher "Unknown"
+              :publication-year 2014
+              :edition "2nd Edition"
+              :isbn nil
+              :chapter-title "Git Tools - Advanced Merging"
+              :chapter-number "7.8"
+              :page-range nil}}
+
+ "https://git-scm.com/book/en/v2/Git-Tools-Reset-Demystified"
+ {:title "Demystifying Git Reset and the Three Trees"
+  :summary "An in-depth explanation of Git's Three Trees architecture (HEAD, Index, Working Directory) and how the git reset and git checkout commands specifically manipulate them."
+  :diataxis-type {:how-to 0.1
+                  :tutorial 0.1
+                  :explanation 0.6
+                  :reference 0.2}
+  :media-type #{:text :book}
+  :segment-info {:is-segment? true
+                 :segment-focus "Chapter 7.7 focusing on the inner workings of git reset and git checkout via the Three Trees metaphor."}
+  :prerequisites-matched ["HEAD" "Working Directory" "Staging Area\n(Index)" "Commit Object" "Branch" "git add" "git commit" "git status"]
+  :prerequisites-new ["SHA-1"]
+  :concepts-matched ["git reset" "git reset --soft" "git reset --hard" "git checkout [branch]" "Plumbing" "Reflog"]
+  :concepts-new ["Three Trees Architecture" "Squashing Commits" "Working Directory Safety"]
+  :commands-mentioned ["git reset" "git checkout" "git cat-file" "git ls-tree" "git ls-files" "git init" "git add" "git commit" "git status"]
+  :safety {:level :risky
+           :reason "Explains the destructive nature of git reset --hard and checkout with paths, explicitly highlighting working directory safety in a summary table and mentioning the reflog for potential recovery."
+           :mentions-reflog? true}
+  :interface-type :cli
+  :estimated-minutes 20
+  :straight-to-the-point :medium
+  :didactic-score 5
+  :experience-level :intermediate
+  :visual-score 3
+  :production-quality 3
+  :book-meta {:book-title "Pro Git"
+              :author "Scott Chacon"
+              :publisher "Unknown"
+              :publication-year nil
+              :edition "2nd Edition"
+              :isbn nil
+              :chapter-title "Git Tools - Reset Demystified"
+              :chapter-number "7.7"
+              :page-range nil}}
+
+ "https://git-scm.com/docs/git-revert"
+ {:title "git-revert Documentation"
+  :summary "Reverts the changes introduced by one or more existing commits by generating and recording new commits, safely preserving the project's commit history."
+  :diataxis-type {:how-to 0.05
+                  :tutorial 0.0
+                  :explanation 0.10
+                  :reference 0.85}
+  :media-type #{:text :reference}
+  :segment-info {:is-segment? false
+                 :segment-focus nil}
+  :concepts-matched ["git revert" "Commit Object" "Working Directory" "HEAD" "git reset" "git restore" "git commit" ".git/index (Index)" "git add" "git merge" "git log" "git cherry-pick"]
+  :concepts-new ["Sequencer" "Merge Strategies" "rerere" "GPG Signing"]
+  :commands-mentioned ["git reset" "git restore" "git rev-list" "git commit" "git add" "git merge" "git log" "git cherry-pick"]
+  :prerequisites-matched ["Commit Object" "Working Directory" "HEAD" ".git/index (Index)"]
+  :prerequisites-new ["Clean working tree" "Merge mainline parent identification"]
+  :safety {:level :safe
+           :reason "Records new commits to reverse effects rather than rewriting or destroying shared history. It does, however, explicitly warn about destructive alternatives like reset --hard and restore."
+           :mentions-reflog? false}
+  :interface-type :cli
+  :estimated-minutes 8
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :advanced
+  :visual-score 1
+  :production-quality 3
+  :reference-meta {:source-type "Man Page"
+                   :software-version "2.50.0"
+                   :is-deprecated? false
+                   :syntax-signatures-present? true
+                   :has-configuration-options? true
+                   :related-references ["git-reset[1]" "git-restore[1]" "gitrevisions[7]" "git-rev-list[1]" "git-commit[1]" "git-merge[1]" "git-log[1]" "git-cherry-pick[1]" "git[1]"]}
+
+  "https://git-scm.com/docs/git-reset#Documentation/git-reset.txt---soft"
+  {:title "git-reset --soft"
+   :summary "Leaves the working tree and index unchanged while moving HEAD, allowing for actions like squashing multiple commits into one."
+   :diataxis-type {:how-to 0.25
+                   :tutorial 0.0
+                   :explanation 0.15
+                   :reference 0.60}
+   :media-type #{:text :reference}
+   :segment-info {:is-segment? true
+                  :segment-focus "--soft"}
+   :concepts-matched ["HEAD" "git reset" "git reset --hard" "git reset --soft" "git add" "git commit" "git commit --amend" "git diff" "git pull" "git switch" "git stash" "git reflog" "Working Directory" "Staging Area\n(Index)" "Merge Conflicts"]
+   :concepts-new ["Pathspec" "Intent-to-add"]
+   :commands-mentioned ["git add" "git restore" "git commit" "git rebase" "git pull" "git switch" "git stash" "git reflog" "git diff" "git config"]
+   :prerequisites-matched ["Commit Object" "Branch" "Tree Object"]
+   :prerequisites-new ["Submodules"]
+   :safety {:level :dangerous
+            :reason "Documents the --hard flag which overwrites all files and directories, permanently discarding uncommitted local changes."
+            :mentions-reflog? true}
+   :interface-type :cli
+   :estimated-minutes 15
+   :straight-to-the-point :straight
+   :didactic-score 3
+   :experience-level :advanced
+   :visual-score 1
+   :production-quality 2
+   :reference-meta {:source-type "Man Page"
+                    :software-version "2.53.0"
+                    :is-deprecated? false
+                    :syntax-signatures-present? true
+                    :has-configuration-options? true
+                    :related-references ["git-add[1]" "git-restore[1]" "git[1]" "git-config[1]" "gitglossary[7]" "git-commit[1]" "git-rebase[1]" "git-stash[1]" "git-reflog[1]"]}}
+
+  "https://git-scm.com/docs/git-reset#Documentation/git-reset.txt---hard"
+  {:title "git-reset --hard"
+   :summary "Overwrites all files and directories in the working tree and updates the index to match the specified commit, permanently discarding uncommitted changes"
+   :diataxis-type {:how-to 0.25
+                   :tutorial 0.0
+                   :explanation 0.15
+                   :reference 0.60}
+   :media-type #{:text :reference}
+   :segment-info {:is-segment? true
+                  :segment-focus "--hard"}
+   :concepts-matched ["HEAD" "git reset" "git reset --hard" "git reset --soft" "git add" "git commit" "git commit --amend" "git diff" "git pull" "git switch" "git stash" "git reflog" "Working Directory" "Staging Area\n(Index)" "Merge Conflicts"]
+   :concepts-new ["Pathspec" "Intent-to-add"]
+   :commands-mentioned ["git add" "git restore" "git commit" "git rebase" "git pull" "git switch" "git stash" "git reflog" "git diff" "git config"]
+   :prerequisites-matched ["Commit Object" "Branch" "Tree Object"]
+   :prerequisites-new ["Submodules"]
+   :safety {:level :dangerous
+            :reason "Documents the --hard flag which overwrites all files and directories, permanently discarding uncommitted local changes."
+            :mentions-reflog? true}
+   :interface-type :cli
+   :estimated-minutes 15
+   :straight-to-the-point :straight
+   :didactic-score 3
+   :experience-level :advanced
+   :visual-score 1
+   :production-quality 2
+   :reference-meta {:source-type "Man Page"
+                    :software-version "2.53.0"
+                    :is-deprecated? false
+                    :syntax-signatures-present? true
+                    :has-configuration-options? true
+                    :related-references ["git-add[1]" "git-restore[1]" "git[1]" "git-config[1]" "gitglossary[7]" "git-commit[1]" "git-rebase[1]" "git-stash[1]" "git-reflog[1]"]}}
+
+  "https://git-scm.com/docs/git-reset"
+  {:title "git-reset"
+   :summary "Set HEAD or the index to a known state, allowing you to undo operations like commits, merges, and adds."
+   :diataxis-type {:how-to 0.25
+                   :tutorial 0.0
+                   :explanation 0.15
+                   :reference 0.60}
+   :media-type #{:text :reference}
+   :segment-info {:is-segment? false
+                  :segment-focus nil}
+   :concepts-matched ["HEAD" "git reset" "git reset --hard" "git reset --soft" "git add" "git commit" "git commit --amend" "git diff" "git pull" "git switch" "git stash" "git reflog" "Working Directory" "Staging Area\n(Index)" "Merge Conflicts"]
+   :concepts-new ["Pathspec" "Intent-to-add"]
+   :commands-mentioned ["git add" "git restore" "git commit" "git rebase" "git pull" "git switch" "git stash" "git reflog" "git diff" "git config"]
+   :prerequisites-matched ["Commit Object" "Branch" "Tree Object"]
+   :prerequisites-new ["Submodules"]
+   :safety {:level :dangerous
+            :reason "Documents the --hard flag which overwrites all files and directories, permanently discarding uncommitted local changes."
+            :mentions-reflog? true}
+   :interface-type :cli
+   :estimated-minutes 15
+   :straight-to-the-point :straight
+   :didactic-score 3
+   :experience-level :advanced
+   :visual-score 1
+   :production-quality 2
+   :reference-meta {:source-type "Man Page"
+                    :software-version "2.53.0"
+                    :is-deprecated? false
+                    :syntax-signatures-present? true
+                    :has-configuration-options? true
+                    :related-references ["git-add[1]" "git-restore[1]" "git[1]" "git-config[1]" "gitglossary[7]" "git-commit[1]" "git-rebase[1]" "git-stash[1]" "git-reflog[1]"]}}}
+
+ "https://youtu.be/ZDR433b0HJY?si=svvsTtOrsrQuUJ2y&t=2648"
+ {:title "Git Internals: Trees, Index, Branches and HEAD"
+  :summary "An explanation of how Git stores data as a directed graph of snapshots, how the index interacts with the working directory, and how branches and HEAD function as lightweight pointers."
+  :diataxis-type {:how-to 0.05
+                  :tutorial 0.05
+                  :explanation 0.90
+                  :reference 0.0}
+  :media-type #{:video}
+  :segment-info {:is-segment? true
+                 :segment-focus "Internal data structures, branches as pointers, and the HEAD reference"}
+  :concepts-matched ["Commit Object"
+                     "Tree"
+                     "DAG (Directed Acyclic Graph)"
+                     "Snapshot"
+                     "Staging Area\n(Index)"
+                     "Working Directory"
+                     "git add"
+                     "git commit"
+                     "Blob Object"
+                     "Branch"
+                     "git branch"
+                     "git checkout"
+                     "HEAD"]
+  :concepts-new ["Symbolic Reference" "Master Branch"]
+  :commands-mentioned ["git checkout" "git add" "git commit" "git branch"]
+  :prerequisites-matched ["Architecture" "Object Model" "Data Zones"]
+  :prerequisites-new ["Graph Theory Basics"]
+  :safety {:level :safe
+           :reason "Explains conceptual data movement and safe commands (add, commit, branch, checkout) without introducing destructive history overrides."
+           :mentions-reflog? false}
+  :interface-type :cli
+  :estimated-minutes 3
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :intermediate
+  :visual-score 3
+  :production-quality 2
+
+  :youtube-data
+  {:title "Introduction to Git with Scott Chacon of GitHub"
+   :channel-name "InfoQ"
+   :channel-url "https://www.youtube.com/@infoq"
+   :total-duration "1:22:11"
+   :chapter-name "git clone"
+   :chapter-starts-at "44:08"}}
+
+ "https://git-scm.com/book/en/v2/Git-Internals-Git-Objects"
+ {:title "Git Internals: Constructing History with Git Objects"
+  :summary "A deep dive into Git's content-addressable filesystem, demonstrating how to manually create and link blob, tree, and commit objects using low-level plumbing commands and Ruby."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.6
+                  :explanation 0.4
+                  :reference 0.0}
+  :media-type #{:text :book}
+  :segment-info {:is-segment? true
+                 :segment-focus "Explains the foundational Git object model (blobs, trees, commits) by guiding the reader through manually interacting with the object database."}
+  :prerequisites-matched ["git init" "Working Directory" "Staging Area" "git add" "git commit"]
+  :prerequisites-new ["SHA-1" "UNIX filesystem concepts" "Ruby (basic)"]
+  :concepts-matched [".git/objects" "Blob Object" "Tree Object" "Commit Object" "Plumbing" "Repository (.git)" "Snapshot" "DAG (Directed Acyclic Graph"]
+  :concepts-new ["Content-addressable filesystem" "zlib compression" "Git Object Header"]
+  :commands-mentioned ["git init" "git hash-object" "git cat-file" "git update-index" "git write-tree" "git read-tree" "git commit-tree" "git log" "git add" "git commit"]
+  :safety {:level :safe
+           :reason "Explores database manipulation via plumbing commands additively; does not teach destructive history rewriting or dangerous resets."
+           :mentions-reflog? false}
+  :interface-type :cli
+  :estimated-minutes 15
+  :straight-to-the-point :medium
+  :didactic-score 5
+  :experience-level :advanced
+  :visual-score 3
+  :production-quality 3
+  :book-meta {:book-title "Pro Git"
+              :author "Scott Chacon"
+              :publisher "Unknown"
+              :publication-year nil
+              :edition nil
+              :isbn nil
+              :chapter-title "Git Internals - Git Objects"
+              :chapter-number "10.2"
+              :page-range nil}}
+
+ "https://dev.to/__whyd_rf/a-deep-dive-into-git-internals-blobs-trees-and-commits-1doc"
+ {:title "A Deep Dive into Git Internals: Blobs, Trees, and Commits"
+  :summary "An exploration of Git's content-addressable filesystem, detailing how blobs, trees, and commit objects construct the repository's history. "
+  :diataxis-type {:how-to 0.05
+                  :tutorial 0.35
+                  :explanation 0.55
+                  :reference 0.05}
+  :media-type #{:text :tutorial}
+  :segment-info {:is-segment? false
+                 :segment-focus nil}
+  :prerequisites-matched ["Repository (.git)" "Working Directory" "Snapshot"]
+  :prerequisites-new ["Basic CLI terminal usage"]
+  :concepts-matched ["Blob Object" "Tree Object" "Commit Object" "DAG (Directed Acyclic Graph" "Packfile" "Plumbing" ".git/objects" "git add" "git commit" "git diff" "git log" "git cat-file" "Immutability" "HEAD"]
+  :concepts-new ["Content-Addressable Filesystem" "Tree Format" "Blob Format" "git hash-object" "git ls-tree" "git gc" "git verify-pack" "git rev-list" "git rev-parse"]
+  :commands-mentioned ["git hash-object" "git cat-file" "git add" "git ls-tree" "git log" "git gc" "git verify-pack" "git rev-list" "git commit" "git diff" "git rev-parse"]
+  :safety {:level :safe
+           :reason "The tutorial primarily uses read-only plumbing commands for inspection. It mentions `git gc` but includes a warning that it is a one-way process."
+           :mentions-reflog? false}
+  :interface-type :cli
+  :estimated-minutes 15
+  :straight-to-the-point :medium
+  :didactic-score 4
+  :experience-level :intermediate
+  :visual-score 2
+  :production-quality 4
+
+  :tutorial-meta
+  {:author "Vahid Ghadiri"
+   :platform "dev.to"
+   :publication-date "2025-07-07"
+   :last-updated-date nil
+   :repository-url nil
+   :step-count 13
+   :has-sample-code? true
+   :series-name nil}}
+
+ "https://youtu.be/lG90LZotrpo?si=-xdTzsdkl2izfZG4&t=562"
+ {:title "Git Internals by John Britton of GitHub - CS50 Tech Talk"
+  :summary "An in-depth explanation of Git's underlying architecture, demonstrating how blobs, trees, and commit objects are created, hashed, and managed within the .git directory, culminating in history manipulation and recovery."
+  :diataxis-type {:explanation 0.60
+                  :tutorial 0.30
+                  :how-to 0.10
+                  :reference 0.0}
+  :media-type #{:video}
+  :segment-info {:is-segment? false
+                 :segment-focus nil}
+  :concepts-matched ["Repository (.git)"
+                     "Working Directory"
+                     "Staging Area\n(Index)"
+                     "Blob Object"
+                     "Tree Object"
+                     "Commit Object"
+                     "Snapshot"
+                     "Immutability"
+                     "Branch"
+                     "Reflog"
+                     "Plumbing"
+                     "git init"
+                     "git add"
+                     "git commit"
+                     "git diff"
+                     "git reset"
+                     "git reset --hard"
+                     "git checkout [hash]"
+                     "git checkout [branch]"
+                     "git rebase -i"
+                     "git reflog"]
+  :concepts-new ["git show"
+                 "git ls-tree"
+                 "git rm"
+                 "Porcelain Commands"
+                 "Merkle Tree / Hash Tree"
+                 "Packfile / Compression"]
+  :commands-mentioned ["git init"
+                       "git status"
+                       "git add"
+                       "git commit"
+                       "git show"
+                       "git ls-tree"
+                       "git mv"
+                       "git rm"
+                       "git diff"
+                       "git reset"
+                       "git checkout"
+                       "git log"
+                       "git rebase"
+                       "git reflog"]
+  :prerequisites-matched ["Practice"
+                          "Core Loop"]
+  :prerequisites-new ["Command Line Basics"
+                      "Basic Git Usage"]
+  :safety {:level :safe
+           :reason "Demonstrates history rewriting with interactive rebase and hard resets, but immediately teaches how to recover lost commits using git reflog."
+           :mentions-reflog? true}
+  :interface-type :cli
+  :estimated-minutes 58
+  :straight-to-the-point :medium
+  :didactic-score 5
+  :experience-level :intermediate
+  :visual-score 2
+  :production-quality 2
+  :youtube-data {:title "Git Internals by John Britton of GitHub - CS50 Tech Talk"
+                 :channel-name "CS50"
+                 :channel-url "https://www.youtube.com/@cs50"
+                 :total-duration "57:24"
+                 :chapter-name nil
+                 :chapter-starts-at "29:50"
+                 :chapter-duration "2:20"
+                 :uploaded-at "2018-04-11"}}
+
+  "https://youtu.be/BIjrKuJGTxw?si=bypPA-5KJ4F5oEq0&t=145"
+  {:title "Git File States: Tracked, Staged & Committed"
+   :summary "A conceptual explanation of Git file states (untracked, tracked, committed, modified, and staged) using visual diagrams and a file explorer analogy to clarify the purpose of the staging area."
+   :diataxis-type {:how-to 0.0
+                   :tutorial 0.10
+                   :explanation 0.90
+                   :reference 0.0}
+   :media-type #{:video}
+   :segment-info {:is-segment? true
+                  :segment-focus "Conceptualizing file states and the staging area"}
+   :concepts-matched ["Working Directory" "Repository (.git)" "Staging Area\n(Index)" "Staging Area" "Snapshot" "Architecture" "Data Zones"]
+   :concepts-new ["Tracked Files" "Untracked Files" "File States" "Modified State"]
+   :commands-mentioned []
+   :prerequisites-matched ["Working Directory" "Repository (.git)"]
+   :prerequisites-new ["Basic OS File Management"]
+   :safety {:level :safe
+            :reason "The segment is entirely conceptual and explanatory, with no dangerous commands demonstrated or suggested."
+            :mentions-reflog? false}
+   :interface-type :gui
+   :estimated-minutes 5
+   :straight-to-the-point :straight
+   :didactic-score 5
+   :experience-level :beginner
+   :visual-score 4
+   :production-quality 3
+   :youtube-data {:title "Git Fundamentals: Staging area, repository, working directory, file states, and commits tutorial."
+                  :channel-name "The Modern Coder"
+                  :channel-url "[https://www.youtube.com/@TheModernCoder](https://www.youtube.com/@TheModernCoder)"
+                  :total-duration "9:37"
+                  :chapter-name "Git File States: Tracked, Staged & Committed"
+                  :chapter-starts-at "2:46"
+                  :chapter-duration "4:17"
+                  :uploaded-at "2023-11-20"}}
+
+  "https://git-scm.com/docs/gitglossary#Documentation/gitglossary.txt-workingtree"
+  {:title "Glossary Definition: Working Tree"
+   :summary "Defines the working tree as the directory of checked-out files, comprising the HEAD commit's tree and any uncommitted local changes."
+   :diataxis-type {:how-to 0.0
+                   :tutorial 0.0
+                   :explanation 0.2
+                   :reference 0.8}
+
+   :media-type #{:text :book}
+   :segment-info {:is-segment? true
+                  :segment-focus "A standalone glossary definition clarifying a fundamental Git data zone."}
+
+   :prerequisites-matched ["HEAD" "Commit Object" "Tree Object"]
+   :prerequisites-new ["Checked Out Files"]
+
+   :concepts-matched ["Working Directory" "HEAD" "Tree Object" "Commit Object"]
+   :concepts-new ["Working Tree"]
+   :commands-mentioned []
+
+   :safety
+   {:level :safe
+    :reason "It is a purely theoretical definition explaining a repository concept without introducing any commands or state mutations."
+    :mentions-reflog? false}
+
+   :interface-type :theory
+   :estimated-minutes 1
+   :straight-to-the-point :straight
+   :didactic-score 3
+   :experience-level :intermediate
+   :visual-score 1
+   :production-quality 2
+
+   :book-meta
+   {:book-title "Pro Git"
+    :author "Scott Chacon and Ben Straub"
+    :publisher "Apress"
+    :publication-year 2014
+    :edition "2nd Edition"
+    :isbn nil
+    :chapter-title "gitglossary"
+    :chapter-number nil
+    :page-range nil}}
+
+  "https://git-scm.com/book/en/v2/Getting-Started-What-is-Git%3F#:~:text=Undoing%20Things.-,The%20Three%20States,-Pay%20attention%20now"
+  {:title "Git's Three Main States and Sections"
+   :summary "A foundational explanation of Git's architecture, detailing the three file states (modified, staged, committed) and their corresponding local project areas (working tree, staging area, Git directory)."
+   :diataxis-type {:how-to 0.0
+                   :tutorial 0.0
+                   :explanation 0.9
+                   :reference 0.1}
+   :media-type #{:text :book}
+   :segment-info {:is-segment? true
+                  :segment-focus "Lays the core theoretical foundation for Git operations and data zones before introducing practical commands."}
+   :prerequisites-matched []
+   :prerequisites-new []
+   :concepts-matched ["Data Zones" "Staging Area" "Working Directory" "Repository (.git)" "Snapshot" "index (Index)"]
+   :concepts-new ["Working Tree" "Git Directory" "File States (Modified, Staged, Committed)"]
+   :commands-mentioned ["git commit" "git clone"]
+   :safety
+   {:level :safe
+    :reason "Purely theoretical explanation of Git's architecture and file states. No commands are executed and no destructive actions are discussed."
+    :mentions-reflog? false}
+   :interface-type :theory
+   :estimated-minutes 3
+   :straight-to-the-point :straight
+   :didactic-score 5
+   :experience-level :beginner
+   :visual-score 3
+   :production-quality 3
+   :book-meta
+   {:book-title "Pro Git"
+    :author "Scott Chacon and Ben Straub"
+    :publisher "Apress"
+    :publication-year 2014
+    :edition "2nd Edition"
+    :isbn nil
+    :chapter-title "Getting Started - What is Git?"
+    :chapter-number "1.3"
+    :page-range nil}}
+
+  "https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History#:~:text=Changing%20the%20Last%20Commit"
+  {:title "Amending the Last Commit"
+   :summary "A guide on using git commit --amend to alter the message or content of the most recent commit, including critical warnings about rewriting shared history."
+   :diataxis-type {:how-to 0.7
+                   :tutorial 0.0
+                   :explanation 0.2
+                   :reference 0.1}
+   :media-type #{:text :book}
+   :segment-info {:is-segment? true
+                  :segment-focus "Focuses on the specific, highly common task of altering the immediate previous commit within the broader context of history rewriting."}
+   :prerequisites-matched ["Commit Object" "Staging Area" "git rebase" "git push"]
+   :prerequisites-new ["SHA-1 hash" "Text editor session"]
+   :concepts-matched ["git commit --amend" "History"]
+   :concepts-new ["Rewriting History" "Amending commits" "--no-edit flag"]
+   :commands-mentioned ["git commit --amend" "git commit --amend --no-edit"]
+   :safety {:level :dangerous
+            :reason "Introduces history rewriting. Explicitly warns the reader that amending changes the commit's SHA-1 and heavily advises against amending already-pushed commits."
+            :mentions-reflog? false}
+   :interface-type :cli
+   :estimated-minutes 3
+   :straight-to-the-point :straight
+   :didactic-score 5
+   :experience-level :intermediate
+   :visual-score 1
+   :production-quality 3
+   :book-meta {:book-title "Pro Git"
+               :author "Scott Chacon and Ben Straub"
+               :publisher "Apress"
+               :publication-year 2014
+               :edition "2nd Edition"
+               :isbn nil
+               :chapter-title "Git Tools - Rewriting History"
+               :chapter-number "7.6"
+               :page-range nil}}
+
+  "https://www.youtube.com/watch?v=mAFoROnOfHs&t=377s"
+  {:title "Git Architecture: Local vs. Remote"
+   :summary "A conceptual breakdown of Git's core workflow, explaining the journey of code from the working directory to the staging area, local repository, and finally the remote repository."
+
+   ;; Diátaxis Classification
+   :diataxis-type {:how-to 0.0
+                   :tutorial 0.10
+                   :explanation 0.90
+                   :reference 0.0}
+
+   ;; Content Format
+   :media-type #{:video}
+   :segment-info {:is-segment? true
+                  :segment-focus "Conceptual overview of Git's 3-stage local architecture and the purpose of remote cloud backups."}
+
+   ;; Concept Mapping
+   :concepts-matched ["Working Directory" "Staging Area\n(Index)" "Repository (.git)" "Remote Repository" "Collaboration" "Core Loop" "git commit" "git push" "git pull"]
+   :concepts-new ["Cloud Backup" "Digital Cabinet Analogy"]
+   :commands-mentioned ["git commit" "git push" "git pull"]
+
+   ;; Prerequisites Mapping
+   :prerequisites-matched ["Philosophy" "Context"]
+   :prerequisites-new ["Basic Cloud Storage Concepts (Google Drive/OneDrive)"]
+
+   :safety
+   {:level :safe
+    :reason "The segment is entirely conceptual and foundational, focusing on architectural understanding without demonstrating or suggesting any destructive commands."
+    :mentions-reflog? false}
+
+   :interface-type :mixed
+   :estimated-minutes 4
+   :straight-to-the-point :straight
+   :didactic-score 5
+   :experience-level :beginner
+   :visual-score 4
+   :production-quality 3
+
+   ;; Metadata specific to the video resource
+   :youtube-data
+   {:title "Git & GitHub Crash Course for Beginners [2026]"
+    :channel-name "freeCodeCamp.org"
+    :channel-url "[https://www.youtube.com/@freeCodeCamp](https://www.youtube.com/@freeCodeCamp)"
+    :total-duration "01:21:13"
+    :chapter-name "Git Architecture: Local vs. Remote"
+    :chapter-starts-at "05:41"
+    :chapter-duration "03:56"
+    :uploaded-at "2024-11-20"}}
+
+  "https://git-scm.com/docs/git-commit#Documentation/git-commit.txt---amend"
+  {:title "git commit --amend Reference"
+   :summary "Specifies the behavior of the --amend flag, which replaces the current branch tip with a new commit, effectively modifying the most recent commit."
+   :diataxis-type {:how-to 0.0
+                   :tutorial 0.0
+                   :explanation 0.15
+                   :reference 0.85}
+   :media-type #{:text :reference}
+   :segment-info {:is-segment? true
+                  :segment-focus "--amend"}
+   :concepts-matched ["Branch" "Commit Object" "git commit" "git reset" "git reset --soft" "HEAD" "git rebase" "Tree"]
+   :concepts-new ["Rewriting History" "Merge Commit" "ORIG_HEAD"]
+   :commands-mentioned ["git commit" "git reset --soft" "git commit -c ORIG_HEAD" "git rebase"]
+   :prerequisites-matched ["Commit Object" "Branch" "HEAD" "Tree"]
+   :prerequisites-new ["History Rewriting"]
+   :safety {:level :risky
+            :reason "Rewrites the commit history by replacing the tip of the current branch. Explicitly warns against amending published commits."
+            :mentions-reflog? false}
+   :interface-type :cli
+   :estimated-minutes 2
+   :straight-to-the-point :straight
+   :didactic-score 4
+   :experience-level :intermediate
+   :visual-score 1
+   :production-quality 2
+   :reference-meta {:source-type "Official Documentation"
+                    :software-version nil
+                    :is-deprecated? false
+                    :syntax-signatures-present? false
+                    :has-configuration-options? false
+                    :related-references ["git-rebase[1]"]}}
+  }
