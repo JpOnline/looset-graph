@@ -27,8 +27,9 @@
 (defonce firestore-db (getFirestore firebase-app))
 
 (defn send-to-firestore
-  [_ [_ collection-name payload]]
-  (let [col (collection firestore-db collection-name)
+  [_ [_ collection-name* payload]]
+  (let [collection-name (if ^boolean js/goog.DEBUG (str "debug-" collection-name*) collection-name*)
+        col (collection firestore-db collection-name)
         js-payload (clj->js (assoc payload :timestamp (.toISOString (js/Date.))))]
     (-> (addDoc col js-payload)
       (.then #(js/console.log "Saved to Firebase!"))
@@ -1167,7 +1168,8 @@
 (defn email-capture-prompt
   #_{:clj-kondo/ignore [:unused-binding]}
   [modal-state]
-  (let [email-input (reagent/atom "")]
+  (let [email-input (reagent/atom "")
+        subject (:subject @modal-state)]
     (fn [modal-state]
       (when (or (= (:state @modal-state) :prompting)
                 (= (:state @modal-state) :submitted))
@@ -1193,7 +1195,7 @@
             [:div
              [:h3 {:style {:margin-top "0" :color "#0f172a"}} (:title @modal-state)]
              [:p {:style {:color "#475569" :font-size "0.95rem" :line-height "1.5" :margin-bottom "20px"}}
-              (str "Drop your email below if you want a quick ping when we release a map for \"") [:strong (:subject @modal-state)] "\"."]
+              (str "Drop your email below if you want a quick ping when we release a map for \"") [:strong subject] "\"."]
 
              [:input.search-input
               {:type "email"
@@ -1205,7 +1207,7 @@
                :on-key-down (fn [e]
                               (when (= (.-key e) "Enter")
                                 (.preventDefault e)
-                                (>evt [::send-to-firestore "emails" {:email @email-input}])
+                                (>evt [::send-to-firestore "emails" {:email @email-input :voted-subject subject}])
                                 (reset! modal-state {:state :submitted})))}]
 
              [:div {:style {:display "flex" :justify-content "flex-end" :gap "12px"}}
@@ -1214,7 +1216,7 @@
                "Skip"]
               [:button.btn-continue
                {:on-click (fn []
-                            (>evt [::send-to-firestore "emails" {:email @email-input}])
+                            (>evt [::send-to-firestore "emails" {:email @email-input :voted-subject subject}])
                             (reset! modal-state :submitted))}
                "Notify Me"]]])]]))))
 
