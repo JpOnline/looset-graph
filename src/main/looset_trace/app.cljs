@@ -247,7 +247,7 @@
     .not-found-item { border-bottom: 1px solid #f1f3f4; background: #fafafa; }
     .not-found-item .item-icon { color: #ea4335; }
 
-    .cards-container { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; justify-content: center; max-width: 700px; }
+    .cards-container { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; justify-content: center; max-width: 735px; }
     .trace-card { padding: 10px 16px; border-radius: 16px; border: 1px solid #e5e7eb; background: #ffffff; color: #4b5563; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.15s ease; }
     .trace-card:hover { background: #f9fafb; border-color: #d1d5db; }
     .trace-card.highlight { border-color: #3b82f6; color: #1d4ed8; background: #eff6ff; font-weight: 500; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1); }
@@ -1319,14 +1319,26 @@
           [email-capture-prompt email-modal-state]]
 
          (when (not show-dropdown?)
-           [:div.cards-container
-            (for [{:keys [label highlight? icon]} featured-questions]
-              ^{:key label}
-              [:div.trace-card
-               {:class (when highlight? "highlight")
-                :on-click #(start-trace! label)}
-               (when icon [:span {:style {:font-size "1.1em"}} icon])
-               (str/replace label "❓ " "")])])]))))
+           [:<>
+             [:div.cards-container
+              (for [{:keys [label highlight? icon]} featured-questions]
+                ^{:key label}
+                [:div.trace-card
+                 {:class (when highlight? "highlight")
+                  :on-click #(start-trace! label)}
+                 (when icon [:span {:style {:font-size "1.1em"}} icon])
+                 (str/replace label "❓ " "")])]
+
+             [:h3 "Other subjects"]
+
+             [:div.cards-container
+              (for [{:keys [label highlight? icon]} [{:label "AI/LLM"} {:label "Functional Programming"} {:label "Software Architecture"} {:label "Web Development"} {:label "SQL"}]]
+                ^{:key label}
+                [:div.trace-card
+                 {:class (when highlight? "highlight")
+                  :on-click #(start-trace! label)}
+                 (when icon [:span {:style {:font-size "1.1em"}} icon])
+                 (str/replace label "❓ " "")])]])]))))
 
 ;; ---- Other re-frame subs/events -----------------------------------------------------
 (defn node-link-clicked
