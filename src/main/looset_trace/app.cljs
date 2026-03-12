@@ -337,7 +337,7 @@
     .quiz-option.option-wrong { background: #ef4444; color: #fff; border-color: #ef4444; font-weight: 500; }
     .quiz-option.option-correct-highlight { border: 2px solid #10b981; background: #ecfdf5; color: #065f46; font-weight: 500; }
     .quiz-option.option-disabled { opacity: 0.6; cursor: default; }
-    .quiz-option.option-assumed { border: 2px dashed #9ca3af; background: #f3f4f6; color: #374151; font-weight: 500; }
+    .quiz-option.option-assumed { border: 2px dashed #9ca3af; background: #00000010; color: #374151; font-weight: 500; }
     .quiz-option.option-selected { background: #4b5563; color: #fff; border-color: #4b5563; font-weight: 500; }
 
     .action-bar-container {
@@ -549,14 +549,17 @@
               ; words like "assumption", otherwise the order of the assumed path
               ; shouldn't be changed freely (if a user actually took that path
               ; it's weird to see a description saying it's assuming the answer,
-             ; but as a tutorial it's valid).
+              ; but as a tutorial it's valid).
               [:pushed :collaborating] "git revert"
               [:local] "git reset"
               [:pushed :personal-branch] "git push -f"
               [:local :keep] "git reset --soft"
               [:local :delete] "git reset --hard"
-              [:local :--any :premature] "git commit --amend"]
-              ; [:local :--any :premature :git-hooks] "pre-commit git hook"] ;; Let's not do this one for the first version
+              [:local :--any :premature] "git commit --amend"
+              [:local :--any :premature :checklist] "Pre-Commit Checklist"
+              [:local :--any :premature :unit-test] "Unit Testing"
+              [:local :--any :premature :git-hooks] "Pre-Commit Hooks"]
+    ; [:local :--any :premature :git-hooks] "pre-commit git hook"] ;; Let's not do this one for the first version
     :questions {[] {:description "Have these commits already been pushed to a remote repository, or do they only exist locally on your computer?"
                     :options [{:id :local :text "I'm **local only**. I have not run a `git push` command yet."}
                               {:id :pushed :text "I've **already pushed** to a remote repository."}]}
@@ -570,20 +573,46 @@
                                  :options [{:id :premature :text "It was a premature commit. I need to add more things to the commit."}
                                            {:id :batched-work :text "Work is being batched together too broadly before being reviewed."}]}
                 [:local :--any :premature] {:description "Which of the following could avoid the problem of happening again?"
-                                            :options [{:id :checklist :text "Checklists"}
-                                                      {:id :unit-test :text "Unit tests"}
-                                                      {:id :git-hooks :text "Git Hooks"}]}}}
-
+                                            :options [{:id :checklist :text "**Manual Checklists**: Creating a step-by-step list to manually verify my code and requirements before staging."}
+                                                      {:id :unit-test :text "**Local Unit Testing**: Running automated tests to verify the code actually fixes the issue before saving."}
+                                                      {:id :git-hooks :text "**Automated Git Hooks**: Setting up scripts that automatically block my commits if linters or tests fail."}]}}}
    ;; Knowledge Space
    "git reset"
    {:prerequisites ["Staging Area (Index)" "HEAD"]}
 
    "git reset --soft"
-   {:prerequisites ["HEAD"]}
+   {:prerequisites ["HEAD"]
+    :questions {:0 {:title "The Three Trees Architecture"
+                    :description "When executing `git reset --soft <commit>`, which of Git's **Three Trees** are updated?"
+                    :options [{:id :a :text "`HEAD` is updated, the **Index** is updated, but the **Working Directory** is left untouched."
+                               :why "This accurately describes the behavior of `git reset --mixed`, which is the default mode, not `--soft`."}
+                              {:id :b :text "`HEAD` is updated, and both the **Index** and **Working Directory** are left completely untouched."
+                               :why "Because `--soft` stops after moving `HEAD`, the Staging Area (Index) and the files on your disk remain exactly as they were before the command was run."}
+                              {:id :c :text "Only the **Working Directory** is updated to match the target `<commit>`."
+                               :why "Git commands rarely update the Working Directory without also updating the Index. This option is incorrect for any reset mode."}
+                              {:id :d :text "`HEAD` is updated, the **Index** is cleared, and the **Working Directory** is violently overwritten."
+                               :why "This describes the highly destructive `git reset --hard` command, which wipes out uncommitted work."}
+                              {:id :e :text "`HEAD` remains unchanged, but the **Index** is updated with the contents of `<commit>`."
+                               :why "If `HEAD` does not move, it is not a reset. This behavior is closer to what `git restore --staged` accomplishes."}]
+                    :hint "Think about the 'blast radius' of the reset flags. `--soft` is the gentlest form of time travel Git offers."
+                    :correct-id :b}}}
 
    "HEAD"
    {:prerequisites ["Commit Object" "git checkout / git switch" "Branch" ".git/HEAD"]
-    :questions {:1 {:description "[WRITE SOME QUESTION]"}}}
+    :questions {:0 {:title "The Internals of HEAD"
+                    :description "What are the exact text contents of the `.git/HEAD` file when you have successfully run `git checkout feature/login` (assuming it is a normal, attached branch)?"
+                    :options [{:id :a :text "The 40-character **SHA-1 hash** of the latest commit on the `feature/login` branch."
+                               :why "This would be the case only if you were in a **detached HEAD** state (e.g., checking out a specific commit hash directly)."}
+                              {:id :b :text "A binary pointer referencing the `feature/login` tree object in the `.git/objects` database."
+                               :why "Git references are strictly plain text files, not binary pointers."}
+                              {:id :c :text "`ref: refs/heads/feature/login`"
+                               :why "In an attached state, `HEAD` acts as a **symbolic reference** (symref). It stores the exact textual path to the branch reference file it is currently tracking."}
+                              {:id :d :text "`branch: feature/login`"
+                               :why "Git does not use the `branch:` syntax internally. It explicitly uses the `ref:` keyword followed by the full internal path."}
+                              {:id :e :text "An OS-level symlink pointing to the `.git/refs/heads/feature/login` file."
+                               :why "While conceptually similar to a symlink, Git uses its own plain-text symbolic reference mechanism (`ref: ...`) to maintain cross-platform compatibility without relying on the OS file system features."}]
+                    :hint "Think about how Git knows which branch to update when you type `git commit`. It needs a direct map to the branch reference file, not just a hash."
+                    :correct-id :c}}}
 
    "Working Directory"
    {:prerequisites ["git add" "git status" "git restore" "Repository (.git)"]}
@@ -597,8 +626,7 @@
                     :correct-id :b}}}
 
    "git revert"
-   {:prerequisites ["Commit Object"]
-    :questions {:0 {:title "More questions coming soon.."}}}
+   {:prerequisites ["Commit Object"]}
 
    "Commit Object"
    {:prerequisites ["Tree" "Snapshot" "SHA-1 Hash"]
@@ -610,26 +638,79 @@
                     :correct-id :c}}}
 
    "Repository (.git)"
-   {:prerequisites ["Local Repository"]}
+   {:prerequisites ["Local Repository"]
+    :questions {:1 {:title "Dangling Objects"
+                    :description "When rewriting history using commands like `` `git commit --amend` `` or `` `git reset` ``, Git creates **\"dangling\" objects**. How does the `` `.git` `` repository manage and eventually remove these orphaned objects?"
+                    :options [{:id :a :text "Git immediately deletes any object the moment no branch or tag points to it to save disk space."
+                               :why "Git is extremely conservative with data deletion. Immediate deletion would make commands like `git reset` irreversibly destructive."}
+                              {:id :b :text "The `` `git push` `` command automatically detects dangling objects and deletes them from the local `` `.git/objects` `` folder before syncing."
+                               :why "`git push` only calculates the objects needed by the remote server and sends them; it does not perform local cleanup."}
+                              {:id :c :text "The `` `git gc` `` (garbage collection) command runs in the background, pruning unreachable loose objects that are older than a specific expiration period."
+                               :why "Git safely orphans commits during history rewrites. `git gc` runs automatically on certain commands to pack objects and permanently delete unreachable (dangling) objects that have expired from the **Reflog** (typically after 14 to 30 days)."}
+                              {:id :d :text "They are kept indefinitely until the user manually deletes the `` `.git/objects` `` folder and runs `` `git init` `` again."
+                               :why "Manually deleting the objects folder would completely corrupt and destroy the entire repository, not just the dangling commits."}
+                              {:id :e :text "The `` `.git/reflog` `` automatically purges dangling commits every time you checkout a new branch."
+                               :why "The Reflog's exact purpose is to keep dangling commits alive and reachable for a safety period, not to purge them on checkout."}]
+                    :hint "Git is extremely hesitant to delete data immediately. It relies on a background maintenance task and an expiration timer to clean house."
+                    :correct-id :c}}}
 
    "Local Repository"
    {:prerequisites ["Remote Repository"]}
-    ; :questions {:1 {:description "[WRITE SOME QUESTION]"}}}
 
    "Snapshot"
    {:prerequisites ["Tree"]
-    :questions {:1 {:description "[WRITE SOME QUESTION]"}}}
+    :questions {:2 {:title "Optimizing the Snapshot Storage"
+                    :description "Git's core philosophy dictates that it stores complete **Snapshots**, not file differences (deltas). However, to prevent a repository from growing too large over time, how does Git eventually optimize these snapshots behind the scenes?"
+                    :options [{:id :a :text "By running a background process that permanently converts older `Tree` objects into delta-based `Commit` objects."
+                               :why "Git never changes the fundamental Object Model of its history. Tree objects remain Tree objects."}
+                              {:id :b :text "By automatically deleting the `Blob` objects of older snapshots and only keeping the `Tree` structure metadata."
+                               :why "Deleting Blobs would corrupt the repository, making it impossible to check out older versions of the code."}
+                              {:id :c :text "Git never optimizes them; it relies entirely on SHA-1 deduplication of unchanged files to keep repository size manageable forever."
+                               :why "While deduplication is powerful, modifying a large file many times still creates many full Blobs, which eventually requires compression."}
+                              {:id :d :text "By moving older snapshots to a dedicated `.git/archive` folder that uses standard ZIP compression."
+                               :why "Git does not archive older history in separate folders; the history must remain instantly accessible in the DAG."}
+                              {:id :e :text "By periodically executing `git gc`, which compresses loose objects (including snapshots and blobs) into **Packfiles** using reverse-delta compression."
+                               :why "While the conceptual model is full snapshots, the storage engine eventually optimizes space by packing similar objects together, storing the newest version entirely and using deltas to calculate older versions."}]
+                    :correct-id :e}}}
 
    "Tree"
    {:prerequisites ["SHA-1 Hash"]}
 
    "Branch"
    {:prerequisites ["git revert"]} ;; TODO: "git revert" is here only for attractig the brain icon in the demo.
-    ; :questions {:0 {:title "More questions coming soon.."}}}
+  ; :questions {:0 {:title "More questions coming soon.."}}}
 
    "SHA-1 Hash"
    {:prerequisites ["git revert"] ;; TODO: "git revert" is here only for attractig the brain icon in the demo.
-    :questions {:0 {:title "More questions coming soon.."}}}})
+    :questions {:0 {:description "Which of the following accurately describes how Git computes the SHA-1 hash for a Blob object?"
+                    :options [{:id :a :text "It hashes the directory structure path alongside the file's raw content."
+                               :why "..."}
+                              {:id :b :text "It hashes the commit message, the author's details, and the file's raw content."
+                               :why "..."}
+                              {:id :c :text "It hashes the file's name, creation timestamp, and raw content."
+                               :why "..."}
+                              {:id :d :text "It hashes only the file's raw content, ignoring any metadata or headers." ;; 
+                               :why "If Git hashed only the raw content, it wouldn't be able to distinguish between an empty tree and an empty blob."}
+                              {:id :e :text "It hashes a header containing the object type and size, followed by a null byte `\0`, and then the file's raw content." ;; 
+                               :why "Git prepends a header (e.g., blob 1610) to the raw content before passing it to the SHA-1 algorithm, ensuring that even identical content of different object types yields different hashes."}]
+                    :hint "..."
+                    :correct-id :e}
+                :1 {:description "..."
+                    :options [{:id :a :text "..."}
+                              {:id :b :text "..."}
+                              {:id :c :text "..."}
+                              {:id :d :text "..."}
+                              {:id :e :text "..."}]
+                    :hint "..."
+                    :correct-id :e}
+                :2 {:description "..."
+                    :options [{:id :a :text "..."}
+                              {:id :b :text "..."}
+                              {:id :c :text "..."}
+                              {:id :d :text "..."}
+                              {:id :e :text "..."}]
+                    :hint "..."
+                    :correct-id :e}}}})
 
 ;; ---------------------------------------------------------
 ;; -- UTILITIES
@@ -861,7 +942,7 @@
         matched-solution (:matched-node (<sub [::problem-evaluation]))
         markdown-content (or (get explanations {:type :node :id selected-or-fallback-node})
                              (get explanations {:type :edge :src selected-or-fallback-node :edge-string "solved by" :target matched-solution})
-                             "Explanation not found.")]
+                             "More curated resources coming soon..")]
     ^{:key markdown-content}
     [:div.node-details-panel.content-updated-flash
      [:h2.node-title selected-or-fallback-node]
@@ -911,7 +992,7 @@
      :fx fx-seq}))
 (re-frame/reg-event-fx ::answered-problem answered-problem)
 ;; ----
-(defn quiz-problem []
+(defn quiz-problem [question-data assumed-answer]
   (let [clicked-id (reagent.core/atom nil)]
     (fn [question-data assumed-answer]
       (let [;; Sort options: Assumed goes first.
@@ -924,30 +1005,32 @@
 
          [:div.panel-watermark.left "❓"]
 
-         [:div.quiz-content
-          [:div.quiz-inner
-           (when-let [title (:title question-data)] [:h3.question-title [markdown-view title]])
-           (when-let [desc (:description question-data)] [:p.question-desc [markdown-view desc]])
+         (if (empty? question-data)
+           [:div.quiz-content [:div.quiz-inner [:h3.question-title "More questions coming soon.."]]]
+           [:div.quiz-content
+            [:div.quiz-inner
+             (when-let [title (:title question-data)] [:h3.question-title [markdown-view title]])
+             (when-let [desc (:description question-data)] [:p.question-desc [markdown-view desc]])
 
-           [:div.options-list
-            (for [{:keys [id text]} sorted-options]
-              (let [is-this-clicked? (= id @clicked-id)
-                    opt-class (cond
-                                is-this-clicked? "option-selected"
-                                is-waiting?      "option-disabled"
-                                (= id assumed-answer) "option-assumed"
-                                :else "option-default")]
-                ^{:key id}
-                [:button.quiz-option
-                 {:class opt-class
-                  :on-click #(when-not is-waiting?
-                               (reset! clicked-id id)
-                               (js/setTimeout ;; A little delay before changing the whole UI.
-                                 (fn []
-                                   (>evt [::answered-problem id])
-                                   (reset! clicked-id nil))
-                                 2000))}
-                 [markdown-view text]]))]]]]))))
+             [:div.options-list
+              (for [{:keys [id text]} sorted-options]
+                (let [is-this-clicked? (= id @clicked-id)
+                      opt-class (cond
+                                  is-this-clicked? "option-selected"
+                                  is-waiting?      "option-disabled"
+                                  (= id assumed-answer) "option-assumed"
+                                  :else "option-default")]
+                  ^{:key id}
+                  [:button.quiz-option
+                   {:class opt-class
+                    :on-click #(when-not is-waiting?
+                                 (reset! clicked-id id)
+                                 (js/setTimeout ;; A little delay before changing the whole UI.
+                                   (fn []
+                                     (>evt [::answered-problem id])
+                                     (reset! clicked-id nil))
+                                   2000))}
+                   [markdown-view text]]))]]])]))))
 
 ;; ---------------------------------------------------------
 ;; ---   KNOWLEDGE QUIZ COMPONENT ---
@@ -1018,28 +1101,30 @@
 
      [:div.panel-watermark.right "🧠"]
 
-     [:div.quiz-content
-      [:div.quiz-inner {:class (when staged? "has-action-bar")}
-       (when-let [title (:title data)] [:h3.question-title title])
-       (when-let [desc (:description data)] [:p.question-desc [markdown-view desc]])
+     (if (empty? data)
+       [:div.quiz-content [:div.quiz-inner [:h3.question-title "More questions coming soon.."]]]
+       [:div.quiz-content
+        [:div.quiz-inner {:class (when staged? "has-action-bar")}
+         (when-let [title (:title data)] [:h3.question-title title])
+         (when-let [desc (:description data)] [:p.question-desc [markdown-view desc]])
 
-       [:div.options-list
-        (for [{:keys [id text]} (:options data)]
-          (let [is-this-selected (= id selected-id)
-                is-this-correct  (= id (:correct-id data))
-                ;; Specific logic for Knowledge Mode (Right/Wrong evaluation)
-                opt-class (cond
-                            (not answered?) "option-default"
-                            (and is-this-selected is-this-correct) "option-correct"
-                            (and is-this-selected (not is-this-correct)) "option-wrong"
-                            (and answered? is-this-correct) "option-correct-highlight"
-                            :else "option-disabled")]
-            ^{:key id}
-            [:button.quiz-option
-             {:class opt-class
-              :on-click #(when-not answered?
-                           (>evt [::stage-knowledge-answer question-id id]))}
-             text]))]]]
+         [:div.options-list
+          (for [{:keys [id text]} (:options data)]
+            (let [is-this-selected (= id selected-id)
+                  is-this-correct  (= id (:correct-id data))
+                  ;; Specific logic for Knowledge Mode (Right/Wrong evaluation)
+                  opt-class (cond
+                              (not answered?) "option-default"
+                              (and is-this-selected is-this-correct) "option-correct"
+                              (and is-this-selected (not is-this-correct)) "option-wrong"
+                              (and answered? is-this-correct) "option-correct-highlight"
+                              :else "option-disabled")]
+              ^{:key id}
+              [:button.quiz-option
+               {:class opt-class
+                :on-click #(when-not answered?
+                             (>evt [::stage-knowledge-answer question-id id]))}
+               text]))]]])
 
      [:div.action-bar-container {:class (when staged? "visible")}
       [:div.action-feedback-text {:class (if is-correct? "correct" "wrong")}
@@ -1328,7 +1413,7 @@
                             (remove #(str/starts-with? % "❓"))
                             (first)))]
     (or unanswered-prereq
-        unanswered-advanced
+        unanswered-advanced ;; Nodes with question that has the target as prerequisite.
         any-unnanswered ;; TODO: Add an extra logic before the "any-unnanswered" rule.
         target-node)))
 (re-frame/reg-sub
@@ -1368,13 +1453,14 @@
 
     [:div.app-container {:class (when is-tracing? "state-trace")}
      [trace-styles]
-     ; [:div "debug"
-     ;   [:pre (str "problem-node: "problem-node)]
-     ;   [:pre (str "current-target "(<sub [::target-node]))]
-     ;   [:pre (str "current-brain: "(<sub [::brain-node]))]
-     ;   [:pre (str "problem-path-takeen: "(<sub [::problem-path-taken]))]
-     ;   [:pre (str "Assumed id: "(<sub [::problem-evaluation]))]
-     ;   [:pre (str "question-data: "problem-question-data)]]
+     [:div "debug"
+       [:pre (str "problem-node: "problem-node)]
+       [:pre (str "current-target "(<sub [::target-node]))]
+       [:pre (str "current-brain: "(<sub [::brain-node]))]
+       [:pre (str "problem-path-takeen: "(<sub [::problem-path-taken]))]
+       [:pre (str "Assumed id: "(<sub [::problem-evaluation]))]
+       [:pre (str "question-data: "problem-question-data)]
+       [:pre (str "knowledge-question-data: "knowledge-question-data)]]
 
 
      ;; === BACKGROUND GRAPH LAYER (Moves from Full Screen to Bottom) ===
@@ -1395,12 +1481,12 @@
        [search-ui]
 
        ;; Problem Quiz (Visible during trace)
-       (when (and is-tracing? problem-question-data)
+       (when is-tracing?
          [quiz-problem problem-question-data assumed-answer])]
 
       ;; Right: Knowledge Panel (Visible during trace)
       [:div.knowledge-panel
-       (when (and is-tracing? knowledge-question-data)
+       (when is-tracing?
          [quiz-knowledge current-brain knowledge-question-id knowledge-question-data])]]]))
 
 #_:clj-kondo/ignore
@@ -1408,6 +1494,14 @@
   (require '[cljs.core.async :refer [go <!]])
   (require '[cljs.core.async.interop :refer-macros [<p!]])
   trace-scenarios
+  (cljs.core.async/go
+    (looset-graph/init-state)
+    (looset-graph/load-graph-text)
+    (core/load-resources-meta!)
+    (re-frame/dispatch-sync [::looset-graph/fetch-markdown-explanation-content])
+    (cljs.core.async/<! (cljs.core.async/timeout 10))
+    (re-frame/dispatch-sync [:looset-trace.app/start-trace "❓ Undo last commits"]))
+
   (cljs.core.async/go
     (looset-graph/init-state)
     (looset-graph/load-graph-text)
