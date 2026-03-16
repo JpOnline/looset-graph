@@ -22,7 +22,7 @@
 ;; TODO: Might be better using fetch instead of xhr.
 ; It avoids callback hell and is the current standard.
 (defn load-resources-meta! []
-  (-> (js/fetch "/resources-meta.edn")
+  (-> (js/fetch "resources-meta.edn")
       (.then (fn [response]
                (if (.-ok response)
                  (.text response)
