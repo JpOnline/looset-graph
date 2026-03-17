@@ -523,10 +523,10 @@
 ;; -- DATA
 ;; ---------------------------------------------------------
 (def featured-questions
-  [{:label "❓ Undo last commits" :highlight? true :icon "🔥"}
-   {:label "❓ Pull vs Fetch" #_"Difference between 'pull' and 'fetch'"}
-   {:label "Delete a branch locally and remotely"}
-   {:label "Undo 'git add' before commit"}])
+  [{:id "❓ Undo last commits" :label "How to undo most recent commits?" :highlight? true :icon "🔥"}
+   {:id "❓ Pull vs Fetch" :label "What's the difference between 'pull' and 'fetch'?"}
+   {:id "❓ Delete a branch locally and remotely" :label "Delete a branch locally and remotely"}
+   {:id "❓ Undo 'git add' before commit" :label "Undo 'git add' before commit"}])
 
 (def other-subjects
   [{:label "AI / LLM"}
@@ -596,7 +596,7 @@
                                                       {:id :unit-test :text "**Local Unit Testing**: Running automated tests to verify the code actually fixes the issue before saving."}
                                                       {:id :git-hooks :text "**Automated Git Hooks**: Setting up scripts that automatically block my commits if linters or tests fail."}]}}}
    "❓ Pull vs Fetch"
-   {:related-nodes ["git fetch" "git pull" "git merge" "Remote-Tracking Branch" "Working Directory" "Local Repository" "Remote Repository" "origin/main" "refs/remotes/" "git rebase" "pull.ff" "pull.rebase" "Upstream Branch" "Tracking Branch" "Fast-Forward Merge" "git merge --ff-only" "origin" "git status" "git branch -r" "Merge Conflicts" "Upstream Branch" "Upstream Repository" "Branch" "main" "git remote"]
+   {:related-nodes ["git fetch" "git pull" "git merge" "Remote-Tracking Branch" "Working Directory" "Local Repository" "Remote Repository" "origin/main" "refs/remotes/" "git rebase" "pull.ff" "pull.rebase" "Upstream Branch" "Tracking Branch" "Fast-Forward Merge" "git merge --ff-only" "origin" "git status" "git branch -r" "Merge Conflicts" "Upstream Repository" "Branch" "main" "git remote"]
     :routing [
               [:integrate :clean] "git pull"
               [:review] "git fetch"
@@ -621,28 +621,264 @@
                                                       {:id :blocked :text "Unexpectedly blocked by missing remote dependencies"}]}}}
    ;; Knowledge Space
    "git fetch"
-   {:questions {:x {:title "git fetch"
-                    :options [{:id :a :text "right"}
-                              {:id :b :text "wrong"}]
-                    :correct-id :a}}}
+   {:prerequisites ["Remote Repository" "Local Repository"]
+    :questions {:1 {:description "What is the primary function of the `--prune` (or `-p`) flag when running `git fetch --prune`?"
+                    :options [{:id :a :text "It permanently deletes local branches that have already been merged into `main`."
+                               :why "Fetching with prune only affects remote-tracking branches, not your local working branches."}
+                              {:id :b :text "It removes local **remote-tracking branches** (like `origin/feature-branch`) if the corresponding branch has been deleted on the remote repository."
+                               :why "By default, `git fetch` does not remove references. The `--prune` flag forces Git to clean up stale remote-tracking references that no longer exist on the remote."}
+                              {:id :c :text "It runs `git gc` in the background to prune dangling commits from the local database."
+                               :why "Garbage collection (`git gc`) is a separate process that handles dangling commits."}
+                              {:id :d :text "It clears the remote reflog to save space before downloading new objects."
+                               :why "The reflog is local, and `git fetch --prune` does not clear it."}
+                              {:id :e :text "It forcefully overwrites local tags with the tags from the remote repository."
+                               :why "Tag pruning or force-updating tags requires different flags (like `--tags` or `--prune-tags`)."}]
+                    :hint "Over time, as teammates delete branches on GitHub/GitLab, your local `git branch -r` list gets cluttered. How do you clean it up?"
+                    :correct-id :b}}}
+
    "git pull"
-   {:questions {:x {:title "git pull"
-                    :options [{:id :a :text "right"}
-                              {:id :b :text "wrong"}]
-                    :correct-id :a}}}
+   {:prerequisites ["git fetch" "git merge"]
+    :questions {:3 {:description "Why would a developer choose to use `git pull --rebase` instead of a standard `git pull`?"
+                    :options [{:id :a :text "To ensure that all local uncommitted changes are discarded before bringing in remote changes."
+                               :why "Rebase does not discard uncommitted changes; it rewrites history. Discarding changes requires `git reset` or `git checkout`."}
+                              {:id :b :text "To maintain a linear project history by applying their local commits directly on top of the newly fetched remote commits, avoiding an unnecessary **merge commit**."
+                               :why "Rebasing rewrites local history by temporarily setting aside local commits, updating the branch to the remote's tip, and then reapplying the local commits one by one."}
+                              {:id :c :text "To automatically squash all remote commits into a single commit before integrating them locally."
+                               :why "`git pull --rebase` maintains the remote commits as they are; it rebases local commits, not remote ones."}
+                              {:id :d :text "To bypass conflict resolution, as rebasing automatically accepts the remote changes."
+                               :why "Rebasing can still result in conflicts, which must be resolved commit-by-commit."}
+                              {:id :e :text "To force the remote repository to accept their local history, overwriting remote changes."
+                               :why "Modifying the remote requires a `git push`, usually with `--force`, not a `git pull`."}]
+                    :hint "Standard pulls often result in 'Merge branch main of origin into main' commits, cluttering the log."
+                    :correct-id :b}}}
+
    "git merge"
-   {:questions {:x {:title "git merge"
-                    :options [{:id :a :text "right"}
-                              {:id :b :text "wrong"}]
-                    :correct-id :a}}}
+   {:prerequisites ["Staging Area (Index)" "Working Directory" "git rebase"]
+    :questions {:5 {:description "What is the result of executing `git merge --squash feature-branch`?"
+                    :options [{:id :a :text "It automatically creates a single merge commit that combines all commit messages from `feature-branch`."
+                               :why "It prepares the working tree but does *not* automatically create the commit."}
+                              {:id :b :text "It takes all the changes from `feature-branch` and stages them in your working directory as uncommitted changes, without recording a merge link in the history."
+                               :why "Squash merges take the net effect of the target branch and put it in the index, allowing you to create a brand new, disconnected commit containing all changes."}
+                              {:id :c :text "It deletes the `feature-branch` immediately after merging it into the current branch."
+                               :why "Git never deletes branches automatically during a merge operation."}
+                              {:id :d :text "It performs an interactive rebase of `feature-branch` onto the current branch."
+                               :why "Interactive rebasing (`git rebase -i`) is a completely separate command for editing history."}
+                              {:id :e :text "It forces a 3-way merge commit even if a fast-forward is possible."
+                               :why "This is the behavior of `--no-ff`, not `--squash`."}]
+                    :hint "This flag is highly useful when you want to bring a messy branch into `main` as one clean, isolated change."
+                    :correct-id :b}}}
+
    "Remote-Tracking Branch"
-   {:questions {:x {:title "Remote-Tracking Branch"
-                    :options [{:id :a :text "right"}
-                              {:id :b :text "wrong"}]
+   {:prerequisites ["origin/main" "Upstream Branch" "refs/remotes/"]
+    :questions {:7 {:description "If you have a local branch named `backend-api` and you want it to track a remote branch named `origin/feat/api-v2`, what command should you use?"
+                    :options [{:id :a :text "`git remote add origin feat/api-v2`"
+                               :why "`git remote add` is used to define a new remote server URL, not to set branch tracking."}
+                              {:id :b :text "`git checkout origin/feat/api-v2 -- backend-api`"
+                               :why "This syntax attempts to checkout specific files from a remote branch, not set tracking."}
+                              {:id :c :text "`git branch --set-upstream-to=origin/feat/api-v2 backend-api`"
+                               :why "This command explicitly configures the local branch `backend-api` to use `origin/feat/api-v2` as its upstream branch, enabling shorthand `git pull` and `git push`."}
+                              {:id :d :text "`git push --track origin backend-api:feat/api-v2`"
+                               :why "While `git push -u` can set tracking, the syntax provided is invalid for strictly setting tracking on an existing local branch without pushing."}
+                              {:id :e :text "`git branch -m backend-api origin/feat/api-v2`"
+                               :why "The `-m` flag is used to rename a branch, not to set its upstream tracker."}]
+                    :hint "You need to set the 'upstream' reference for your current local branch."
+                    :correct-id :c}}}
+
+   "Remote Repository"
+   {:prerequisites ["Local Repository" "Tracking Branch"]
+    :questions {:27 {:description "What is a 'bare' remote repository, and why is it preferred for central collaboration servers?"
+                     :options [{:id :a :text "It is a repository that has been stripped of its commit history to save space." :why "Bare repositories retain full history."}
+                               {:id :b :text "It is a repository with no working directory, designed specifically to receive pushes without conflicts over working tree state." :why "Because no one works directly inside a bare repo, pushing to it won't conflict with checked-out files."}
+                               {:id :c :text "It is a repository that lacks the `.git` directory." :why "A bare repo is essentially *only* the contents of the `.git` directory."}
+                               {:id :d :text "It is a repository initialized with `git init --shallow`." :why "Shallow clones lack history, but are not necessarily bare."}
+                               {:id :e :text "It is a remote that does not accept SSH connections." :why "Bare repos work perfectly fine over SSH."}]
+                     :hint "If a server had files checked out, pushing to the branch it was currently viewing would cause massive chaos."
+                     :correct-id :b}}}
+
+   "origin/main"
+   {:prerequisites ["main" "git fetch" "Remote-Tracking Branch"]
+    :questions {:17 {:description "If `origin/main` is pointing to an older commit than the actual remote `main` branch, which command is necessary to update just this reference without altering your working directory?"
+                     :options [{:id :a :text "`git pull origin main`" :why "Pull modifies the working directory by merging."}
+                               {:id :b :text "`git update origin main`" :why "There is no such command."}
+                               {:id :c :text "`git fetch origin main`" :why "Fetch safely downloads new data and updates remote-tracking branches without touching local working branches."}
+                               {:id :d :text "`git rebase origin/main`" :why "This rebases your current branch; it doesn't fetch new remote data."}
+                               {:id :e :text "`git checkout origin/main`" :why "This puts you in a detached HEAD state; it doesn't update the reference from the remote."}]
+                     :hint "This command is the first half of what `git pull` does behind the scenes."
+                     :correct-id :c}}}
+
+   "refs/remotes/"
+   {:prerequisites ["Local Repository" "git branch -r" "Remote-Tracking Branch"]
+    :questions {:23 {:description "How does Git logically differentiate between branches stored in `refs/heads/` and those in `refs/remotes/`?"
+                     :options [{:id :a :text "`refs/heads/` stores tag pointers, while `refs/remotes/` stores branch pointers." :why "Tags are stored in `refs/tags/`."}
+                               {:id :b :text "`refs/heads/` branches can be checked out and directly modified; `refs/remotes/` branches are read-only snapshots of remote state." :why "If you check out a remote branch directly, you end up in a 'detached HEAD' state because Git prevents direct commits to them."}
+                               {:id :c :text "`refs/heads/` is for the upstream, `refs/remotes/` is for the origin fork." :why "Both upstreams and origins have refs under `refs/remotes/`."}
+                               {:id :d :text "`refs/heads/` uses SHA-1, while `refs/remotes/` uses SHA-256." :why "Hash algorithms are consistent across the entire repository."}
+                               {:id :e :text "There is no difference; Git symlinks one to the other." :why "They are completely separate pointers managed differently."}]
+                     :hint "Think about what happens when you try to directly `git commit` to `origin/main`."
+                     :correct-id :b}}}
+
+   "git rebase"
+   {:prerequisites ["Commit Object" "Working Directory" "git merge"]
+    :questions {:1 {:description "In the command `git rebase --onto main branchA branchB`, which commits are rebased?"
+                    :options [{:id :a :text "All commits from `branchA` and `branchB` are applied to `main`." :why "The `--onto` flag uses specific ranges, not all commits."}
+                              {:id :b :text "Commits reachable from `branchA` but not `branchB`, placed onto `main`." :why "The order of arguments is reversed; `branchB` is the target branch."}
+                              {:id :c :text "Commits reachable from `branchB` but not `branchA`, placed onto `main`." :why "Git takes the commits exclusive to `branchB` (since `branchA`) and replays them on `main`."}
+                              {:id :d :text "Only the tip commit of `branchB` is placed onto `main`." :why "Git replays the entire sequence of commits between `branchA` and `branchB`, not just the tip."}
+                              {:id :e :text "It merges `branchA` and `branchB`, then rebases the result onto `main`." :why "Rebase `--onto` operates on a linear range of commits, it does not perform a merge."}]
+                    :hint "The syntax is `git rebase --onto <newbase> <upstream> <branch>`."
+                    :correct-id :c}}}
+
+   "pull.ff"
+   {:prerequisites ["git pull" "git merge" "git merge --ff-only" "Fast-Forward Merge"]
+    :questions {:28 {:description "What does setting `git config pull.ff only` ensure during your workflow?"
+                     :options [{:id :a :text "It forces `git pull` to only execute fast-forward merges, failing entirely if the local branch has diverged." :why "This acts as a safety valve, forcing developers to manually rebase or merge if histories diverge."}
+                               {:id :b :text "It only fetches branches that have fast-forwarded on the remote." :why "Fetch retrieves all configured branches."}
+                               {:id :c :text "It speeds up the network transfer during a pull." :why "`ff` stands for fast-forward (history), not network speed."}
+                               {:id :d :text "It automatically creates merge commits for everything." :why "It explicitly prevents merge commits."}
+                               {:id :e :text "It ignores all file conflicts." :why "Fast-forwards by definition cannot have file conflicts."}]
+                     :hint "It strictly prevents Git from automatically creating a merge commit when pulling."
+                     :correct-id :a}}}
+
+   "pull.rebase"
+   {:prerequisites ["git pull" "git rebase"]
+    :questions {:15 {:description "Setting `pull.rebase` to `interactive` accomplishes what specific workflow during a `git pull`?"
+                     :options [{:id :a :text "It prompts the user to confirm every single file change before downloading." :why "Fetch downloads objects automatically; interaction is during integration."}
+                               {:id :b :text "It opens an interactive rebase session, allowing the user to squash, reorder, or edit local commits before applying them on top of the pulled commits." :why "This allows cleanup of local commits right as they are integrated with remote changes."}
+                               {:id :c :text "It automatically attempts to resolve conflicts using an interactive GUI tool." :why "Conflict resolution uses `mergetool`, not interactive rebase."}
+                               {:id :d :text "It pauses the pull to ask whether to use merge or rebase." :why "It actively begins a rebase in interactive mode (`-i`)."}
+                               {:id :e :text "It requests a password interactively for SSH keys." :why "SSH authentication is separate from the `pull.rebase` config."}]
+                     :hint "Think about what `git rebase -i` does."
+                     :correct-id :b}}}
+
+   "Upstream Branch"
+   {:prerequisites ["git branch -vv" "git push -u" "Remote-Tracking Branch"]
+    :questions {:31 {:description "Which shorthand syntax can be used to refer to the upstream branch of the currently checked-out branch?"
+                     :options [{:id :a :text "`HEAD^`" :why "This refers to the parent of the current commit."}
+                               {:id :b :text "`~upstream`" :why "Tildes are used for ancestral navigation (e.g., `HEAD~1`)."}
+                               {:id :c :text "`@{upstream}` or `@{u}`" :why "This syntax dynamically resolves to the upstream tracking branch, e.g., `git merge @{u}`."}
+                               {:id :d :text "`origin/HEAD`" :why "This points to the default branch on the remote, not necessarily the upstream of the *current* branch."}
+                               {:id :e :text "`^upstream`" :why "Carets are used for parent selection or negation."}]
+                     :hint "It uses the 'at' symbol combined with braces."
+                     :correct-id :c}}}
+
+   "Tracking Branch"
+   {:prerequisites ["origin/main" "main" "Remote-Tracking Branch"]
+    :questions {:2 {:description "How do you configure an existing local branch to track a remote branch named `origin/feature`?"
+                    :options [{:id :a :text "`git branch -u origin/feature`" :why "The `-u` (or `--set-upstream-to`) flag sets the tracking relationship for the current branch."}
+                              {:id :b :text "`git track origin/feature`" :why "There is no `track` command in Git."}
+                              {:id :c :text "`git push --track origin/feature`" :why "While `git push -u` sets tracking, `--track` is used with checkout or branch creation."}
+                              {:id :d :text "`git branch --track origin/feature`" :why "This creates a new branch that tracks a remote, it doesn't set an existing one."}
+                              {:id :e :text "`git remote add origin/feature`" :why "This adds a new remote repository, not a tracking branch."}]
+                    :hint "Look for the flag that stands for 'set upstream'."
                     :correct-id :a}}}
 
+   "Fast-Forward Merge"
+   {:prerequisites ["git merge --ff-only" "git merge" "Merge Conflicts"]
+    :questions {:41 {:description "Why might a release manager explicitly prevent a fast-forward merge using `git merge --no-ff`?"
+                     :options [{:id :a :text "To force the creation of a merge commit, thereby preserving the historical grouping of commits from a feature branch." :why "Even if a fast-forward is possible, `--no-ff` creates a merge node, visibly grouping the feature's commits together in the history graph."}
+                               {:id :b :text "To automatically squash the commits." :why "Squashing is done with `--squash`."}
+                               {:id :c :text "To prevent network lag." :why "Merge flags do not affect network."}
+                               {:id :d :text "To ensure that all commits are signed by GPG." :why "Signing is handled by `-S`."}
+                               {:id :e :text "To completely erase the feature branch." :why "It preserves the feature branch's historical context."}]
+                     :hint "Sometimes a straight linear history hides the fact that a group of commits represented a single unified feature."
+                     :correct-id :a}}}
+
+   "git merge --ff-only"
+   {:prerequisites ["Fast-Forward Merge" "git merge" "Merge Conflicts"]
+    :questions {:19 {:description "Why might an engineering team enforce `--ff-only` policies globally on their continuous integration server?"
+                     :options [{:id :a :text "To ensure that code is always compressed." :why "Merges do not dictate object compression."}
+                               {:id :b :text "To maintain a perfectly linear project history without any extraneous merge commits." :why "Enforcing fast-forwards means developers must rebase their changes before merging, keeping history clean and linear."}
+                               {:id :c :text "To bypass pre-commit hooks." :why "Merge strategies do not bypass hooks."}
+                               {:id :d :text "To automatically resolve all text conflicts." :why "Fast-forwards don't resolve conflicts; they avoid merges entirely."}
+                               {:id :e :text "To allow unrelated histories to be merged safely." :why "Fast-forwarding fundamentally requires related, linear histories."}]
+                     :hint "Think about the visual graph of commits in platforms like GitHub when examining large projects."
+                     :correct-id :b}}}
+
+   "origin"
+   {:prerequisites ["Remote-Tracking Branch" "Upstream Repository" "origin/main" "refs/remotes/"]
+    :questions {:7 {:description "Which command securely updates the URL of the remote named `origin` to a new endpoint?"
+                    :options [{:id :a :text "`git remote update origin <new-url>`" :why "`remote update` fetches updates from remotes; it doesn't change URLs."}
+                              {:id :b :text "`git push origin --set-url <new-url>`" :why "Push does not configure remote URLs."}
+                              {:id :c :text "`git remote set-url origin <new-url>`" :why "This command directly modifies the URL associated with the remote name 'origin'."}
+                              {:id :d :text "`git config remote.origin <new-url>`" :why "You would need to specify `remote.origin.url` for this to work via config."}
+                              {:id :e :text "`git origin url <new-url>`" :why "There is no built-in `git origin` command."}]
+                    :hint "Look for the command under the `git remote` namespace that explicitly sets a URL."
+                    :correct-id :c}}}
+
+   "git status"
+    :questions {:38 {:description "Which three distinct areas does `git status` primarily compare to show you the state of your project?"
+                     :options [{:id :a :text "Local repo, Remote repo, Staging area" :why "Status does not dynamically check the remote repo (unless fetching first)."}
+                               {:id :b :text "Working Directory, the Staging Area (Index), and the HEAD commit." :why "`git status` compares Working Dir vs Index (un-staged changes) and Index vs HEAD (staged changes)."}
+                               {:id :c :text "Branch A, Branch B, Branch C" :why "Status focuses on the current checked-out branch only."}
+                               {:id :d :text "Untracked files, Ignored files, Stashed files" :why "It shows untracked files, but usually hides ignored and stashed files."}
+                               {:id :e :text "Commit history, Reflog, Remote HEAD" :why "Status does not show history or reflog."}]
+                     :hint "Think about the journey of a file from editing to committing."
+                     :correct-id :b}}}
+
+   "git branch -r"
+   {:prerequisites ["refs/remotes/"]
+    :questions {:33 {:description "If `git branch -r` shows `origin/stale-branch` but you know a colleague deleted it on GitHub, why is it still showing and how do you fix it?"
+                     :options [{:id :a :text "Git preserves branches forever; use `git branch -D origin/stale-branch`." :why "Directly deleting remote-tracking branches is bad practice; pruning is better."}
+                               {:id :b :text "Your colleague didn't delete it properly; tell them to delete it again." :why "The remote server was updated, but the local repo hasn't fetched the deletion."}
+                               {:id :c :text "The local cached reference hasn't been updated; you must run `git fetch --prune` to remove it." :why "Fetching normally only adds or updates; `--prune` explicitly removes local remote-tracking refs that no longer exist upstream."}
+                               {:id :d :text "It is locked due to an ongoing rebase; run `git rebase --abort`." :why "Stale remote branches have nothing to do with active local rebases."}
+                               {:id :e :text "You must delete the remote repository and clone again." :why "Cloning again is massive overkill for a simple synchronization."}]
+                     :hint "Your local Git client doesn't know what happened on the server until it explicitly checks and cleans up."
+                     :correct-id :c}}}
+
+   "Merge Conflicts"
+   {:prerequisites ["git merge" "Feature Branching Workflow" "Staging Area"]
+    :questions {:45 {:description "When manually resolving a merge conflict in a file, what do the markers `<<<<<<<`, `=======`, and `>>>>>>>` indicate?"
+                     :options [{:id :a :text "They represent syntax errors caused by the compiler." :why "They are standard text markers injected by Git."}
+                               {:id :b :text "`<<<<<<<` marks the start of the file, `=======` the middle, and `>>>>>>>` the end." :why "They only wrap the conflicted hunk, not the whole file."}
+                               {:id :c :text "`<<<<<<<` begins your current local branch's changes, `=======` separates the conflicting versions, and `>>>>>>>` ends the incoming/target branch's changes." :why "These markers clearly isolate the two competing hunks of code so the developer can edit them into a final resolved state."}
+                               {:id :d :text "`<<<<<<<` means the code is older, `>>>>>>>` means the code is newer." :why "They represent branch perspectives (HEAD vs incoming), not strict timestamps."}
+                               {:id :e :text "They are encrypted keys verifying the merge." :why "They are plain text visual aids."}]
+                     :hint "The markers divide the conflicting area into 'Ours' and 'Theirs'.":correct-id :c}}}
+
+   "Upstream Repository"
+   {:prerequisites ["origin" "Local Repository"]
+    :questions {:12 {:description "In a standard fork-and-pull-request workflow on platforms like GitHub, what does the term 'Upstream Repository' conventionally refer to?"
+                     :options [{:id :a :text "The personal fork residing in the user's account." :why "This is usually referred to as the 'origin'."}
+                               {:id :b :text "The local clone on the developer's computer." :why "This is the local repository."}
+                               {:id :c :text "The original, central repository from which a user forked their personal remote repository." :why "Developers sync changes from the 'upstream' to keep their fork updated."}
+                               {:id :d :text "The branch currently checked out in the working directory." :why "This is the active local branch."}
+                               {:id :e :text "The staging environment server." :why "Git does not inherently know about staging servers."}]
+                     :hint "It's the source of truth that multiple contributors fork from."
+                     :correct-id :c}}}
+
+   "main"
+   {:prerequisites ["origin/main" "master"]
+    :questions {:24 {:description "In modern Git environments, what is the role of the `main` branch?"
+                     :options [{:id :a :text "It is a protected namespace that cannot be deleted." :why "Git allows deleting the `main` branch just like any other."}
+                               {:id :b :text "It is a special branch that always tracks remote changes automatically." :why "Tracking must be configured for all branches."}
+                               {:id :c :text "It is simply the conventional default name for the primary, base branch of a repository." :why "It has no special technical powers over other branches; it is just a naming convention."}
+                               {:id :d :text "It is the only branch allowed to push to `origin`." :why "Any tracking branch can be pushed."}
+                               {:id :e :text "It is a hidden branch used for storing internal metadata." :why "It is a standard, visible development branch."}]
+                     :hint "Does it have special privileges, or is it just a commonly agreed-upon standard?"
+                     :correct-id :c}}}
+
+   "git remote"
+   {:prerequisites ["Remote Repository"]
+    :questions {:21 {:description "What does the command `git remote prune origin` accomplish?"
+                     :options [{:id :a :text "It deletes the remote repository `origin` entirely." :why "To remove a remote, you use `git remote remove origin`."}
+                               {:id :b :text "It permanently deletes all local branches that have been merged." :why "That requires custom scripting or `git branch -d`."}
+                               {:id :c :text "It pushes a command to delete obsolete branches on the server." :why "Prune affects local tracking branches, not remote server branches directly."}
+                               {:id :d :text "It deletes local remote-tracking branches under `refs/remotes/origin/` that no longer exist on the remote `origin`." :why "It cleans up stale pointers to branches that colleagues may have deleted on the server."}
+                               {:id :e :text "It garbage collects loose objects in the remote." :why "Prune cleans up refs, while `gc` handles objects."}]
+                     :hint "Think about cleaning up 'stale' references after someone deletes a branch on GitHub."
+                     :correct-id :d}}}
+
    "git reset"
-   {:prerequisites ["Staging Area (Index)" "HEAD"]}
+   {:prerequisites ["Staging Area (Index)" "HEAD"]
+    :questions {:43 {:description "If you accidentally perform `git reset --hard` and seem to lose unpushed commits, how can you effectively recover them?"
+                     :options [{:id :a :text "They are gone forever; `--hard` securely erases them from disk." :why "Git retains orphaned objects for typically 30 days before garbage collection."}
+                               {:id :b :text "By finding the lost commit hashes using `git reflog` and checking them out or resetting back to them." :why "The reflog tracks all movements of the HEAD pointer, allowing you to find the hashes of 'lost' commits and restore them."}
+                               {:id :c :text "By querying the remote repository's recycle bin." :why "Remote repositories do not have a standard recycle bin for unpushed commits."}
+                               {:id :d :text "By running `git undelete`." :why "There is no such command."}
+                               {:id :e :text "By extracting them from `.git/hooks`." :why "Hooks are shell scripts, not data backups."}]
+                     :hint "Git keeps a journal of every time your HEAD pointer moves locally."
+                     :correct-id :b}}}
 
    "git reset --soft"
    {:prerequisites ["HEAD"]
@@ -679,7 +915,15 @@
                     :correct-id :c}}}
 
    "Working Directory"
-   {:prerequisites ["git add" "git status" "git restore" "Repository (.git)"]}
+   {:prerequisites ["git add" "git status" "git restore" "Repository (.git)"]
+    :questions {:34 {:description "What exactly constitutes the Working Directory in Git?"
+                     :options [{:id :a :text "The hidden `.git` folder." :why "This is the local repository/database."}
+                               {:id :b :text "The Staging Area where files wait to be committed." :why "The index/staging area is separate from the working directory."}
+                               {:id :c :text "The local filesystem directory containing the currently checked-out version of your project files." :why "This is the sandbox where you actually view, create, and modify your code files."}
+                               {:id :d :text "The remote server's filesystem." :why "The working directory is strictly local."}
+                               {:id :e :text "A temporary memory buffer used during merges." :why "Merges happen in the working tree, but the tree itself is persistent filesystem data."}]
+                     :hint "It is the folder you open in your IDE or text editor."
+                     :correct-id :c}}}
 
    "Staging Area (Index)"
    {:prerequisites ["Snapshot" "Repository (.git)"]
@@ -690,7 +934,15 @@
                     :correct-id :b}}}
 
    "git revert"
-   {:prerequisites ["Commit Object"]}
+   {:prerequisites ["Commit Object"]
+    :questions {:4 {:description "Unlike `git reset`, how does `git revert` undo changes?"
+                    :options [{:id :a :text "It deletes the targeted commit and all subsequent commits from the history." :why "This describes `git reset --hard`."}
+                              {:id :b :text "It creates a new commit that applies the exact inverse of the changes from a specific commit." :why "`git revert` is safe for shared histories because it rolls forward, negating the old changes."}
+                              {:id :c :text "It moves the changes from the commit back into the Staging Area." :why "This describes `git reset --soft`."}
+                              {:id :d :text "It detaches the HEAD pointer to a previous state without altering commits." :why "Checking out a specific commit hash detaches the HEAD."}
+                              {:id :e :text "It permanently deletes files modified in the reverted commit from the working directory." :why "It simply inverses changes; it doesn't blindly delete files unless the reverted commit added them."}]
+                    :hint "Think about how to safely undo changes in a shared, public repository."
+                    :correct-id :b}}}
 
    "Commit Object"
    {:prerequisites ["Tree" "Snapshot" "SHA-1 Hash"]
@@ -719,7 +971,15 @@
                     :correct-id :c}}}
 
    "Local Repository"
-   {:prerequisites ["Remote Repository"]}
+   {:prerequisites ["Remote Repository"]
+    :questions {:9 {:description "What is the primary internal function of the `git gc` command in a local repository?"
+                    :options [{:id :a :text "It forcefully deletes all untracked files in the working directory." :why "This is done by `git clean`."}
+                              {:id :b :text "It automatically resolves dangling merge conflicts." :why "Git requires human intervention to resolve logical conflicts."}
+                              {:id :c :text "It cleans up unnecessary files and optimizes the repository by compressing loose objects into packfiles." :why "`git gc` (garbage collection) compresses data and removes unreachable objects to save space and improve performance."}
+                              {:id :d :text "It pushes all unpushed garbage commits to the remote origin." :why "Garbage collection is a local maintenance operation."}
+                              {:id :e :text "It checks out the repository to an earlier clean state." :why "This is handled by commands like `git checkout` or `git reset`."}]
+                    :hint "The 'gc' stands for Garbage Collection."
+                    :correct-id :c}}}
 
    "Snapshot"
    {:prerequisites ["Tree"]
@@ -738,10 +998,25 @@
                     :correct-id :e}}}
 
    "Tree"
-   {:prerequisites ["SHA-1 Hash"]}
+   {:prerequisites ["SHA-1 Hash"]
+    :questions {:36 {:description "In Git's internal object model, what does a Tree object roughly map to?"
+                     :options [{:id :a :text "A single line of text in a code file." :why "Git objects track whole files, not individual lines."}
+                               {:id :b :text "The entire commit history graph." :why "The graph is built from commit objects, not tree objects."}
+                               {:id :c :text "A filesystem directory, containing pointers to blobs (files) and other trees (subdirectories)." :why "Tree objects represent directory structures, holding lists of filenames, modes, and SHA-1 hashes of their contents."}
+                               {:id :d :text "A remote branch." :why "Branches are ref pointers."}
+                               {:id :e :text "A merge conflict marker." :why "Conflicts are temporary text markers in the working directory."}]
+                     :hint "If a 'blob' is a file, what would group blobs together?"
+                     :correct-id :c}}}
 
    "Branch"
-   {:prerequisites ["git revert"]} ;; TODO: "git revert" is here only for attractig the brain icon in the demo.
+   {:prerequisites ["Commit Object" "HEAD"]
+    :questions {:11 {:description "What is the exact result of running `git checkout --orphan new_branch`?"
+                     :options [{:id :a :text "It deletes the current branch and leaves HEAD detached." :why "It creates a new branch; it doesn't delete the old one."}
+                               {:id :c :text "It creates a new branch with no commit history and a disconnected root." :why "The first commit made on this orphan branch will have no parents, starting a completely parallel history."}
+                               {:id :d :text "It checks out a branch that is unreachable from the main history, permanently discarding it." :why "The new branch is fully usable; it just shares no history with the rest of the repo."}
+                               {:id :e :text "It copies the history of the current branch but assigns a new tree object." :why "It intentionally copies no history."}]
+                     :hint "Think about branches like `gh-pages` that need to be in the same repo but share zero history with the main code."
+                     :correct-id :c}}}
   ; :questions {:0 {:title "More questions coming soon.."}}}
 
    "SHA-1 Hash"
@@ -1335,8 +1610,8 @@
                               (if no-matches?
                                 (trigger-vote! query "Vote recorded!" "manual") ;; Enter key triggers vote & modal
                                 (let [target-id (if has-query?
-                                                  (:label (first matches))
-                                                  (:label (first featured-questions)))]
+                                                  (:id (first matches))
+                                                  (:id (first featured-questions)))]
                                   (when target-id (start-trace! target-id))))))
              :on-change (fn [e]
                           (let [v (-> e .-target .-value)]
@@ -1364,19 +1639,19 @@
                                    (trigger-vote! query "Vote recorded!" "manual"))}
                  [:div.item-icon [:svg {:width "18" :height "18" :viewBox "0 0 24 24" :fill "none" :stroke "currentColor" :stroke-width "2"} [:path {:d "M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"}]]]
                  [:div [:div.item-text (str "\"" query "\"")] [:div.item-subtext "Not mapped yet. Click to vote to map this next."]]]
-                (for [{:keys [label]} featured-questions] ;; featured list as fallback
+                (for [{:keys [id label]} featured-questions] ;; featured list as fallback
                   ^{:key (str "feat-" label)}
-                  [:div.dropdown-item {:on-mouse-down (fn [e] (.preventDefault e) (start-trace! label))}
+                  [:div.dropdown-item {:on-mouse-down (fn [e] (.preventDefault e) (start-trace! id))}
                    [:div.item-icon [:svg {:width "16" :height "16" :viewBox "0 0 24 24" :fill "none" :stroke "currentColor" :stroke-width "2"} [:polyline {:points "20 6 9 17 4 12"}]]]
                    [:div.item-text label]])]
 
                ;; Scenario 2: With matches
-               (for [{:keys [label]} matches]
+               (for [{:keys [id label]} matches]
                  ^{:key label}
                  [:div.dropdown-item
                   {:on-mouse-down (fn [e]
                                     (.preventDefault e)
-                                    (start-trace! label))}
+                                    (start-trace! id))}
                   [:div.item-icon [:svg {:width "16" :height "16" :viewBox "0 0 24 24" :fill "none" :stroke "currentColor" :stroke-width "2"} [:circle {:cx "11" :cy "11" :r "8"}]]]
                   [:div.item-text label]]))])
 
@@ -1387,13 +1662,13 @@
            [:<>
              ;; --- Featured Questions ---
              [:div.cards-container
-              (for [{:keys [label highlight? icon]} featured-questions]
+              (for [{:keys [id label highlight? icon]} featured-questions]
                 ^{:key label}
                 [:div.trace-card
                  {:class (when highlight? "highlight")
-                  :on-click #(start-trace! label)}
+                  :on-click #(start-trace! id)}
                  (when icon [:span {:style {:font-size "1.1em"}} icon])
-                 (clojure.string/replace label "❓ " "")])]
+                 label])]
 
              ;; --- Divider ---
              [:div.section-divider "Other subjects"]
