@@ -524,7 +524,7 @@
 ;; ---------------------------------------------------------
 (def featured-questions
   [{:label "❓ Undo last commits" :highlight? true :icon "🔥"}
-   {:label "Difference between 'pull' and 'fetch'"}
+   {:label "❓ Pull vs Fetch" #_"Difference between 'pull' and 'fetch'"}
    {:label "Delete a branch locally and remotely"}
    {:label "Undo 'git add' before commit"}])
 
@@ -595,7 +595,52 @@
                                             :options [{:id :checklist :text "**Manual Checklists**: Creating a step-by-step list to manually verify my code and requirements before staging."}
                                                       {:id :unit-test :text "**Local Unit Testing**: Running automated tests to verify the code actually fixes the issue before saving."}
                                                       {:id :git-hooks :text "**Automated Git Hooks**: Setting up scripts that automatically block my commits if linters or tests fail."}]}}}
+   "❓ Pull vs Fetch"
+   {:related-nodes ["git fetch" "git pull" "git merge" "Remote-Tracking Branch" "Working Directory" "Local Repository" "Remote Repository" "origin/main" "refs/remotes/" "git rebase" "pull.ff" "pull.rebase" "Upstream Branch" "Tracking Branch" "Fast-Forward Merge" "git merge --ff-only" "origin" "git status" "git branch -r" "Merge Conflicts" "Upstream Branch" "Upstream Repository" "Branch" "main" "git remote"]
+    :routing [
+              [:integrate :clean] "git pull"
+              [:review] "git fetch"
+              [:integrate :dirty :commit] "git commit"
+              [:integrate :dirty :discard] "git reset"
+              [:integrate :dirty :commit :blocked] "git commit"
+              [:integrate :dirty :discard :blocked] "git reset"
+              [:integrate :dirty :stash :blocked] "git stash"
+              [:integrate :dirty :--any :shared-branch] "Feature Branching"]
+    :questions {[] {:description "What is your immediate goal with the remote updates?"
+                    :options [{:id :review :text "Review safely without modifying local files."}
+                              {:id :integrate :text "Integrate changes immediately."}]}
+                [:integrate] {:description "What is the state of your local working directory?"
+                              :options [{:id :clean :text "Clean: all changes committed."}
+                                        {:id :dirty :text "Dirty: uncommitted work in progress."}]}
+                [:integrate :dirty] {:description "How do you want to handle your uncommitted work before integrating?"
+                                     :options [{:id :stash :text "Temporarily hide it."}
+                                               {:id :commit :text "Permanently save it."}
+                                               {:id :discard :text "Discard it entirely."}]}
+                [:integrate :dirty :stash] {:description "What is driving the constant need to pull while work is incomplete?"
+                                            :options [{:id :shared-branch :text "Working directly on a shared main branch with others"}
+                                                      {:id :blocked :text "Unexpectedly blocked by missing remote dependencies"}]}}}
    ;; Knowledge Space
+   "git fetch"
+   {:questions {:x {:title "git fetch"
+                    :options [{:id :a :text "right"}
+                              {:id :b :text "wrong"}]
+                    :correct-id :a}}}
+   "git pull"
+   {:questions {:x {:title "git pull"
+                    :options [{:id :a :text "right"}
+                              {:id :b :text "wrong"}]
+                    :correct-id :a}}}
+   "git merge"
+   {:questions {:x {:title "git merge"
+                    :options [{:id :a :text "right"}
+                              {:id :b :text "wrong"}]
+                    :correct-id :a}}}
+   "Remote-Tracking Branch"
+   {:questions {:x {:title "Remote-Tracking Branch"
+                    :options [{:id :a :text "right"}
+                              {:id :b :text "wrong"}]
+                    :correct-id :a}}}
+
    "git reset"
    {:prerequisites ["Staging Area (Index)" "HEAD"]}
 
@@ -861,6 +906,9 @@
 
 (comment
   (evaluate-routing
+    (get-in trace-scenarios ["❓ Pull vs Fetch" :routing])
+    [:integrate :dirty :commit])
+  (evaluate-routing
     (get-in trace-scenarios ["❓ Undo last commits" :routing])
     [:local :keep :premature])
   (evaluate-routing
@@ -994,8 +1042,8 @@
   [{app-state :db} [evt chosen-id]]
   (let [app-state* (update-in app-state [:trace-ui :answers-for-problem-questions] (fnil conj []) chosen-id)
         problem (problem-node app-state evt)
-        brain (brain-node [(target-node app-state evt) (answered-questions app-state)])
-        brain* (brain-node [(target-node app-state* evt) (answered-questions app-state*)])
+        brain (brain-node [problem (target-node app-state evt) (answered-questions app-state)])
+        brain* (brain-node [problem (target-node app-state* evt) (answered-questions app-state*)])
         target (target-node app-state evt)
         target* (target-node app-state* evt)
         fx-seq (cond-> []
@@ -1071,11 +1119,11 @@
         staged (get-in app-state [:trace-ui :staged-knowledge-answer])
         question-id (:question-id staged)
         chosen-option (:answer staged)
-        brain (brain-node [(target-node app-state evt) (answered-questions app-state)])
+        brain (brain-node [(problem-node app-state evt) (target-node app-state evt) (answered-questions app-state)])
         app-state* (-> app-state
                      (assoc-in [:trace-ui :answered-questions brain question-id] chosen-option)
                      (assoc-in [:trace-ui :staged-knowledge-answer] nil))
-        brain* (brain-node [(target-node app-state* evt) (answered-questions app-state*)])
+        brain* (brain-node [(problem-node app-state evt) (target-node app-state* evt) (answered-questions app-state*)])
         target (target-node app-state evt)
         target* (target-node app-state* evt)
         fx-seq (cond-> []
@@ -1143,7 +1191,7 @@
                {:class opt-class
                 :on-click #(when-not answered?
                              (>evt [::stage-knowledge-answer question-id id]))}
-               text]))]]])
+               [markdown-view text]]))]]])
 
      [:div.action-bar-container {:class (when staged? "visible")}
       [:div.action-feedback-text {:class (if is-correct? "correct" "wrong")}
@@ -1164,7 +1212,7 @@
                         (assoc-in [:trace-ui :answered-questions] {})
                         (assoc-in [:trace-ui :staged-knowledge-answer] nil))
          target (target-node app-state* evt)
-         brain  (brain-node [(target-node app-state* evt) (answered-questions app-state*)])
+         brain  (brain-node [(problem-node app-state evt) (target-node app-state* evt) (answered-questions app-state*)])
          ; Opening Animation Sequence
          fx-seq (cond-> []
                   ;; Reveal the Problem Node
@@ -1421,7 +1469,7 @@
 
 (defn brain-node
   "Calculates the next node to test based on prerequisites, the target, and advanced concepts."
-  [[target-node answered-questions]]
+  [[problem-node target-node answered-questions]]
   (let [answered-question? #(not= :no-answer (question-result {:answered-questions answered-questions :node %}))
         has-question? #(:questions (get trace-scenarios % {}))
         target's-prerequisites (get-in trace-scenarios [target-node :prerequisites] []) ;; Hum, it's possible to name a var with '. It might bite me in the future..
@@ -1436,6 +1484,13 @@
                                 (remove answered-question?)
                                 (filter has-question?)
                                 (first)))
+        problem-related (when-not unanswered-advanced
+                          (-> trace-scenarios
+                            (get-in [problem-node :related-nodes])
+                            (->> (remove answered-question?))
+                            (->> (remove #{problem-node target-node}))
+                            (->> (filter has-question?))
+                            (first)))
         any-unnanswered (when-not unanswered-advanced
                           (->> trace-scenarios
                             (keys)
@@ -1446,10 +1501,12 @@
                             (first)))]
     (or unanswered-prereq
         unanswered-advanced ;; Nodes with question that has the target as prerequisite.
-        any-unnanswered ;; TODO: Add an extra logic before the "any-unnanswered" rule.
+        problem-related
+        any-unnanswered
         target-node)))
 (re-frame/reg-sub
   ::brain-node
+  :<- [::problem-node]
   :<- [::target-node]
   :<- [::answered-questions]
   brain-node)
@@ -1485,14 +1542,14 @@
 
     [:div.app-container {:class (when is-tracing? "state-trace")}
      [trace-styles]
-     ; [:div "debug"
-     ;   [:pre (str "problem-node: "problem-node)]
-     ;   [:pre (str "current-target "(<sub [::target-node]))]
-     ;   [:pre (str "current-brain: "(<sub [::brain-node]))]
-     ;   [:pre (str "problem-path-takeen: "(<sub [::problem-path-taken]))]
-     ;   [:pre (str "Assumed id: "(<sub [::problem-evaluation]))]
-     ;   [:pre (str "question-data: "problem-question-data)]
-     ;   [:pre (str "knowledge-question-data: "knowledge-question-data)]]
+     [:div "debug"
+       [:pre (str "problem-node: "problem-node)]
+       [:pre (str "current-target "(<sub [::target-node]))]
+       [:pre (str "current-brain: "(<sub [::brain-node]))]
+       [:pre (str "problem-path-takeen: "(<sub [::problem-path-taken]))]
+       [:pre (str "Assumed id: "(<sub [::problem-evaluation]))]
+       [:pre (str "question-data: "problem-question-data)]
+       [:pre (str "knowledge-question-data: "knowledge-question-data)]]
 
 
      ;; === BACKGROUND GRAPH LAYER (Moves from Full Screen to Bottom) ===
@@ -1532,7 +1589,7 @@
     (core/load-resources-meta!)
     (re-frame/dispatch-sync [::looset-graph/fetch-markdown-explanation-content])
     (cljs.core.async/<! (cljs.core.async/timeout 10))
-    (re-frame/dispatch-sync [:looset-trace.app/start-trace "❓ Undo last commits"]))
+    (re-frame/dispatch-sync [:looset-trace.app/start-trace "❓ Pull vs Fetch"]))
 
   (cljs.core.async/go
     (looset-graph/init-state)
