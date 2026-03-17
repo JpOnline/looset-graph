@@ -1129,8 +1129,11 @@
 
 (defn clear-nodes-positions
   [{app-state :db}]
-  {:fx [[:dispatch-later {:ms 40 :dispatch [::set-nodes-positions]}]]
-   :db (update-in app-state [:domain :nodes-map] #(into {} (for [[k v] %] {k (dissoc v :position)})))})
+  (let [visible? (set (get-in app-state [:ui :f-visible-nodes]))]
+    {:fx [[:dispatch-later {:ms 40 :dispatch [::set-nodes-positions]}]]
+     :db (update-in app-state [:domain :nodes-map] #(into {} (for [[k v] %] (if (visible? k)
+                                                                              {k (dissoc v :position)}
+                                                                              {k v}))))}))
 (re-frame/reg-event-fx ::clear-nodes-positions #_[event-to-analytics] clear-nodes-positions)
 
 (defn drag-changed
