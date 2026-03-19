@@ -1723,9 +1723,8 @@
         trace-scenarios-routing  (get-in trace-scenarios [problem-node :routing] [])
         target-from-problem (:matched-node (evaluate-routing trace-scenarios-routing answered-questions))
         target-prerequisites (get-in trace-scenarios [target-from-problem :prerequisites])
-                ;; TODO: I'll need a recursion here.
+                ;; TODO: I'll need a recursion here to get the prerequisites of the prerequisites.
         aim-fn (fn [target prerequisite]
-                  ;; TODO: I actually want to get the real answer and have a logic to check if it's right.
                  (if (= :wrong (question-result {:app-state app-state :node prerequisite}))
                    ;; wront answer for prerequisite then prerequisite
                    prerequisite
