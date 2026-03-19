@@ -267,6 +267,8 @@
 ;; --- QUIZ PANELS & WATERMARKS
        ----------------------------------------- */
     .quiz-container {
+      --panel-bg: #ffffff;
+      background-color: var(--panel-bg); /* For highlighting there's more options with scroll. */
       width: 100%;
       height: 100%;
       padding: 24px 10px;
@@ -279,9 +281,9 @@
     }
 
     /* Background feedback colors */
-    .panel-correct { background-color: rgba(220, 252, 231, 0.6); }
-    .panel-wrong { background-color: rgba(254, 226, 226, 0.6); }
-    .panel-info-gathered { background-color: rgba(243, 244, 246, 0.8); }
+    .panel-correct { --panel-bg: #e9f9ef; }
+    .panel-wrong { --panel-bg: #fcebeb; }
+    .panel-info-gathered { --panel-bg: #f0f1f3; }
 
     /* The Watermark Emoji */
     .panel-watermark {
@@ -300,6 +302,24 @@
       z-index: 4; /* Above the watermark */
       position: relative;
       padding-right: 8px; /* Room for scrollbar */
+
+      /* For highlighting that there's more options with scroll.*/
+      background:
+        /* Top Cover (Hides top shadow when scrolled to the top) */
+        linear-gradient(var(--panel-bg) 30%, rgba(255,255,255,0)),
+        /* Bottom Cover (Hides bottom shadow when scrolled to the bottom) */
+        linear-gradient(rgba(255,255,255,0), var(--panel-bg) 70%) 0 100%,
+        /* Top Shadow (Fixed) */
+        radial-gradient(farthest-side at 50% 0, rgba(0,0,0,0.12), rgba(0,0,0,0)),
+        /* Bottom Shadow (Fixed) */
+        radial-gradient(farthest-side at 50% 100%, rgba(0,0,0,0.42), rgba(0,0,0,0)) 0 100%;
+
+      background-repeat: no-repeat;
+      /* Size of covers (40px) and shadows (14px) */
+      background-size: 100% 40px, 100% 40px, 100% 14px, 100% 14px;
+
+      /* `local` attaches to the scrolling content. `scroll` attaches to the element viewport. */
+      background-attachment: local, local, scroll, scroll;
     }
 
     /* Inner wrapper uses auto margins to center content safely without cutting off the top when scrolling */
