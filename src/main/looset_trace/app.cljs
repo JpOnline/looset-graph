@@ -545,8 +545,7 @@
 (def featured-questions
   [{:id "❓ Undo last commits" :label "How to undo most recent commits?" :highlight? true :icon "🔥"}
    {:id "❓ Pull vs Fetch" :label "What's the difference between 'pull' and 'fetch'?"}
-   {:id "❓ Delete a branch locally and remotely" :label "Delete a branch locally and remotely"}
-   {:id "❓ Undo 'git add' before commit" :label "Undo 'git add' before commit"}])
+   {:id "❓ Delete local and remote branches" :label "How do I delete a Git branch locally and remotely?"}])
 
 (def other-subjects
   [{:label "AI / LLM"}
@@ -639,6 +638,44 @@
                 [:integrate :dirty :stash] {:description "What is driving the constant need to pull while work is incomplete?"
                                             :options [{:id :shared-branch :text "Working directly on a shared main branch with others"}
                                                       {:id :blocked :text "Unexpectedly blocked by missing remote dependencies"}]}}}
+   "❓ Delete local and remote branches"
+   {:routing [
+              [:simple-safe] "git branch -d"
+              [:simple-force] "git branch -D"
+              [:advanced :ghosts] "git fetch --prune"
+              [:advanced :unresolved :action-force] "git branch -D"
+              [:advanced :unresolved :action-merge] "git merge" ;; "git checkout main && git merge <branch-name>"
+              [:advanced :unresolved :action-archive :tag] "git tag" ;; "git tag archive/<branch-name> <branch-name> && git branch -D <branch-name>"
+              [:advanced :unresolved :action-archive :branch] "git branch" ;; "git tag archive/<branch-name> <branch-name> && git branch -D <branch-name>"
+              [:advanced :unresolved :action-analyze] "git log" ;; Run `git log main..<branch-name> --oneline` and `git diff main..<branch-name>` to review the changes.
+              [:advanced :unresolved :action-analyze :post-merge] "git merge" ;; "git checkout main && git merge <branch-name>"
+              [:advanced :unresolved :action-analyze :post-force] "git branch -D"
+              [:advanced :unresolved :action-analyze :post-archive :tag] "git tag" ;; "git tag archive/<branch-name> <branch-name> && git branch -D <branch-name>"
+              [:advanced :unresolved :action-analyze :post-archive :branch] "git branch"] ;; "git tag archive/<branch-name> <branch-name> && git branch -D <branch-name>"
+    :questions {[] {:description "What kind of branch cleanup are you trying to perform?"
+                    :options [{:id :simple-safe :text "Safely delete a branch I have already merged"}
+                              {:id :simple-force :text "Force-delete an unmerged branch"}
+                              {:id :advanced :text "Clean up a large branch list or stale branches"}]}
+                [:advanced] {:description "What type of clutter are you dealing with?"
+                             :options [{:id :ghosts :text "Local tracking branches that no longer exist on the remote server"}
+                                       {:id :unresolved :text "Old, unmerged branches that I need to process"}]}
+                [:advanced :unresolved] {:description "What do you want to do with this unresolved branch?"
+                                         :options [{:id :action-merge :text "Merge it into main."}
+                                                   {:id :action-analyze :text "Analyze its contents first."}
+                                                   {:id :action-force :text "Force delete it permanently."}
+                                                   {:id :action-archive :text "I want to clean my branch list, but keep the branch as history."}]}
+                [:advanced :unresolved :action-analyze] {:description "After analyzing the branch, what do you want to do with this unresolved branch?"
+                                                         :options [{:id :post-merge :text "The work is complete. Merge it into main."}
+                                                                   {:id :post-force :text "It's junk. Force delete it permanently."}
+                                                                   {:id :post-archive :text "I want to clean my branch list, but keep the branch as history."}]}
+                ;; Same question as [.. :action-analyze :post-archive]
+                [:advanced :unresolved :action-archive] {:description "How would you like to store this archived branch?"
+                                                         :options [{:id :tag :text "Convert it to a read-only tag and delete the branch."}
+                                                                   {:id :branch :text "Rename the branch into an 'archive/' folder."}]}
+                ;; Same question as [.. :action-archive]
+                [:advanced :unresolved :action-analyze :post-archive] {:description "How would you like to store this archived branch?"
+                                                                       :options [{:id :tag :text "Convert it to a read-only tag and delete the branch."}
+                                                                                 {:id :branch :text "Rename the branch into an 'archive/' folder."}]}}}
    ;; Knowledge Space
    "git fetch"
    {:prerequisites ["Remote Repository" "Local Repository"]
@@ -1195,11 +1232,14 @@
                           :assumed-answer (when (< (count current-path) (count route))
                                             (nth route (count current-path)))
                           ;; True if they reached the end of this route
-                          :is-final? (= (count current-path) (count route))})))
+                          :is-final? (= (count current-path) (count route))}))) ;; TODO: Is it necessary? I could write some tests to be confortable in deleting it.
             nil
             routes)))
 
 (comment
+  (evaluate-routing
+    (get-in trace-scenarios ["❓ Delete local and remote branches" :routing])
+    [:advanced :unresolved :action-analyze])
   (evaluate-routing
     (get-in trace-scenarios ["❓ Pull vs Fetch" :routing])
     [:integrate :dirty :commit])
