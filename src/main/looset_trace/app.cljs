@@ -639,15 +639,16 @@
                                             :options [{:id :shared-branch :text "Working directly on a shared main branch with others"}
                                                       {:id :blocked :text "Unexpectedly blocked by missing remote dependencies"}]}}}
    "❓ Delete local and remote branches"
-   {:routing [
+   {:related-nodes ["git branch -d" "git branch -D" "git push --deleted" "Branch" "git push" "Local Repository" "Remote Repository" "git fetch --prune" "HEAD" "git checkout / git switch" "git checkout" "Remote-Tracking Branch" "Tracking Branch" "Upstream Branch" "refs/remotes/" "origin" "git branch" "git merge" "git branch -r" "git branch -vv"]
+    :routing [
               [:simple-safe] "git branch -d"
               [:simple-force] "git branch -D"
               [:advanced :ghosts] "git fetch --prune"
               [:advanced :unresolved :action-force] "git branch -D"
-              [:advanced :unresolved :action-merge] "git merge" ;; "git checkout main && git merge <branch-name>"
-              [:advanced :unresolved :action-archive :tag] "git tag" ;; "git tag archive/<branch-name> <branch-name> && git branch -D <branch-name>"
-              [:advanced :unresolved :action-archive :branch] "git branch" ;; "git tag archive/<branch-name> <branch-name> && git branch -D <branch-name>"
-              [:advanced :unresolved :action-analyze] "git log" ;; Run `git log main..<branch-name> --oneline` and `git diff main..<branch-name>` to review the changes.
+              [:advanced :unresolved :action-merge] "git merge" ;; Cite the full command: "git checkout main && git merge <branch-name>"
+              [:advanced :unresolved :action-archive :tag] "git tag" ;; Cite the full command:"git tag archive/<branch-name> <branch-name> && git branch -D <branch-name>"
+              [:advanced :unresolved :action-archive :branch] "git branch" ;; Cite the full command: "git tag archive/<branch-name> <branch-name> && git branch -D <branch-name>"
+              [:advanced :unresolved :action-analyze] "git diff" ;; Cite the full command: Run `git log main..<branch-name> --oneline` and `git diff main..<branch-name>` to review the changes.
               [:advanced :unresolved :action-analyze :post-merge] "git merge" ;; "git checkout main && git merge <branch-name>"
               [:advanced :unresolved :action-analyze :post-force] "git branch -D"
               [:advanced :unresolved :action-analyze :post-archive :tag] "git tag" ;; "git tag archive/<branch-name> <branch-name> && git branch -D <branch-name>"
@@ -677,6 +678,12 @@
                                                                        :options [{:id :tag :text "Convert it to a read-only tag and delete the branch."}
                                                                                  {:id :branch :text "Rename the branch into an 'archive/' folder."}]}}}
    ;; Knowledge Space
+   "git branch -d"
+   {:prerequisites ["git push --deleted"]}
+
+   "git branch -D"
+   {:prerequisites ["git push --deleted"]}
+
    "git fetch"
    {:prerequisites ["Remote Repository" "Local Repository"]
     :questions {:1 {:description "What is the primary function of the `--prune` (or `-p`) flag when running `git fetch --prune`?"
