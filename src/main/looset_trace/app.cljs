@@ -1400,7 +1400,7 @@
     (fn [question-data assumed-answer]
       (let [;; Sort options: Assumed goes first.
             sorted-options (sort-by (fn [opt] (if (= (:id opt) assumed-answer) -1 1))
-                                    (:options question-data))
+                                    (shuffle (:options question-data)))
             is-waiting? (some? @clicked-id)]
         [:div.quiz-container
          {:class (when is-waiting? "panel-info-gathered")
@@ -1512,7 +1512,7 @@
          (when-let [desc (:description data)] [:p.question-desc [markdown-view desc]])
 
          [:div.options-list
-          (for [{:keys [id text]} (:options data)]
+          (for [{:keys [id text]} (shuffle (:options data))]
             (let [is-this-selected (= id selected-id)
                   is-this-correct  (= id (:correct-id data))
                   ;; Specific logic for Knowledge Mode (Right/Wrong evaluation)
@@ -1540,6 +1540,8 @@
 ;; ---   Search UI Component
 ;; ---- re-frame subs/events
 (defmulti start-trace
+  ;; If a problem node is chosen then the :problem version of start-trace is triggered.
+  ;; If a concept node is chosen then the :concept version of start-trace is triggered.
   #(let [scenario (get trace-scenarios (second %2) :not-in-trace)]
      (cond
        (= :not-in-trace scenario) nil
@@ -1548,8 +1550,24 @@
        :else (js/console.error "start-trace defmulti de um node que não é :problem e nem :concept" (second %2)))))
 (defmethod start-trace :concept
   [{app-state :db} [evt node-id]]
-  (js/console.log "É um conceito!!" node-id)
-  {:db app-state})
+  (let [app-state* (-> app-state
+                       (assoc-in [:trace-ui :problem-node] :no-problem)
+                       (assoc-in [:trace-ui :target-when-no-problem] node-id)
+                       (assoc-in [:trace-ui :answers-for-problem-questions] [])
+                       (assoc-in [:trace-ui :answered-questions] {})
+                       (assoc-in [:trace-ui :staged-knowledge-answer] nil))
+        target node-id
+        brain  (brain-node [:no-problem target (answered-questions app-state*)])
+        ; Opening Animation Sequence
+        fx-seq (cond-> []
+                 target
+                 (concat [[:dispatch-later {:ms 600 :dispatch [::add-node-props [target {:hidden? false :name (str "🎯 " target) :color LIGHT-RED}]]}]]
+                         (events-to-show-prerequisites {:ms 1200 :ms-step 600 :node target :app-state app-state*}))
+                 ;; Reveal the Initial Brain
+                 brain
+                 (concat [[:dispatch-later {:ms 1800 :dispatch [::add-node-props (nwphac app-state* brain {:name (str "🧠 " brain)})]}]]))]
+    {:db app-state*
+     :fx fx-seq}))
 (defmethod start-trace :problem
   [{app-state :db} [evt problem-id]]
   (let [app-state* (-> app-state
@@ -1586,7 +1604,6 @@
   :-> #(get-in % [:trace-ui :search-ui :email-modal-state] nil)) ;; Tracks modal: nil -> :prompting -> :submitted
 ;; ---------------------------------------------------------
 (defn email-capture-prompt
-  #_{:clj-kondo/ignore [:unused-binding]}
   []
   (let [email-input (reagent/atom "")]
     (fn []
@@ -1813,22 +1830,24 @@
   "Depends on the problem the user has and the problem related questions she answered.
   Actually it depends on the knowledge related questions as well.."
   [app-state _event]
-  (let [problem-node (get-in app-state [:trace-ui :problem-node] nil)
-        answered-questions (get-in app-state [:trace-ui :answers-for-problem-questions] [])
-        trace-scenarios-routing  (get-in trace-scenarios [problem-node :routing] [])
-        target-from-problem (:matched-node (evaluate-routing trace-scenarios-routing answered-questions))
-        target-prerequisites (get-in trace-scenarios [target-from-problem :prerequisites])
-                ;; TODO: I'll need a recursion here to get the prerequisites of the prerequisites.
-        aim-fn (fn [target prerequisite]
-                 (if (= :wrong (question-result {:app-state app-state :node prerequisite}))
-                   ;; wront answer for prerequisite then prerequisite
-                   prerequisite
-                   ;; no prerequisite then target
-                   ;; no answer for prerequisite then target
-                   ;; right answer for prerequisite then target
-                   target))
-        target-from-knowledge (reduce aim-fn target-from-problem target-prerequisites)]
-    target-from-knowledge))
+  (if-let [target-when-no-problem (get-in app-state [:trace-ui :target-when-no-problem] nil)]
+    target-when-no-problem
+    (let [problem-node (get-in app-state [:trace-ui :problem-node] nil)
+          answered-questions (get-in app-state [:trace-ui :answers-for-problem-questions] [])
+          trace-scenarios-routing  (get-in trace-scenarios [problem-node :routing] [])
+          target-from-problem (:matched-node (evaluate-routing trace-scenarios-routing answered-questions))
+          target-prerequisites (get-in trace-scenarios [target-from-problem :prerequisites])
+                  ;; TODO: I'll need a recursion here to get the prerequisites of the prerequisites.
+          aim-fn (fn [target prerequisite]
+                   (if (= :wrong (question-result {:app-state app-state :node prerequisite}))
+                     ;; wront answer for prerequisite then prerequisite
+                     prerequisite
+                     ;; no prerequisite then target
+                     ;; no answer for prerequisite then target
+                     ;; right answer for prerequisite then target
+                     target))
+          target-from-knowledge (reduce aim-fn target-from-problem target-prerequisites)]
+      target-from-knowledge)))
 (re-frame/reg-sub ::target-node target-node)
 
 (defn answered-questions
@@ -1911,14 +1930,16 @@
 
     [:div.app-container {:class (when is-tracing? "state-trace")}
      [trace-styles]
-     [:div "debug"
-       [:pre (str "problem-node: "problem-node)]
-       [:pre (str "current-target "(<sub [::target-node]))]
-       [:pre (str "current-brain: "(<sub [::brain-node]))]
-       [:pre (str "problem-path-takeen: "(<sub [::problem-path-taken]))]
-       [:pre (str "Assumed id: "(<sub [::problem-evaluation]))]
-       [:pre (str "question-data: "problem-question-data)]
-       [:pre (str "knowledge-question-data: "knowledge-question-data)]]
+
+     (when ^boolean js/goog.DEBUG
+       [:div "debug"
+        [:pre (str "problem-node: "problem-node)]
+        [:pre (str "current-target "(<sub [::target-node]))]
+        [:pre (str "current-brain: "(<sub [::brain-node]))]
+        [:pre (str "problem-path-takeen: "(<sub [::problem-path-taken]))]
+        [:pre (str "Assumed id: "(<sub [::problem-evaluation]))]
+        [:pre (str "problem-question-data: "problem-question-data)]
+        [:pre (str "knowledge-question-data: "knowledge-question-data)]])
 
 
      ;; === BACKGROUND GRAPH LAYER (Moves from Full Screen to Bottom) ===
