@@ -635,14 +635,21 @@
     {}
     nodes-hierarchy))
 
+(defn nil-node?
+  [{:keys [node-type] :as val}]
+  (when-not node-type
+    (js/console.error "Found a nil Node.. probably because it's defined in the properties." val))
+  (nil? node-type))
+
 (defn nodes-map->fold-list
   [[nodes-map fold-ui]]
   (->> nodes-map
     (nodes-hierarchy)
     (sort-nodes nodes-map)
     ;; (#(do (tap> {:nodes-hierarchy %}) %))
-    (mapcat #(nodes-list [] nodes-map fold-ui %))))
-    ;; (#(do (tap> {:nodes-list %}) %))))
+    (mapcat #(nodes-list [] nodes-map fold-ui %))
+    (remove nil-node?)))
+    ; (#(do (tap> {:nodes-list %}) %))))
 (re-frame/reg-sub
   ::fold-list
   :<- [::nodes-map]
