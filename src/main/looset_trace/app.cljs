@@ -3,6 +3,7 @@
     ["firebase/app" :refer [initializeApp]]
     ["firebase/firestore" :refer [getFirestore collection addDoc]]
     ["react-markdown" :default ReactMarkdown]
+    [clojure.set :as set]
     [clojure.string :as str]
     [looset-graph.app :as looset-graph]
     [looset-graph.util :as util :refer [<sub >evt]]
@@ -555,29 +556,22 @@
    {:label "SQL"}])
 
 (def mapped-questions
-  [{:id :undo :label "Undo the most recent local commits"}
-   {:id :pull-fetch :label "Difference between 'pull' and 'fetch'"}
-   {:id :delete-branch :label "Delete a branch locally and remotely"}
-   {:id :undo-add :label "Undo 'git add' before commit"}
-   {:id :rebase :label "How to resolve a merge conflict during rebase"}])
+  featured-questions) ;; Eventually I can have more questions than only the featured ones.
 
-(def mock-problem-data
-  {:title "Which of the following best describes your goal?"
-   ; :description "Git provides several ways to undo changes, but the best approach depends entirely on what you are trying to achieve and whether your changes have been shared with others.Git provides several ways to undo changes, but the best approach depends entirely on what you are trying to achieve and whether your changes have been shared with others.Git provides several ways to undo changes, but the best approach depends entirely on what you are trying to achieve and whether your changes have been shared with others."
-   :options [[:span [:strong "Keep the changes: "] "I want to undo the commit but keep all the work I did as \"unstaged\" changes in my folder."]
-             [:span [:strong "Delete the changes: "] "I want to completely delete the last commits and the work inside them (reset to a clean previous state)."]
-             [:span [:strong "Undo a push: "] "I already pushed these commits to a remote server (GitHub/GitLab) and need to fix it there too."]]
-   :assumed-id 2})
-
-(def mock-knowledge-data
-  {;; We omit the :title here to test the optionality, relying only on the :description
-   ; :title "Why do you want to undo your recent commits?Why do you want to undo your recent commits?Why do you want to undo your recent commits?Why do you want to undo your recent commits?"
-   :description "If you execute `git commit --amend --no-edit` without staging any new changes, why does the resulting commit object resolve to a completely different SHA-1 hash than the original?"
-   :options [{:id :a :text "Git automatically injects a new cryptographic nonce into the commit header to enforce global graph uniqueness."}
-             {:id :b :text "The  `tree` object is recursively re-hashed to guarantee data integrity against the `.git/index.`"}
-             {:id :c :text "The committer timestamp is updated to the current execution time, fundamentally altering the raw text payload used for the SHA-1 calculation."}
-             {:id :d :text "The parent pointer is reassigned to reference the original commit, strictly enforcing a linear Directed Acyclic Graph."}]
-   :correct-id :c})
+(def searchable-nodes
+  (memoize
+    (fn [explanations trace-scenarios]
+      (let [has-resource (->> explanations
+                           (filter #(re-find #"```curated-resources" (second %)))
+                           (map #(:id (first %)))
+                           (set))
+            has-prerequisite (->> trace-scenarios
+                               (filter #(seq (:prerequisites (second %))))
+                               (map first)
+                               (set))]
+        (map
+          #(into {:id % :label % :type :concept})
+          (set/intersection has-resource has-prerequisite))))))
 
 (def trace-scenarios
   {;; Problem Space
@@ -1156,8 +1150,8 @@
 (defn fuzzy-match? [query target]
   (str/includes? (str/lower-case target) (str/lower-case query)))
 
-(defn search-questions [query]
-  (if (str/blank? query) [] (filter #(fuzzy-match? query (:label %)) mapped-questions)))
+(defn search-questions [query questions-and-nodes]
+  (if (str/blank? query) [] (filter #(fuzzy-match? query (:label %)) questions-and-nodes)))
 
 (defn calculate-depth
   "Defines a first grade based on the :media-type, than sum more points.
@@ -1545,208 +1539,242 @@
 ;; ---------------------------------------------------------
 ;; ---   Search UI Component
 ;; ---- re-frame subs/events
-(re-frame/reg-event-fx
- ::start-trace
- (fn [{app-state :db} [evt problem-id]]
-   (let [app-state* (-> app-state
-                        (assoc-in [:trace-ui :problem-node] problem-id)
-                        (assoc-in [:trace-ui :answers-for-problem-questions] [])
-                        (assoc-in [:trace-ui :answered-questions] {})
-                        (assoc-in [:trace-ui :staged-knowledge-answer] nil))
-         target (target-node app-state* evt)
-         brain  (brain-node [(problem-node app-state evt) (target-node app-state* evt) (answered-questions app-state*)])
-         ; Opening Animation Sequence
-         fx-seq (cond-> []
-                  ;; Reveal the Problem Node
-                  true
-                  (concat [[:dispatch-later {:ms 100 :dispatch [::add-node-props [problem-id {:hidden? false :color LIGHT-RED}]]}]])
-                  ;; Draw the edge to the Initial Target and reveal it
-                  target
-                  (concat [[:dispatch-later {:ms 600 :dispatch [::add-node-props [problem-id {:edges-to {"solved by" #{target}}}]]}]
-                           [:dispatch-later {:ms 600 :dispatch [::add-node-props [target {:hidden? false :name (str "🎯 " target) :color LIGHT-RED}]]}]])
-                  ;; Reveal the Initial Brain
-                  brain
-                  (concat [[:dispatch-later {:ms 1200 :dispatch [::add-node-props (nwphac app-state* brain {:name (str "🧠 " brain)})]}]])
-                  ;; Pop in the Target's prerequisites sequentially
-                  target
-                  (concat (events-to-show-prerequisites {:ms 1800 :ms-step 600 :node target :app-state app-state*})))]
-     {:db app-state*
-      :fx fx-seq})))
+(defmulti start-trace
+  #(let [scenario (get trace-scenarios (second %2) :not-in-trace)]
+     (cond
+       (= :not-in-trace scenario) nil
+       (:routing scenario) :problem
+       (:prerequisites scenario) :concept
+       :else (js/console.error "start-trace defmulti de um node que não é :problem e nem :concept" (second %2)))))
+(defmethod start-trace :concept
+  [{app-state :db} [evt node-id]]
+  (js/console.log "É um conceito!!" node-id)
+  {:db app-state})
+(defmethod start-trace :problem
+  [{app-state :db} [evt problem-id]]
+  (let [app-state* (-> app-state
+                       (assoc-in [:trace-ui :problem-node] problem-id)
+                       (assoc-in [:trace-ui :answers-for-problem-questions] [])
+                       (assoc-in [:trace-ui :answered-questions] {})
+                       (assoc-in [:trace-ui :staged-knowledge-answer] nil))
+        target (target-node app-state* evt)
+        brain  (brain-node [(problem-node app-state evt) (target-node app-state* evt) (answered-questions app-state*)])
+        ; Opening Animation Sequence
+        fx-seq (cond-> []
+                 ;; Reveal the Problem Node
+                 true
+                 (concat [[:dispatch-later {:ms 100 :dispatch [::add-node-props [problem-id {:hidden? false :color LIGHT-RED}]]}]])
+                 ;; Draw the edge to the Initial Target and reveal it
+                 target
+                 (concat [[:dispatch-later {:ms 600 :dispatch [::add-node-props [problem-id {:edges-to {"solved by" #{target}}}]]}]
+                          [:dispatch-later {:ms 600 :dispatch [::add-node-props [target {:hidden? false :name (str "🎯 " target) :color LIGHT-RED}]]}]])
+                 ;; Reveal the Initial Brain
+                 brain
+                 (concat [[:dispatch-later {:ms 1200 :dispatch [::add-node-props (nwphac app-state* brain {:name (str "🧠 " brain)})]}]])
+                 ;; Pop in the Target's prerequisites sequentially
+                 target
+                 (concat (events-to-show-prerequisites {:ms 1800 :ms-step 600 :node target :app-state app-state*})))]
+    {:db app-state*
+     :fx fx-seq}))
+(re-frame/reg-event-fx ::start-trace start-trace)
+
+(re-frame/reg-sub ::is-focused?
+  :-> #(get-in % [:trace-ui :search-ui :is-focused?] false))
+(re-frame/reg-sub ::vote-timer
+  :-> #(get-in % [:trace-ui :search-ui :vote-timer] nil))
+(re-frame/reg-sub ::email-modal-state
+  :-> #(get-in % [:trace-ui :search-ui :email-modal-state] nil)) ;; Tracks modal: nil -> :prompting -> :submitted
 ;; ---------------------------------------------------------
 (defn email-capture-prompt
   #_{:clj-kondo/ignore [:unused-binding]}
-  [modal-state]
+  []
   (let [email-input (reagent/atom "")]
-    (fn [modal-state]
-      (when (or (= (:state @modal-state) :prompting)
-                (= (:state @modal-state) :submitted))
-        [:div.modal-overlay
-         ;; Clicking the dark background closes the modal
-         {:on-click #(reset! modal-state nil)}
+    (fn []
+      (let [modal-state (<sub [::email-modal-state])
+            assoc-in-modal-state! #(>evt [::util/assoc-in [:trace-ui :search-ui :email-modal-state] %])
+            assoc-in-email-input! #(reset! email-input %)]
+        (when (or (= (:state modal-state) :prompting)
+                  (= (:state modal-state) :submitted))
+          [:div.modal-overlay
+           ;; Clicking the dark background closes the modal
+           {:on-click #(assoc-in-modal-state! nil)}
 
-         [:div.modal-content
-          ;; Prevent clicks inside the white box from bubbling up and closing the modal
-          {:on-click (fn [e] (.stopPropagation e))}
+           [:div.modal-content
+            ;; Prevent clicks inside the white box from bubbling up and closing the modal
+            {:on-click (fn [e] (.stopPropagation e))}
 
-          (if (= (:state @modal-state) :submitted)
+            (if (= (:state modal-state) :submitted)
 
-            ;; --- SUCCESS STATE ---
-            [:div {:style {:text-align "center" :padding "16px 0"}}
-             [:h3 {:style {:color "#15803d" :margin-top "0"}} "✓ Email saved!"]
-             [:p {:style {:color "#475569"}} "We'll let you know when this topic is ready."]
-             [:button.btn-continue {:style {:margin-top "16px" :width "100%"}
-                                    :on-click #(reset! modal-state nil)}
-              "Close"]]
+              ;; --- SUCCESS STATE ---
+              [:div {:style {:text-align "center" :padding "16px 0"}}
+               [:h3 {:style {:color "#15803d" :margin-top "0"}} "✓ Email saved!"]
+               [:p {:style {:color "#475569"}} "We'll let you know when this topic is ready."]
+               [:button.btn-continue {:style {:margin-top "16px" :width "100%"}
+                                      :on-click #(assoc-in-modal-state! nil)}
+                "Close"]]
 
-            ;; --- PROMPT STATE ---
-            [:div
-             [:h3 {:style {:margin-top "0" :color "#0f172a"}} (:title @modal-state)]
-             [:p {:style {:color "#475569" :font-size "0.95rem" :line-height "1.5" :margin-bottom "20px"}}
-              (str "Drop your email below if you want a quick ping when we release a map for \"") [:strong (:subject @modal-state)] "\"."]
+              ;; --- PROMPT STATE ---
+              [:div
+               [:h3 {:style {:margin-top "0" :color "#0f172a"}} (:title @modal-state)]
+               [:p {:style {:color "#475569" :font-size "0.95rem" :line-height "1.5" :margin-bottom "20px"}}
+                (str "Drop your email below if you want a quick ping when we release a map for \"") [:strong (:subject @modal-state)] "\"."]
 
-             [:input.search-input
-              {:type "email"
-               :auto-focus true
-               :placeholder "your@email.com (optional)"
-               :value @email-input
-               :style {:margin-bottom "20px" :width "100%" :box-sizing "border-box"}
-               :on-change #(reset! email-input (-> % .-target .-value))
-               :on-key-down (fn [e]
-                              (when (= (.-key e) "Enter")
-                                (.preventDefault e)
-                                (>evt [::send-to-firestore "emails" {:email @email-input :voted-subject (:subject @modal-state)}])
-                                (reset! modal-state {:state :submitted})))}]
+               [:input.search-input
+                {:type "email"
+                 :auto-focus true
+                 :placeholder "your@email.com (optional)"
+                 :value @email-input
+                 :style {:margin-bottom "20px" :width "100%" :box-sizing "border-box"}
+                 :on-change #(assoc-in-email-input! (-> % .-target .-value))
+                 :on-key-down (fn [e]
+                                (when (= (.-key e) "Enter")
+                                  (.preventDefault e)
+                                  (>evt [::send-to-firestore "emails" {:email @email-input :voted-subject (:subject modal-state)}])
+                                  (assoc-in-modal-state! {:state :submitted})))}]
 
-             [:div {:style {:display "flex" :justify-content "flex-end" :gap "12px"}}
-              [:button {:style {:background "transparent" :border "none" :color "#64748b" :cursor "pointer" :font-weight "500"}
-                        :on-click #(reset! modal-state nil)}
-               "Skip"]
-              [:button.btn-continue
-               {:on-click (fn []
-                            (>evt [::send-to-firestore "emails" {:email @email-input :voted-subject (:subject @modal-state)}])
-                            (reset! modal-state :submitted))}
-               "Notify Me"]]])]]))))
+               [:div {:style {:display "flex" :justify-content "flex-end" :gap "12px"}}
+                [:button {:style {:background "transparent" :border "none" :color "#64748b" :cursor "pointer" :font-weight "500"}
+                          :on-click #(assoc-in-modal-state! nil)}
+                 "Skip"]
+                [:button.btn-continue
+                 {:on-click (fn []
+                              (>evt [::send-to-firestore "emails" {:email @email-input :voted-subject (:subject modal-state)}])
+                              (assoc-in-modal-state! :submitted))}
+                 "Notify Me"]]])]])))))
+
+; (defmulti start-trace! :type)
+; (defmethod start-trace! :problem
+;   [{:keys [id]}]
+;   (if (contains? trace-scenarios id)
+;     (>evt [::start-trace id])
+;     (trigger-vote! id "Not mapped yet" "not in trace-scenarios")))
+; (defmethod start-trace! :concept
+;   [{:keys [id]}]
+;   (js/console.log "É um conceito!!" id))
 
 (defn search-ui []
-  (let [search-text  (reagent/atom "")
-        is-focused?  (reagent/atom false)
-        vote-timer   (atom nil)
-        email-modal-state   (reagent/atom nil)] ;; Tracks modal: nil -> :prompting -> :submitted
+  (let [search-text (reagent/atom "")]
     (fn []
       (let [query          @search-text
-            matches        (search-questions query)
+            is-focused?    (<sub [::is-focused?])
+            vote-timer     (<sub [::vote-timer])
+            assoc-in-is-focused?! #(>evt [::util/assoc-in [:trace-ui :search-ui :is-focused?] %])
+            assoc-in-search-text! #(reset! search-text %)
+            assoc-in-vote-timer! #(>evt [::util/assoc-in [:trace-ui :search-ui :vote-timer] %])
+            searchable-terms (concat mapped-questions (searchable-nodes (<sub [::looset-graph/explanation-content]) trace-scenarios))
+            matches        (search-questions query searchable-terms)
             has-query?     (not (str/blank? query))
             no-matches?    (and has-query? (empty? matches))
 
             ;; Fetch active trace from re-frame to hide dropdown if tracing
             problem-node   (<sub [::problem-node])
             is-tracing?    (some? problem-node)
-            show-dropdown? (and @is-focused? has-query? (not is-tracing?))
+            show-dropdown? (and is-focused? has-query? (not is-tracing?))
             trigger-vote! (fn [q title vote-type]
-                            (reset! email-modal-state {:state :prompting :subject q :title title})
+                            (>evt [::util/assoc-in [:trace-ui :search-ui :email-modal-state] {:state :prompting :subject q :title title}])
                             (>evt [::send-to-firestore "votes" {:subject q :type vote-type}]))
-            start-trace!  (fn [label]
-                            (if (contains? trace-scenarios label)
-                              (>evt [::start-trace label])
-                              (trigger-vote! label "Not mapped yet" "not in trace-scenarios"))
-                            (reset! search-text ""))]
-            ; trigger-not-mapped-featured (fn [featured-label]
-            ;                               (>evt [::send-to-firestore "votes" {:type "featured" :subject featured-label}])
-            ;                               (trigger-manual-vote! label "Not mapped yet"))]
+            start-trace!  (fn [target]
+                            (if (contains? trace-scenarios target)
+                              (>evt [::start-trace target])
+                              (trigger-vote! target "Not mapped yet" "not in trace-scenarios"))
+                            (assoc-in-search-text! ""))]
+              ; trigger-not-mapped-featured (fn [featured-label]
+              ;                               (>evt [::send-to-firestore "votes" {:type "featured" :subject featured-label}])
+              ;                               (trigger-manual-vote! label "Not mapped yet"))]
 
-        [:div.search-ui
-         [:h1.trace-logo "Looset Trace"]
+          [:div.search-ui
+           [:h1.trace-logo "Looset Trace"]
 
-         [:div.search-container
-          [:div.search-box {:class (when show-dropdown? "has-dropdown")}
-           [:svg {:width "20" :height "20" :viewBox "0 0 24 24" :fill "none" :stroke "#9aa0a6" :stroke-width "2" :stroke-linecap "round" :stroke-linejoin "round"}
-            [:circle {:cx "11" :cy "11" :r "8"}] [:line {:x1 "21" :y1 "21" :x2 "16.65" :y2 "16.65"}]]
+           [:div.search-container
+            [:div.search-box {:class (when show-dropdown? "has-dropdown")}
+             [:svg {:width "20" :height "20" :viewBox "0 0 24 24" :fill "none" :stroke "#9aa0a6" :stroke-width "2" :stroke-linecap "round" :stroke-linejoin "round"}
+              [:circle {:cx "11" :cy "11" :r "8"}] [:line {:x1 "21" :y1 "21" :x2 "16.65" :y2 "16.65"}]]
 
-           [:input.search-input
-            {:type "text"
-             :placeholder "Problem, goal or subject related to Git."
-             :value query
-             :on-focus #(reset! is-focused? true)
-             :on-blur #(reset! is-focused? false)
+             [:input.search-input
+              {:type "text"
+               :placeholder "Problem, goal or subject related to Git."
+               :value query
+               :on-focus #(assoc-in-is-focused?! true)
+               :on-blur #(assoc-in-is-focused?! false)
 
-             ;; Keyboard interaction (Enter to select)
-             :on-key-down (fn [e]
-                            (.stopPropagation e)
-                            (when (= (.-key e) "Enter")
-                              (.preventDefault e)
-                              (if no-matches?
-                                (trigger-vote! query "Vote recorded!" "manual") ;; Enter key triggers vote & modal
-                                (let [target-id (if has-query?
-                                                  (:id (first matches))
-                                                  (:id (first featured-questions)))]
-                                  (when target-id (start-trace! target-id))))))
-             :on-change (fn [e]
-                          (let [v (-> e .-target .-value)]
-                            (reset! search-text v)
-                            (when @vote-timer (js/clearTimeout @vote-timer))
-                            (when (not (str/blank? v))
-                              (reset! vote-timer
-                                      (js/setTimeout
-                                       (fn []
-                                         (when (empty? (search-questions @search-text))
-                                           ;; Silent auto-vote
-                                           (>evt [::send-to-firestore "votes" {:type "auto" :subject @search-text}])))
-                                       1500)))))}]]
+               ;; Keyboard interaction (Enter to select)
+               :on-key-down (fn [e]
+                              (.stopPropagation e)
+                              (when (= (.-key e) "Enter")
+                                (.preventDefault e)
+                                (if no-matches?
+                                  (trigger-vote! query "Vote recorded!" "manual") ;; Enter key triggers vote & modal
+                                  (let [target (if has-query?
+                                                 (:id (first matches))
+                                                 (:id (first featured-questions)))]
+                                   (when target (start-trace! target))))))
+               :on-change (fn [e]
+                            (let [v (-> e .-target .-value)]
+                              (assoc-in-search-text! v)
+                              (when vote-timer (js/clearTimeout vote-timer))
+                              (when (not (str/blank? v))
+                                (assoc-in-vote-timer!
+                                  (js/setTimeout
+                                    (fn []
+                                      (when (empty? (search-questions query searchable-terms))
+                                        ;; Silent auto-vote
+                                        (>evt [::send-to-firestore "votes" {:type "auto" :subject query}])))
+                                    1500)))))}]]
 
-          ;; Dropdown Menu
-          (when show-dropdown?
-            [:div.dropdown-menu
-             ;; Scenario 1: No results (show vote + featured)
-             (if no-matches?
-               [:<> ;; Manual vote option on top
-                [:div.dropdown-item.not-found-item
-                 ;; Click triggers the immediate vote AND opens the email modal.
-                 {:on-mouse-down (fn [e]
-                                   (.preventDefault e)
-                                   (trigger-vote! query "Vote recorded!" "manual"))}
-                 [:div.item-icon [:svg {:width "18" :height "18" :viewBox "0 0 24 24" :fill "none" :stroke "currentColor" :stroke-width "2"} [:path {:d "M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"}]]]
-                 [:div [:div.item-text (str "\"" query "\"")] [:div.item-subtext "Not mapped yet. Click to vote to map this next."]]]
-                (for [{:keys [id label]} featured-questions] ;; featured list as fallback
-                  ^{:key (str "feat-" label)}
-                  [:div.dropdown-item {:on-mouse-down (fn [e] (.preventDefault e) (start-trace! id))}
-                   [:div.item-icon [:svg {:width "16" :height "16" :viewBox "0 0 24 24" :fill "none" :stroke "currentColor" :stroke-width "2"} [:polyline {:points "20 6 9 17 4 12"}]]]
-                   [:div.item-text label]])]
+            ;; Dropdown Menu
+            (when show-dropdown?
+              [:div.dropdown-menu
+               ;; Scenario 1: No results (show vote + featured)
+               (if no-matches?
+                 [:<> ;; Manual vote option on top
+                  [:div.dropdown-item.not-found-item
+                   ;; Click triggers the immediate vote AND opens the email modal.
+                   {:on-mouse-down (fn [e]
+                                     (.preventDefault e)
+                                     (trigger-vote! query "Vote recorded!" "manual"))}
+                   [:div.item-icon [:svg {:width "18" :height "18" :viewBox "0 0 24 24" :fill "none" :stroke "currentColor" :stroke-width "2"} [:path {:d "M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"}]]]
+                   [:div [:div.item-text (str "\"" query "\"")] [:div.item-subtext "Not mapped yet. Click to vote to map this next."]]]
+                  (for [{:keys [id label]} featured-questions] ;; featured list as fallback
+                    ^{:key (str "feat-" label)}
+                    [:div.dropdown-item {:on-mouse-down (fn [e] (.preventDefault e) (start-trace! id))}
+                     [:div.item-icon [:svg {:width "16" :height "16" :viewBox "0 0 24 24" :fill "none" :stroke "currentColor" :stroke-width "2"} [:polyline {:points "20 6 9 17 4 12"}]]]
+                     [:div.item-text label]])]
 
-               ;; Scenario 2: With matches
-               (for [{:keys [id label]} matches]
-                 ^{:key label}
-                 [:div.dropdown-item
-                  {:on-mouse-down (fn [e]
-                                    (.preventDefault e)
-                                    (start-trace! id))}
-                  [:div.item-icon [:svg {:width "16" :height "16" :viewBox "0 0 24 24" :fill "none" :stroke "currentColor" :stroke-width "2"} [:circle {:cx "11" :cy "11" :r "8"}]]]
-                  [:div.item-text label]]))])
+                 ;; Scenario 2: With matches
+                 (for [{:keys [id label]} matches]
+                   ^{:key label}
+                   [:div.dropdown-item
+                    {:on-mouse-down (fn [e]
+                                      (.preventDefault e)
+                                      (start-trace! id))}
+                    [:div.item-icon [:svg {:width "16" :height "16" :viewBox "0 0 24 24" :fill "none" :stroke "currentColor" :stroke-width "2"} [:circle {:cx "11" :cy "11" :r "8"}]]]
+                    [:div.item-text label]]))])
 
-          ;; Sits outside the normal flow, waiting for email-modal-state to not be nil.
-          [email-capture-prompt email-modal-state]]
+            ;; Sits outside the normal flow, waiting for email-modal-state to not be nil.
+            [email-capture-prompt]]
 
-         (when (not show-dropdown?)
-           [:<>
-             ;; --- Featured Questions ---
-             [:div.cards-container
-              (for [{:keys [id label highlight? icon]} featured-questions]
-                ^{:key label}
-                [:div.trace-card
-                 {:class (when highlight? "highlight")
-                  :on-click #(start-trace! id)}
-                 (when icon [:span {:style {:font-size "1.1em"}} icon])
-                 label])]
+           (when (not show-dropdown?)
+             [:<>
+               ;; --- Featured Questions ---
+               [:div.cards-container
+                (for [{:keys [id label highlight? icon]} featured-questions]
+                  ^{:key label}
+                  [:div.trace-card
+                   {:class (when highlight? "highlight")
+                    :on-click #(start-trace! id)}
+                   (when icon [:span {:style {:font-size "1.1em"}} icon])
+                   label])]
 
-             ;; --- Divider ---
-             [:div.section-divider "Other subjects"]
+               ;; --- Divider ---
+               [:div.section-divider "Other subjects"]
 
-             ;; --- Other Subjects Cards ---
-             [:div.cards-container
-              (for [{:keys [label]} other-subjects]
-                ^{:key label}
-                [:div.trace-card
-                 {:on-click #(start-trace! label)}
-                 label])]])]))))
+               ;; --- Other Subjects Cards ---
+               [:div.cards-container
+                (for [{:keys [label]} other-subjects]
+                  ^{:key label}
+                  [:div.trace-card
+                   {:on-click #(start-trace! label)}
+                   label])]])]))))
 
 ;; ---- Other re-frame subs/events -----------------------------------------------------
 (defn node-link-clicked
@@ -1929,8 +1957,8 @@
     (looset-graph/load-graph-text)
     (core/load-resources-meta!)
     (re-frame/dispatch-sync [::looset-graph/fetch-markdown-explanation-content])
-    (cljs.core.async/<! (cljs.core.async/timeout 10))
-    (re-frame/dispatch-sync [:looset-trace.app/start-trace "❓ Pull vs Fetch"]))
+    (cljs.core.async/<! (cljs.core.async/timeout 10)))
+    ; (re-frame/dispatch-sync [:looset-trace.app/start-trace "❓ Pull vs Fetch"]))
 
   (cljs.core.async/go
     (looset-graph/init-state)
