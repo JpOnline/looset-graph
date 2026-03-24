@@ -574,7 +574,74 @@
           (set/intersection has-resource has-prerequisite))))))
 
 (def trace-scenarios
-  {;; Problem Space
+  {:fallback-problem-questions ;; A variaty of question descriptions and options that are generic and independent, it can be replaced or augmented by any other set of questions.
+   (for [question ["What is your primary goal while exploring Git today?"
+                   "Which direction would you like to take your understanding?"
+                   "To help tailor this map, what would be your next step?"
+                   "Where should we take this exploration from here?"]
+         [h1-id option-h1] [[".git/hooks" "I want to automate scripts (like linters or tests) to run automatically right before I commit or push."]
+                            [".git/hooks" "I want to automatically trigger scripts or tests every time someone attempts to save code."]
+                            ["Detached HEAD" "I need to travel back in time to look at an old commit without accidentally messing up my current work."]
+                            ["Detached HEAD" "I want to know what happens when I explore past code and suddenly lose my branch context."]
+                            ["Directed Acyclic Graph (DAG)" "I'd like to understand the invisible mathematical structure that connects all commits together."]
+                            ["Directed Acyclic Graph (DAG)" "I'm curious about the mathematical structure Git uses to connect history behind the scenes."]
+                            ["git bisect" "I need a fast, automated way to hunt down exactly which past change introduced a bug."]
+                            ["git bisect" "I need to hunt down the exact, specific commit that introduced a bug into the project."]
+                            ["git cherry-pick" "I want to grab one specific change from another branch and copy it into mine without merging everything."]
+                            ["git cherry-pick" "I want to grab one specific, isolated commit from another branch and apply it to mine."]
+                            ["git rebase -i" "I want to clean up, squash, or edit my commit history before opening a Pull Request."]
+                            ["git rebase -i" "I want to clean up, squash, or reorder my local history before sharing it with the team."]
+                            ["git reflog" "I made a terrible mistake and need to recover a commit that seems to be completely 'lost'."]
+                            ["git reflog" "I need to know how to rescue a deleted commit—the 'undo button for the undo button'."]
+                            ["git reset" "I need to unstage files or completely wipe out my recent local work by moving my branch pointer."]
+                            ["git reset" "I want to completely undo my recent local work and forcefully move the timeline backward."]
+                            ["Immutability" "I want to explore the underlying principle that makes Git history secure and theoretically unchangeable."]
+                            ["Immutability" "I want to understand the core principle that makes Git history permanent and safe."]]
+         [h2-id option-h2] [[".git/hooks" "I want to automate scripts (like linters or tests) to run automatically right before I commit or push."]
+                            [".git/hooks" "I want to automatically trigger scripts or tests every time someone attempts to save code."]
+                            ["Detached HEAD" "I need to travel back in time to look at an old commit without accidentally messing up my current work."]
+                            ["Detached HEAD" "I want to know what happens when I explore past code and suddenly lose my branch context."]
+                            ["Directed Acyclic Graph (DAG)" "I'd like to understand the invisible mathematical structure that connects all commits together."]
+                            ["Directed Acyclic Graph (DAG)" "I'm curious about the mathematical structure Git uses to connect history behind the scenes."]
+                            ["git bisect" "I need a fast, automated way to hunt down exactly which past change introduced a bug."]
+                            ["git bisect" "I need to hunt down the exact, specific commit that introduced a bug into the project."]
+                            ["git cherry-pick" "I want to grab one specific change from another branch and copy it into mine without merging everything."]
+                            ["git cherry-pick" "I want to grab one specific, isolated commit from another branch and apply it to mine."]
+                            ["git rebase -i" "I want to clean up, squash, or edit my commit history before opening a Pull Request."]
+                            ["git rebase -i" "I want to clean up, squash, or reorder my local history before sharing it with the team."]
+                            ["git reflog" "I made a terrible mistake and need to recover a commit that seems to be completely 'lost'."]
+                            ["git reflog" "I need to know how to rescue a deleted commit—the 'undo button for the undo button'."]
+                            ["git reset" "I need to unstage files or completely wipe out my recent local work by moving my branch pointer."]
+                            ["git reset" "I want to completely undo my recent local work and forcefully move the timeline backward."]
+                            ["Immutability" "I want to explore the underlying principle that makes Git history secure and theoretically unchangeable."]
+                            ["Immutability" "I want to understand the core principle that makes Git history permanent and safe."]]
+         [e-id option-e] [["Branch" "I want to learn how to safely build new features in an isolated parallel timeline."]
+                          ["Branch" "I want to understand how to work on new features in total isolation without breaking the main code."]
+                          ["Commit Object" "I want to dissect exactly what data is captured when a snapshot is saved."]
+                          ["Commit Object" "I want to peek under the hood to see what a 'snapshot' actually looks like to Git."]
+                          ["git clone" "I want to download a complete copy of an existing project from the internet."]
+                          ["git clone" "I want to learn how to download an existing project to my local machine to start working."]
+                          ["git log" "I want to learn how to search, read, and filter the history of past changes."]
+                          ["git log" "I want to view the chronological history of what has happened in this project."]
+                          ["git pull" "I want to download the latest updates from my team and merge them into my current work."]
+                          ["git pull" "I want to update my local files with the newest code my teammates just published."]
+                          ["git push" "I am ready to upload my local, finished commits for the rest of my team to see."]
+                          ["git push" "I want to upload my finished local work so the rest of the team can see it."]
+                          ["git status" "I just need a quick summary of what state my working files are currently in."]
+                          ["git status" "I want to learn how to quickly check exactly which of my files are modified or untracked."]
+                          ["Remote Repository" "I want to understand how my local code connects to servers like GitHub or GitLab."]
+                          ["Remote Repository" "I want to understand the bridge between my local machine and a server like GitHub."]
+                          ["Repository (.git)" "I want to know where and how Git physically stores all its data and history on my computer."]
+                          ["Repository (.git)" "I want to peek inside the hidden folder where Git actually stores all its data."]
+                          ["Staging Area (Index)" "I want to learn how to prepare and group specific file changes before permanently saving them."]
+                          ["Staging Area (Index)" "I want to understand the 'waiting room' where files sit before they become a permanent commit."]]
+         :when (not= h1-id h2-id)]
+     {:description question
+      :options [{:id e-id :text option-e}
+                {:id h1-id :text option-h1}
+                {:id h2-id :text option-h2}]})
+
+   ;; Problem Space
    "❓ Undo last commits"
    {:routing [;; The first routing is an assumption of path. Be careful to
               ; review the text of the first path to check if it doesn't says
@@ -1264,9 +1331,10 @@
        (every? true? (map (fn [c q] (or (= q :--any) (= c q)))
                           current-path q-key))))
 
-(defn get-question-for-path [questions-map current-path]
-  (let [matched-key (first (filter #(question-match? current-path %) (keys questions-map)))]
-    (get questions-map matched-key)))
+(defn get-question-for-path [questions-map current-path fallback-questions]
+  (let [matched-key (first (filter #(question-match? current-path %) (keys questions-map)))
+        fallback (first (shuffle fallback-questions))]
+    (get questions-map matched-key fallback)))
 ;; ---
 (defn node-color
   [app-state node]
@@ -1335,12 +1403,13 @@
       :children content}]))
 
 (defn right-panel-view []
-  (let [selected-or-fallback-node (let [[selected-node & osn] @(re-frame/sub :flow {:id :f-selected-nodes})
+  (let [target (<sub [::target-node])
+        selected-or-fallback-node (let [[selected-node & osn] @(re-frame/sub :flow {:id :f-selected-nodes})
                                         _ (when (seq osn) (js/console.error "Mais de um Node selecionado:" (cons selected-node osn)))
                                         visible-nodes (when-not selected-node @(re-frame/sub :flow {:id :f-visible-nodes}))]
                                     (or selected-node
                                         (util/get-pred #(when % (str/starts-with? % "❓")) visible-nodes)
-                                        (first visible-nodes)))
+                                        target))
         explanations (<sub [::looset-graph/explanation-content])
         matched-solution (:matched-node (<sub [::problem-evaluation]))
         markdown-content (or (get explanations {:type :node :id selected-or-fallback-node})
@@ -1376,17 +1445,23 @@
 (declare answered-questions)
 (defn answered-problem
   [{app-state :db} [evt chosen-id]]
-  (let [app-state* (update-in app-state [:trace-ui :answers-for-problem-questions] (fnil conj []) chosen-id)
+  (let [app-state* (-> app-state
+                     (update-in [:trace-ui :answers-for-problem-questions] (fnil conj []) chosen-id)
+                     (update-in [:trace-ui :target-when-no-problem] #(when (string? %2) %2) chosen-id))
         problem (problem-node app-state evt)
         brain (brain-node [problem (target-node app-state evt) (answered-questions app-state)])
         brain* (brain-node [problem (target-node app-state* evt) (answered-questions app-state*)])
         target (target-node app-state evt)
         target* (target-node app-state* evt)
+        update-problem? (and (not= :no-problem problem)
+                             (not= target target*))
         fx-seq (cond-> []
-                 (not= target target*)
+                 update-problem?
                  (concat [[:dispatch-later {:ms 100  :dispatch [::add-node-props [problem {:hidden? false :edges-to nil}]]}] ;; Remove edge
-                          [:dispatch-later {:ms 100  :dispatch [::add-node-props [target  {:hidden? false :name target}]]}] ;; Remove target icon
-                          [:dispatch-later {:ms 600  :dispatch [::add-node-props [problem {:hidden? false :edges-to {"solved by" #{target*}}}]]}] ;; Add edge to new target.
+                          [:dispatch-later {:ms 600  :dispatch [::add-node-props [problem {:hidden? false :edges-to {"solved by" #{target*}}}]]}]]) ;; Add edge to new target.
+
+                 (not= target target*)
+                 (concat [[:dispatch-later {:ms 100  :dispatch [::add-node-props [target  {:hidden? false :name target}]]}] ;; Remove target icon
                           [:dispatch-later {:ms 600  :dispatch [::add-node-props [target* {:hidden? false :name (str "🎯 "target*) :color LIGHT-RED}]]}] ;; Add icon to new target
                           [:dispatch-later {:ms 1200 :dispatch [::add-node-props (nwphac app-state* brain   {:name brain})]}]
                           [:dispatch-later {:ms 1200 :dispatch [::add-node-props (nwphac app-state* brain*  {:name (str "🧠 "brain*)})]}]]
@@ -1918,10 +1993,12 @@
 
         ;; --- Problem Panel Setup ---
         problem-path-takeen (<sub [::problem-path-taken])
-        assumed-answer (:assumed-answer (<sub [::problem-evaluation]))
+        assumed-answer (or (:assumed-answer (<sub [::problem-evaluation]))
+                           (<sub [::target-node]))
         ;; Fetch the specific question for the current path
         questions-map (get-in trace-scenarios [problem-node :questions] {})
-        problem-question-data (get-question-for-path questions-map problem-path-takeen)
+        fallback-questions (:fallback-problem-questions trace-scenarios)
+        problem-question-data (get-question-for-path questions-map problem-path-takeen fallback-questions)
 
         ;; --- Knowledge Panel Setup ---
         current-brain  (<sub [::brain-node])
