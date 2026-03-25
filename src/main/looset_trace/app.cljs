@@ -589,8 +589,8 @@
                             ["git bisect" "I need to hunt down the exact, specific commit that introduced a bug into the project."]
                             ["git cherry-pick" "I want to grab one specific change from another branch and copy it into mine without merging everything."]
                             ["git cherry-pick" "I want to grab one specific, isolated commit from another branch and apply it to mine."]
-                            ["git rebase -i" "I want to clean up, squash, or edit my commit history before opening a Pull Request."]
-                            ["git rebase -i" "I want to clean up, squash, or reorder my local history before sharing it with the team."]
+                            ["git rebase" "I want to clean up, squash, or edit my commit history before opening a Pull Request."]
+                            ["git rebase" "I want to clean up, squash, or reorder my local history before sharing it with the team."]
                             ["git reflog" "I made a terrible mistake and need to recover a commit that seems to be completely 'lost'."]
                             ["git reflog" "I need to know how to rescue a deleted commit—the 'undo button for the undo button'."]
                             ["git reset" "I need to unstage files or completely wipe out my recent local work by moving my branch pointer."]
@@ -607,8 +607,8 @@
                             ["git bisect" "I need to hunt down the exact, specific commit that introduced a bug into the project."]
                             ["git cherry-pick" "I want to grab one specific change from another branch and copy it into mine without merging everything."]
                             ["git cherry-pick" "I want to grab one specific, isolated commit from another branch and apply it to mine."]
-                            ["git rebase -i" "I want to clean up, squash, or edit my commit history before opening a Pull Request."]
-                            ["git rebase -i" "I want to clean up, squash, or reorder my local history before sharing it with the team."]
+                            ["git rebase" "I want to clean up, squash, or edit my commit history before opening a Pull Request."]
+                            ["git rebase" "I want to clean up, squash, or reorder my local history before sharing it with the team."]
                             ["git reflog" "I made a terrible mistake and need to recover a commit that seems to be completely 'lost'."]
                             ["git reflog" "I need to know how to rescue a deleted commit—the 'undo button for the undo button'."]
                             ["git reset" "I need to unstage files or completely wipe out my recent local work by moving my branch pointer."]
@@ -843,7 +843,7 @@
                      :correct-id :b}}}
 
    "git rebase"
-   {:prerequisites ["Commit Object" "Working Directory" "git merge"]
+   {:prerequisites ["Commit Object" "Branch" "git merge" "DAG (Directed Acyclic Graph)"]
     :questions {:1 {:description "In the command `git rebase --onto main branchA branchB`, which commits are rebased?"
                     :options [{:id :a :text "All commits from `branchA` and `branchB` are applied to `main`." :why "The `--onto` flag uses specific ranges, not all commits."}
                               {:id :b :text "Commits reachable from `branchA` but not `branchB`, placed onto `main`." :why "The order of arguments is reversed; `branchB` is the target branch."}
@@ -1051,12 +1051,36 @@
                      :correct-id :c}}}
 
    "Staging Area (Index)"
-   {:prerequisites ["Snapshot" "Repository (.git)"]
-    :questions {:0 {:description "What happens to your changes when you execute 'git reset --soft'?"
-                    :options [
-                              {:id :a :text "The files are permanently deleted."}
-                              {:id :b :text "The files remain in the Staging Area."}]
+   {:prerequisites ["Snapshot" "Repository (.git)" "Cache"]
+    :questions {:2 {:description "If you have modified a tracked file but have NOT yet run `git add`, what does `git diff` compare by default?"
+                    :options [{:id :a :text "The Working Directory against the latest Commit (HEAD)." :why "This is what `git diff HEAD` does, not the default `git diff`."}
+                              {:id :b :text "The Staging Area (Index) against the latest Commit (HEAD)." :why "This is what `git diff --staged` (or `--cached`) does."}
+                              {:id :c :text "The Working Directory against the Staging Area (Index)." :why "By default, `git diff` shows what you have changed in your local files that hasn't yet been staged."}
+                              {:id :d :text "The local Index against the Remote Repository's Index." :why "Git doesn't compare local and remote indexes this way; it compares commits."}
+                    :hint "If you haven't staged it yet, you are looking at the difference between your raw files and what is currently in the draft space."
+                    :correct-id :c}}}
+
+   "Staging Area"
+   {:prerequisites ["Staging Area (Index)"]
+    :questions {:1 {:description "When you execute `git add <file>`, what exact changes occur within the Git architecture regarding the Index?"
+                    :options [{:id :a :text "Git copies the raw file directly into the `.git/index` directory." :why "The Index is a single binary file, not a directory that holds raw files."}
+                              {:id :b :text "Git generates a Blob Object in the database and records its SHA-1 hash and file path in the Index." :why "This perfectly describes the mechanism. The Index acts as a manifest pointing to the newly hashed Blobs."}
+                              {:id :c :text "Git creates a temporary Commit Object and places it in the Staging Area." :why "Commits are only created when `git commit` is run, never by `git add`."}
+                              {:id :d :text "Git flags the file in the Working Directory as 'ready' but doesn't move any data to the `.git` folder yet." :why "`git add` physically hashes and compresses the file into the `.git/objects` database immediately."}
+                              {:id :e :text "Git creates a new Tree object representing the current directory state and stages it." :why "Tree objects are built from the Index during the `git commit` phase, not during `git add`."}]
+                    :hint "Think about how Git separates the file's content (the Blob) from its name and location."
                     :correct-id :b}}}
+
+   "Cache"
+   {:prerequisites ["Staging Area (Index)"]
+    :questions {:4 {:description "How does the command `git commit -a` interact with the Index?"
+                    :options [{:id :a :text "It completely bypasses the Index, committing files directly from the Working Directory." :why "Git never bypasses the Index. It always builds the Commit Object from the state of the Index."}
+                              {:id :b :text "It stages all modified, deleted, AND untracked files, then creates a commit." :why "The `-a` flag does not stage newly created (untracked) files."}
+                              {:id :c :text "It automatically updates the Index, and immediately creates a Commit Object." :why "It is a shortcut that essentially runs `git add -u` (for tracked files) silently before executing the commit."}
+                              {:id :d :text "It clears the Index completely before building the new commit from the Working Directory." :why "Clearing the Index would result in an empty commit. It updates it, not clears it."}
+                              {:id :e :text "It creates a commit containing only what was already in the Index, ignoring the Working Directory." :why "This is what a standard `git commit` (without `-a`) does."}]
+                    :hint "Think of `-a` as a shortcut for tracked files that saves you from typing `git add`."
+                    :correct-id :c}}}
 
    "git revert"
    {:prerequisites ["Commit Object"]
@@ -1134,15 +1158,157 @@
                      :correct-id :c}}}
 
    "Branch"
-   {:prerequisites ["Commit Object" "HEAD"]
-    :questions {:11 {:description "What is the exact result of running `git checkout --orphan new_branch`?"
-                     :options [{:id :a :text "It deletes the current branch and leaves HEAD detached." :why "It creates a new branch; it doesn't delete the old one."}
-                               {:id :c :text "It creates a new branch with no commit history and a disconnected root." :why "The first commit made on this orphan branch will have no parents, starting a completely parallel history."}
-                               {:id :d :text "It checks out a branch that is unreachable from the main history, permanently discarding it." :why "The new branch is fully usable; it just shares no history with the rest of the repo."}
-                               {:id :e :text "It copies the history of the current branch but assigns a new tree object." :why "It intentionally copies no history."}]
-                     :hint "Think about branches like `gh-pages` that need to be in the same repo but share zero history with the main code."
-                     :correct-id :c}}}
-  ; :questions {:0 {:title "More questions coming soon.."}}}
+   {:prerequisites ["Commit Object" "HEAD" "git branch"]
+    :questions {:1 {:description "Physically, how is a local branch represented inside the `.git` directory?"
+                    :options [{:id :a :text "A fully duplicated copy of the working directory at that point in time."
+                               :why "Git does not copy files for branches, making them extremely lightweight and fast."}
+                              {:id :b :text "A compressed binary packfile containing the differences (deltas) from the main branch."
+                               :why "Packfiles store immutable object data, not movable branch definitions."}
+                              {:id :c :text "A simple text file containing the 40-character SHA-1 hash of the commit it points to."
+                               :why "Branches are literally just lightweight references (pointers) to a specific commit object, stored in `.git/refs/heads/`."}
+                              {:id :d :text "A symbolic link pointing directly to the `HEAD` file."
+                               :why "It's the inverse: `HEAD` is usually a symbolic link pointing to a branch."}
+                              {:id :e :text "An immutable database object stored inside the `.git/objects` folder."
+                               :why "Branch pointers are mutable and change constantly; they are not stored as immutable hashed objects."}]
+                    :hint "Think about why creating a branch in Git is almost instantaneous compared to older systems like SVN."
+                    :correct-id :c}}}
+
+   ".git/hooks"
+   {:prerequisites ["Repository (.git)" "git commit" "git push" "git commit --no-verify"]
+    :questions {:1 {:description "What is the primary purpose of the `pre-commit` hook in Git?"
+                    :options [{:id :a :text "To format the commit message before it is saved."
+                               :why "That is the job of the `prepare-commit-msg` or `commit-msg` hook."}
+                              {:id :b :text "To automatically push changes to the remote repository immediately after a commit."
+                               :why "Hooks don't usually push automatically, and if they did, that would be a `post-commit` action."}
+                              {:id :c :text "To inspect the snapshot that is about to be committed (e.g., run linters or tests) and potentially abort the commit."
+                               :why "The pre-commit hook is typically used to check the code itself for formatting, trailing whitespace, or syntax errors before the commit object is created."}
+                              {:id :d :text "To magically resolve merge conflicts before saving."
+                               :why "Hooks cannot automatically resolve complex human logic like merge conflicts."}
+                              {:id :e :text "To track which user is currently typing a commit in the project."
+                               :why "Git is a decentralized system; it has no concept of tracking who is currently typing locally."}]
+                    :hint "Think about what a team might want to do to your code *before* it is permanently recorded in the database."
+                    :correct-id :c}}}
+
+   "Detached HEAD"
+   {:prerequisites ["HEAD" "Commit Object" "Branch" "git checkout [hash]"]
+    :questions {:4 {:description "You are in a Detached HEAD state, have made three experimental commits, and decide you want to keep them. What is the safest and most direct way to save this timeline?"
+                    :options [{:id :a :text "Run `git branch new-experiment` and then `git checkout new-experiment`." :why "Creating a branch at your current detached location gives the commits a permanent pointer, fully saving the history."}
+                              {:id :b :text "Run `git stash`, checkout `main`, and then run `git stash pop`." :why "Stash is for uncommitted changes. These changes are already committed to the database."}
+                              {:id :c :text "Run `git push origin HEAD` to force the commits to the server." :why "Pushing a detached HEAD without a local branch is highly problematic and often rejected by remote servers."}
+                              {:id :d :text "Run `git commit --amend --attach`." :why "There is no `--attach` flag in Git."}
+                              {:id :e :text "Run `git merge main` to bring the main timeline to your detached commits." :why "This merges `main` into your detached state, but still leaves the whole combined structure orphaned if you switch away."}]
+                    :hint "You are standing on top of your commits, but you don't have a label. How do you stick a label on your current location?"
+                    :correct-id :a}}}
+
+   "DAG (Directed Acyclic Graph)"
+   {:prerequisites ["Commit Object" "SHA-1 Hash" "Branch"]
+    :questions {:1 {:description "What fundamental guarantee does the 'Acyclic' property of Git's DAG provide?"
+                    :options [{:id :a :text "It ensures that commits can never be deleted from the repository." :why "Garbage collection can delete unreachable commits; acyclic does not mean permanent."}
+                              {:id :b :text "It guarantees that a repository can only have one root commit." :why "Git actually supports multiple root commits (e.g., orphan branches)."}
+                              {:id :c :text "It prevents infinite loops when Git traverses the repository's history." :why "Because there are no cycles, tracing parents will always eventually stop at a root commit, preventing software hangs."}
+                              {:id :d :text "It strictly prevents two branches from ever merging together." :why "The DAG perfectly supports merging; in fact, it is what makes merging trackable."}
+                              {:id :e :text "It ensures that every commit has exactly one parent." :why "Merge commits have two or more parents, which is fully supported by the DAG."}]
+                    :hint "Think about what happens when software tries to read a linked list or graph that connects back to itself."
+                    :correct-id :c}}}
+
+   "git bisect"
+   {:prerequisites ["Commit Object" "HEAD" "Detached HEAD" "DAG (Directed Acyclic Graph)"]
+    :questions {:3 {:description "How can you fully automate the `git bisect` process so you don't have to manually test and type `good` or `bad` at every step?"
+                    :options [{:id :a :text "By using `git bisect auto <script>`." :why "The `auto` subcommand does not exist in the bisect suite."}
+                              {:id :b :text "By using `git bisect run <script>`." :why "This command takes a script (like a test suite). If the script exits with code 0, Git marks it good; if it exits with 1-127, Git marks it bad, fully automating the search."}
+                              {:id :c :text "By passing the `--test` flag during `git bisect start`." :why "You must provide the script to a specific subcommand after bisect has been started."}
+                              {:id :d :text "By setting up a `.git/hooks/pre-bisect` hook." :why "Git hooks trigger on repository events, but they are not used to drive the bisect loop itself."}
+                              {:id :e :text "By using `git bisect exec <script>`." :why "While `exec` is used in interactive rebasing, `run` is the correct command for bisect automation."}]
+                    :hint "You need to give Git a script to execute and evaluate at every step."
+                    :correct-id :b}}}
+
+   "git cherry-pick"
+   {:prerequisites ["Commit Object" "SHA-1 Hash" "HEAD" "Atomic Commits"]
+    :questions {:4 {:description "In a highly regulated repository, your team needs to track the exact origin of backported hotfixes. Which `git cherry-pick` flag automates this tracking?"
+                    :options [{:id :a :text "`-s` (or `--signoff`)" :why "This appends a 'Signed-off-by' line, which is used for developer certification/legal compliance, not origin tracking."}
+                              {:id :b :text "`-e` (or `--edit`)" :why "This simply opens your default text editor so you can manually rewrite the commit message."}
+                              {:id :c :text "`--record-origin`" :why "This flag does not exist in the Git command line interface."}
+                              {:id :d :text "`-x`" :why "This flag automatically appends '(cherry picked from commit <hash>)' to the generated commit message, creating a permanent, searchable audit trail."}
+                              {:id :e :text "`--track`" :why "This is used with `git branch` or `git checkout` to set up upstream network tracking, not for cherry-picking."}]
+                    :hint "You are looking for a flag that leaves a permanent note in the commit message itself."
+                    :correct-id :d}}}
+
+   "git reflog"
+   {:prerequisites ["HEAD" "Commit Object" "git reset" "SHA-1 Hash"]
+    :questions {:1 {:description "What exactly does the `git reflog` command track by default?"
+                    :options [{:id :a :text "Every change made to the Working Directory, even if uncommitted." :why "Git does not track uncommitted modifications in its database or the reflog."}
+                              {:id :b :text "Only destructive commands like `git reset` or `git rebase`." :why "It tracks all HEAD movements, including completely safe actions like checkouts and standard commits."}
+                              {:id :c :text "Every time the `HEAD` pointer moves in your local repository." :why "The reflog is essentially a chronological journal of exactly where HEAD has pointed over time."}
+                              {:id :d :text "The movement of all remote-tracking branches across the network." :why "The reflog is strictly a local mechanism and does not track remote network states by default."}
+                              {:id :e :text "Every file modification stored inside the staging area." :why "The index/staging area is independent of the reflog, which only tracks reference pointers."}]
+                    :hint "Think about the specific pointer Git uses to determine 'where you are right now'."
+                    :correct-id :c}}}
+
+   "Immutability"
+   {:prerequisites ["SHA-1 Hash" ".git/objects" "Commit Object"]
+    :questions {:4 {:description "How does Git mathematically enforce the principle of Immutability at the deepest database level?"
+                    :options [{:id :a :text "By assigning read-only file system permissions (e.g., `chmod 444`) to every file inside `.git/objects`." :why "While Git does set read-only permissions as a safeguard, true immutability is enforced by the cryptographic naming mechanism, not just OS-level file permissions."}
+                              {:id :b :text "By using a strict append-only B-tree structure for the Git index." :why "The index is mutable and frequently rewritten; it's the Object Database that is immutable."}
+                              {:id :c :text "By checking the `pull.rebase` configuration before allowing any modifications to an object." :why "Configuration settings dictate user workflow behavior, not the core mathematical immutability of the database."}
+                              {:id :d :text "By using a content-addressable storage model where an object's ID (SHA-1 hash) is strictly derived from its byte content." :why "If you attempt to change an object's content, the hashing algorithm guarantees a different ID will be produced, meaning you've inherently created a new object rather than modifying the old one."}
+                              {:id :e :text "By requiring GPG signatures on all commit objects to prevent tampering." :why "GPG signatures verify author identity, not the structural immutability of the database objects themselves."}]
+                    :hint "Think about how Git names the files it stores in the database. What directly dictates that file name?"
+                    :correct-id :d}}}
+
+   "git branch"
+   {:prerequisites ["Commit Object" "HEAD" "Branch"]
+    :questions {:3 {:description "If you successfully execute `git branch -d feature_branch`, what data is actually deleted from your repository?"
+                    :options [{:id :a :text "All of the Commit Objects that were uniquely created on `feature_branch`."
+                               :why "Commits are not deleted immediately; they become dangling objects until garbage collection (`git gc`) runs."}
+                              {:id :b :text "The files in your Working Directory that were modified by `feature_branch`."
+                               :why "Branch deletion only affects `.git` metadata, never the files currently sitting in your active workspace."}
+                              {:id :c :text "Only the 40-byte text file pointer located in `.git/refs/heads/feature_branch`."
+                               :why "Deleting a branch simply removes the lightweight reference file, leaving the history mathematically intact in the database."}
+                              {:id :d :text "The branch pointer and any associated Tag Objects on that timeline."
+                               :why "Tags are entirely separate reference files and are immune to branch deletions."}
+                              {:id :e :text "The corresponding Remote-Tracking Branch in `refs/remotes/origin/`."
+                               :why "A standard local `-d` only deletes the local branch pointer, not the remote tracking references."}]
+                    :hint "Remember Git's core design philosophy: it is extremely hesitant to actually delete your snapshot data."
+                    :correct-id :c}}}
+
+   "git clone"
+   {:prerequisites ["Remote Repository" "Local Repository" "Working Directory" "origin"]
+    :questions {:1 {:level "Intermediate"
+                    :description "What sequence of foundational Git commands does `git clone` essentially automate under the hood?"
+                    :options [{:id :a :text "`git init`, `git pull`, and `git checkout`."
+                               :why "While it initializes and checks out, `git pull` is technically a fetch + merge, which isn't the precise setup sequence for a brand new repo."}
+                              {:id :b :text "`git init`, `git remote add`, `git fetch`, and `git checkout`."
+                               :why "Clone creates an empty repo (`init`), links the URL (`remote add`), downloads the data (`fetch`), and populates your workspace (`checkout`)."}
+                              {:id :c :text "`git remote add`, `git pull`, and `git branch`."
+                               :why "This sequence misses the crucial initial step of creating the `.git` directory (`git init`)."}
+                              {:id :d :text "`git fetch`, `git checkout`, and `git branch`."
+                               :why "You cannot fetch data if a repository hasn't been initialized and a remote hasn't been added yet."}
+                              {:id :e :text "`git init`, `git fetch`, and `git merge`."
+                               :why "A fresh clone checks out the files directly; it doesn't need to perform a merge because there is no local history to merge into."}]
+                    :hint "Think about the exact chronological steps required to go from an empty folder to a fully working project connected to a server."
+                    :correct-id :b}}}
+
+   "git log"
+   {:prerequisites ["Commit Object" "HEAD" "DAG (Directed Acyclic Graph)" "SHA-1 Hash"]
+    :questions {:2 {:description "If you want to see a condensed, visual representation of how your branches have diverged and merged, which flag combination is best?"
+                    :options [{:id :a :text "`--stat --pretty=fuller`" :why "This makes the log extremely verbose, showing full metadata and file changes, which is the opposite of condensed."}
+                              {:id :b :text "`--oneline --graph`" :why "This combination shrinks each commit to a single line and draws an ASCII text graph on the left side showing branch pathways."}
+                              {:id :c :text "`--visualize --short`" :why "These are not valid `git log` flags."}
+                              {:id :d :text "`--name-only --decorate`" :why "`--name-only` just lists changed files, it doesn't draw a branching graph."}
+                              {:id :e :text "`-p --all`" :why "While `--all` shows all branches, adding `-p` will flood your screen with every single line of code ever written in the repo."}]
+                    :hint "You need one flag to shrink the text size, and another to draw the lines connecting the commits."
+                    :correct-id :b}}}
+
+   "git push"
+   {:prerequisites ["Remote Repository" "Local Repository"]
+    :questions {:3 {:description "What is the primary architectural danger of using `git push --force` (or `-f`) on a shared branch?"
+                    :options [{:id :a :text "It permanently deletes your local `.git/objects` folder." :why "`git push` never deletes local data; it only sends data to the remote."}
+                              {:id :b :text "It overwrites the remote history, permanently." :why "Force pushing tells the server 'make your timeline look exactly like mine,' instantly destroying any divergent commits on the server."}
+                              {:id :c :text "It forces Git to resolve merge conflicts automatically by choosing the remote code." :why "Pushing does not resolve conflicts; merging or rebasing does."}
+                              {:id :d :text "It creates a detached HEAD state on the remote server." :why "Remote servers are generally bare repositories and don't have a working tree or active HEAD in the same way local repos do."}
+                              {:id :e :text "It bypasses all network security and SSH key verification." :why "Force pushing still requires standard authentication and repository access rights."}]
+                    :hint "If you rewrote history locally with `git reset` or `git commit --amend`, what happens to the 'old' history on the server when you force your new timeline onto it?"
+                    :correct-id :b}}}
 
    "SHA-1 Hash"
    {:prerequisites ["git revert"] ;; TODO: "git revert" is here only for attractig the brain icon in the demo.
