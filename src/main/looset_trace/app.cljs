@@ -1619,7 +1619,7 @@
         brain* (brain-node [problem (target-node app-state* evt) (answered-questions app-state*)])
         target (target-node app-state evt)
         target* (target-node app-state* evt)
-        update-problem? (and (not= :no-problem problem)
+        update-problem? (and (not (string? chosen-id))
                              (not= target target*))
         fx-seq (cond-> []
                  update-problem?
