@@ -121,6 +121,28 @@
       opacity: 1;
     }
 
+    /* left-buttons */
+    .button-2:active {
+      background-color: #00000020;
+    }
+    .button-2 {
+       background-color: #0000000d;
+       backdrop-filter: blur(3px);
+       border-radius: 8px;
+       border-style: solid;
+       border-width: 2px;
+       border-color: #000000a1;
+       box-sizing: border-box;
+       cursor: pointer;
+       padding: 4px;
+       margin: 4px 0px;
+       transition: color 100ms;
+       user-select: none;
+       -webkit-user-select: none;
+       touch-action: manipulation;
+    }
+
+
     /* -----------------------------------------
 ;; --- Interaction Layer (The panel that moves)
        ----------------------------------------- */
@@ -1516,6 +1538,39 @@
 ;; ---------------------------------------------------------
 ;; -- COMPONENTS---------------------------------------------------------
 
+(defn left-buttons []
+  (let [icons-size "22"]
+    [:div
+     {:style {:position "relative"
+              :height "0px"
+              :z-index "10"}}
+     [:div
+      {:style {:z-index "10"
+               :display "flex"
+               :flex-direction "column"
+               :align-items "flex-start"
+               :padding "10px"
+               :inline-size "fit-content"}}
+      [:button.button-2
+       {:title "realign nodes"
+        :onClick #(>evt [::looset-graph/clear-nodes-positions])}
+       [:svg
+        {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
+        [:path {:fill-rule "evenodd" :d "M5 1v8H1V1zM1 0a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V1a1 1 0 0 0-1-1zm13 2v5H9V2zM9 1a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM5 13v2H3v-2zm-2-1a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1zm12-1v2H9v-2zm-6-1a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1z"}]]]
+      [:button.button-2.drag-button
+       {:title "dispersion (click, hold and drag)"
+        :onMouseDown #(let [canvas (first (js/document.getElementsByTagName "canvas"))]
+                        (-> (.requestPointerLock canvas #_(clj->js {:unadjustedMovement true}))
+                          (.then (fn []
+                                   (js/console.log "Pointer lock acquired.")))
+                          (.catch (fn [err]
+                                    (js/console.error "Pointer lock failed:" err))))
+
+                        (>evt [::looset-graph/dispersing-nodes true]))}
+       [:svg
+        {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
+        [:path {:fill-rule "evenodd" :d "M5.828 10.172a.5.5 0 0 0-.707 0l-4.096 4.096V11.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H4.5a.5.5 0 0 0 0-1H1.732l4.096-4.096a.5.5 0 0 0 0-.707m4.344-4.344a.5.5 0 0 0 .707 0l4.096-4.096V4.5a.5.5 0 1 0 1 0V.525a.5.5 0 0 0-.5-.5H11.5a.5.5 0 0 0 0 1h2.768l-4.096 4.096a.5.5 0 0 0 0 .707"}]]]]]))
+
 (defn markdown-view [content]
   (let [custom-components
         {:a looset-graph/markdown-view-node-link
@@ -2189,6 +2244,8 @@
         [:pre (str "problem-question-data: "problem-question-data)]
         [:pre (str "knowledge-question-data: "knowledge-question-data)]])
 
+     (when is-tracing?
+       [left-buttons])
 
      ;; === BACKGROUND GRAPH LAYER (Moves from Full Screen to Bottom) ===
      [:div.graph-bg
