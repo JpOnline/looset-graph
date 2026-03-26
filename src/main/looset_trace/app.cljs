@@ -1873,9 +1873,9 @@
 
               ;; --- PROMPT STATE ---
               [:div
-               [:h3 {:style {:margin-top "0" :color "#0f172a"}} (:title @modal-state)]
+               [:h3 {:style {:margin-top "0" :color "#0f172a"}} (:title modal-state)]
                [:p {:style {:color "#475569" :font-size "0.95rem" :line-height "1.5" :margin-bottom "20px"}}
-                (str "Drop your email below if you want a quick ping when we release a map for \"") [:strong (:subject @modal-state)] "\"."]
+                (str "Drop your email below if you want a quick ping when we release a map for \"") [:strong (:subject modal-state)] "\"."]
 
                [:input.search-input
                 {:type "email"
