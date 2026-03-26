@@ -1636,12 +1636,17 @@
      :fx fx-seq}))
 (re-frame/reg-event-fx ::answered-problem answered-problem)
 ;; ----
-(defn quiz-problem [question-data assumed-answer]
-  (let [clicked-id (reagent.core/atom nil)]
+(defn quiz-problem [initial-question-data initial-assumed-answer]
+  (let [clicked-id (reagent.core/atom nil)
+        current-question (atom initial-question-data)
+        shuffled-options (atom (shuffle (:options initial-question-data)))]
     (fn [question-data assumed-answer]
+      (when (not= question-data @current-question)
+        (reset! current-question question-data)
+        (reset! shuffled-options (shuffle (:options question-data))))
       (let [;; Sort options: Assumed goes first.
             sorted-options (sort-by (fn [opt] (if (= (:id opt) assumed-answer) -1 1))
-                                    (shuffle (:options question-data)))
+                                    @shuffled-options)
             is-waiting? (some? @clicked-id)]
         [:div.quiz-container
          {:class (when is-waiting? "panel-info-gathered")
