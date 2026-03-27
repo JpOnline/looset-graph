@@ -36,7 +36,10 @@
 
 (defn send-to-firestore
   [_ [_ collection-name* payload]]
-  (let [collection-name (if ^boolean js/goog.DEBUG (str "debug-" collection-name*) collection-name*)
+  (let [collection-name (cond
+                          ^boolean js/goog.DEBUG (str "debug-" collection-name*)
+                          (is-staging?) (str "stg-" collection-name*)
+                          :else collection-name*)
         col (collection firestore-db collection-name)
         js-payload (clj->js (assoc payload :timestamp (.toISOString (js/Date.))))]
     (-> (addDoc col js-payload)
