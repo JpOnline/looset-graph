@@ -1,4 +1,35 @@
 {;; Problem Space
+ "❓ How to bundle commits by date?"
+ {:routing [
+            [:contiguous :local :tip] "git reset --soft"
+            [:contiguous :pushed] "git rebase -i with push --force-with-lease"
+            [:scattered :current-branch] "git rebase -i (reorder lines)"
+            [:scattered :new-branch] "git checkout & git cherry-pick"
+            [:contiguous :local :buried] "git rebase -i (squash target commits)"
+            [:contiguous :local :buried :team-review] "Atomic Patch Strategy (git reset --soft & git add -p)"
+            [:contiguous :local :buried :team-review :drafting-phase] "The Save Point Philosophy (Commit Early/Often)"
+            [:contiguous :local :buried :team-review :publishing-phase] "The Atomic Commit Philosophy (Logical Cohesion & Rule of Revert)" ]
+  :questions {[] {:description "Are the commits contiguous or scattered?"
+                  :options [{:id :contiguous :text "The commits are contiguous (back-to-back)"}
+                            {:id :scattered :text "The commits are scattered among others"}]}
+              [:contiguous] {:description "Have these commits been pushed to a remote repository?"
+                             :options [{:id :local :text "They are strictly local"}
+                                       {:id :pushed :text "They have already been pushed"}]}
+              [:scattered] {:description "Do you want to keep them on this branch, or isolate them to a new one?"
+                            :options [{:id :current-branch :text "Keep on current branch"}
+                                      {:id :new-branch :text "Isolate to a new branch"}]}
+              [:contiguous :local] {:description "Are these commits at the tip of your branch, or buried under newer commits?"
+                                    :options [{:id :tip :text "They are the most recent commits (HEAD)"}
+                                              {:id :buried :text "They are buried under newer, more recent commits"}]}
+              [:contiguous :local :buried] {:description "Why is it necessary to bundle these commits retrospectively?"
+                                            :options [{:id :team-review :text "To make code review easier for colleagues"}
+                                                      {:id :local-hygiene :text "To maintain local repository hygiene"}]}
+              [:contiguous :local :buried :team-review] {:description "Which phase of the Git lifecycle philosophy are you trying to optimize?"
+                                                         :options [{:id :drafting-phase :text "The Drafting Phase (Developer Experience)"}
+                                                                   {:id :publishing-phase :text "The Publishing Phase (Team Experience)"}]}
+              [:contiguous :local :buried :team-review :publishing-phase] {:description "How much time is spent managing history vs writing code, and is it yielding faster approvals?"
+                                                                           :options [{:id :high-overhead :text "High overhead with slow reviews"}
+                                                                                     {:id :worthwhile-investment :text "Worthwhile investment for clean history"}]}}}
  "❓ Undo last commits"
  {:routing [;; The first routing is an assumption of path. Be careful to
             ; review the text of the first path to check if it doesn't says
