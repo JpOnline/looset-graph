@@ -1,14 +1,16 @@
 {;; Problem Space
  "❓ How to bundle commits by date?"
- {:routing [
+ {:related-nodes ["git push --force-with-lease" "git log"]
+  :routing [
             [:contiguous :local :tip] "git reset --soft"
-            [:contiguous :pushed] "git rebase -i with push --force-with-lease"
-            [:scattered :current-branch] "git rebase -i (reorder lines)"
-            [:scattered :new-branch] "git checkout & git cherry-pick"
-            [:contiguous :local :buried] "git rebase -i (squash target commits)"
-            [:contiguous :local :buried :team-review] "Atomic Patch Strategy (git reset --soft & git add -p)"
-            [:contiguous :local :buried :team-review :drafting-phase] "The Save Point Philosophy (Commit Early/Often)"
-            [:contiguous :local :buried :team-review :publishing-phase] "The Atomic Commit Philosophy (Logical Cohesion & Rule of Revert)" ]
+            [:contiguous :pushed] "git rebase"
+            [:scattered :current-branch] "git rebase -i"
+            [:scattered :new-branch] "git cherry-pick"
+            [:contiguous :local :buried] "git rebase -i"
+            [:--any :--any :single-feature] "Atomic Commits"
+            [:--any :--any :--any :single-feature] "Atomic Commits"
+            [:--any :--any :tangled-features] "git rebase -i"
+            [:--any :--any :--any :tangled-features] "git rebase -i"]
   :questions {[] {:description "Are the commits contiguous or scattered?"
                   :options [{:id :contiguous :text "The commits are contiguous (back-to-back)"}
                             {:id :scattered :text "The commits are scattered among others"}]}
@@ -21,22 +23,19 @@
               [:contiguous :local] {:description "Are these commits at the tip of your branch, or buried under newer commits?"
                                     :options [{:id :tip :text "They are the most recent commits (HEAD)"}
                                               {:id :buried :text "They are buried under newer, more recent commits"}]}
-              [:contiguous :local :buried] {:description "Why is it necessary to bundle these commits retrospectively?"
-                                            :options [{:id :team-review :text "To make code review easier for colleagues"}
-                                                      {:id :local-hygiene :text "To maintain local repository hygiene"}]}
-              [:contiguous :local :buried :team-review] {:description "Which phase of the Git lifecycle philosophy are you trying to optimize?"
-                                                         :options [{:id :drafting-phase :text "The Drafting Phase (Developer Experience)"}
-                                                                   {:id :publishing-phase :text "The Publishing Phase (Team Experience)"}]}
-              [:contiguous :local :buried :team-review :publishing-phase] {:description "How much time is spent managing history vs writing code, and is it yielding faster approvals?"
-                                                                           :options [{:id :high-overhead :text "High overhead with slow reviews"}
-                                                                                     {:id :worthwhile-investment :text "Worthwhile investment for clean history"}]}}}
+              [:--any :--any] {:description "Why is it necessary to bundle these commits retrospectively?"
+                               :options [{:id :single-feature :text "To clean up incremental saves for a single completed feature"}
+                                         {:id :tangled-features :text "To prepare a PR, but the commits contain multiple distinct features"}]}
+              [:--any :--any :--any] {:description "Why is it necessary to bundle these commits retrospectively?"
+                                      :options [{:id :single-feature :text "To clean up incremental saves for a single completed feature"}
+                                                {:id :tangled-features :text "To prepare a PR, but the commits contain multiple distinct features"}]}}}
  "❓ Undo last commits"
  {:routing [;; The first routing is an assumption of path. Be careful to
             ; review the text of the first path to check if it doesn't says
             ; words like "assumption", otherwise the order of the assumed path
             ; shouldn't be changed freely (if a user actually took that path
-                                            ; it's weird to see a description saying it's assuming the answer,
-                                            ; but as a tutorial it's valid).
+            ; it's weird to see a description saying it's assuming the answer,
+            ; but as a tutorial it's valid).
             [:pushed :collaborating] "git revert"
             [:local] "git reset"
             [:pushed :personal-branch] "git push -f"
@@ -699,6 +698,28 @@
                             {:id :e :text "It bypasses all network security and SSH key verification." :why "Force pushing still requires standard authentication and repository access rights."}]
                   :hint "If you rewrote history locally with `git reset` or `git commit --amend`, what happens to the 'old' history on the server when you force your new timeline onto it?"
                   :correct-id :b}}}
+
+ "git push --force-with-lease"
+ {:prerequisites ["git push -force" "Remote-Tracking Branch" "git fetch" "git rebase"]
+  :questions {:1 {:description "What exact condition causes `git push --force-with-lease` to safely reject your push?"
+                  :options [{:id :a :text "Your local branch contains uncommitted changes in the Working Directory." :why "Git push only cares about committed data, not uncommitted workspace changes."}
+                            {:id :b :text "The remote branch has new commits that are not reflected in your local Remote-Tracking Branch." :why "Correct. It checks if the server's branch matches your locally cached version of it (e.g., `origin/branch`). If they differ, someone else pushed, and the lease fails."}
+                            {:id :c :text "You have not successfully resolved all merge conflicts locally." :why "If you have unresolved conflicts, you can't create the commit to push in the first place."}
+                            {:id :d :text "The remote repository requires an SSH key but you are using HTTPS." :why "This is an authentication error, completely unrelated to the lease mechanism."}
+                            {:id :e :text "Your local branch name does not exactly match the remote branch name." :why "Branch name mismatches can be handled with standard push refspecs; it doesn't trigger a lease rejection."}]
+                  :hint "Think about how Git knows what the server 'should' look like without constantly pinging it."
+                  :correct-id :b}}}
+
+ "git add -p"
+ {:prerequisites ["git add" "git diff" "Atomic Commits"]
+  :questions {:1 {:description "What is the primary architectural advantage of using `git add -p` over the standard `git add <file>` command?"
+                  :options [{:id :a :text "It allows you to selectively stage specific lines or blocks of code within the same file." :why "This is the core function of the patch flag, allowing multiple atomic commits from a single heavily modified file."}
+                            {:id :b :text "It automatically formats and lints your code before moving it to the Staging Area." :why "Git does not natively lint or format code during the add process; that requires pre-commit hooks."}
+                            {:id :c :text "It bypasses the Index entirely and creates a Commit Object directly." :why "The patch command only moves data from the Working Directory to the Index; it does not commit."}
+                            {:id :d :text "It allows you to stage files that are explicitly ignored by `.gitignore` rules." :why "You need `git add --force` or `-f` to stage ignored files, not `-p`."}
+                            {:id :e :text "It compresses the staged files directly into a Packfile to save disk space." :why "Packfiles are created during Garbage Collection (`git gc`), not during the staging process."}]
+                  :hint "Think about situations where you fix a bug and add a new feature in the exact same file, but want to commit them separately."
+                  :correct-id :a}}}
 
  "SHA-1 Hash"
  {:prerequisites ["git revert"] ;; TODO: "git revert" is here only for attractig the brain icon in the demo.

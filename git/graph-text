@@ -334,6 +334,7 @@
 "git revert" -"creates"-> "Commit Object"
 "git revert" -"respects"-> "Immutability"
 "git fetch --prune" -"variant of"-> "git fetch"
+"git push --force-with-lease" -"safer than"-> "git push --force"
 ".git/FETCH_HEAD" -"is a"-> "pseudoref"
 "git clone" -"downloads from"-> "Remote Repository"
 "git clone" -"creates"-> "Local Repository"
@@ -370,6 +371,7 @@
 "git add" -"add Blob and file path in"-> "Staging Area (Index)"
 "git add" -"promotes changes from"-> "Working Directory"
 "git add" -"can create"-> "Dangling Blob"
+"git push --force" -"variant of"-> "git push"
 "origin/main" -"Upstream of"-> "main"
 "origin/main" -"is a type of"-> "Remote-Tracking Branch"
 "git push -u" -"creates"-> "Upstream Branch"
@@ -464,6 +466,8 @@
 "git reset" -"moves"-> "HEAD"
 "git reset" -"uses"-> "Relative Refs"
 "git reset" -"clears"-> "Staging Area (Index)"
+"git add -p" -"variant of"-> "git add"
+"git add -p" -"enables"-> "Atomic Commits"
 "Remote-Tracking Branch" -"stored in"-> "refs/remotes/"
 "git push" -"updates"-> "Remote Repository"
 "Merge Conflicts" -"occur in"-> "Staging Area"
@@ -478,6 +482,10 @@
 "git log" -"reads"-> "Commit Object"
 "git log" -"traverses"-> "DAG (Directed Acyclic Graph)"
 "❓ How to bundle commits by date?" -"solved by"-> "git reset --soft"
+"❓ How to bundle commits by date?" -"solved by"-> "git rebase"
+"❓ How to bundle commits by date?" -"solved by"-> "git rebase -i"
+"❓ How to bundle commits by date?" -"solved by"-> "git cherry-pick"
+"❓ How to bundle commits by date?" -"solved by"-> "Atomic Commits"
 "git rebase -i" -"variant of"-> "git rebase"
 "git reset --hard" -"is a variant of"-> "git reset"
 "git reset --hard" -"clears"-> "Staging Area (Index)"
@@ -492,6 +500,7 @@
 "git fetch --prune" {:position {"x" -136.08368383610053, "y" 8.930371209995045}, :hidden? true}
 "git blame" {:position {"x" -280, "y" 240}, :hidden? true}
 "Tag Object (Annotated)" {:position {"x" 209, "y" 272}, :hidden? true}
+"git push --force-with-lease" {:position {"x" -70.32125254205016, "y" 104.75231538652875}, :hidden? true}
 =>"By Learning Levels" {:opened? true, :hidden? true}
 =>"Storage" {:hidden? true, :opened? true}
 ".git/FETCH_HEAD" {:position {"x" 314, "y" 756}, :hidden? true}
@@ -527,6 +536,7 @@
 "git commit --no-verify" {:position {"x" 73.98217372114155, "y" -84.8881496038311}, :hidden? true}
 "git add" {:position {"x" -156, "y" 324}, :hidden? true}
 "Upstream" {:position {"x" -103, "y" -19}, :hidden? true}
+"git push --force" {:position {"x" -88.40045527413162, "y" -48.72539334542638}, :hidden? true}
 =>"By Topics" {:opened? true, :hidden? true, :position {"x" 10, "y" -76}}
 "origin/main" {:position {"x" 1027, "y" 1076}, :hidden? true}
 "git push -u" {:position {"x" 359, "y" 1163}, :hidden? true}
@@ -543,6 +553,7 @@
 "git commit" {:position {"x" 931, "y" 258}, :hidden? true}
 =>"Commands" {:hidden? true, :opened? true}
 ".git/HEAD" {:position {"x" 213, "y" 622}, :hidden? true}
+"git checkout [hash]" {:hidden? true}
 =>"Strategy" {:hidden? true, :opened? true}
 "git reflog" {:position {"x" 431, "y" 170}, :hidden? true}
 "git ls-files" {:position {"x" 15, "y" -227}, :hidden? true}
@@ -607,6 +618,7 @@
 "git reset" {:hidden? true, :opened? false, :position {"x" 52, "y" 247}}
 "master" {:position {"x" 951, "y" 729}, :hidden? true}
 =>"Object Model" {:hidden? true, :opened? true}
+"git add -p" {:position {"x" 68.16245260234996, "y" 1.540583219712282}, :hidden? true}
 =>"Integration" {:hidden? true, :opened? true}
 "Remote-Tracking Branch" {:position {"x" 690, "y" 1171}, :hidden? true}
 "git push" {:position {"x" -235, "y" 565}, :hidden? true}
@@ -619,7 +631,7 @@
 "Feature Branching" {:hidden? true}
 "git push --tags" {:position {"x" -108.04462089926903, "y" -101.6588298911434}, :hidden? true}
 "git log" {:position {"x" 522, "y" 227}, :hidden? true}
-"❓ How to bundle commits by date?" {:position {"x" -12, "y" -33}, :hidden? true}
+"❓ How to bundle commits by date?" {:position {"x" 14.208447688990589, "y" 51.86096159353441}, :hidden? true}
 "git rebase -i" {:position {"x" 733, "y" 75}, :hidden? true}
 "git reset --hard" {:hidden? true, :position {"x" 368, "y" 152}}
 "user.name" {:position {"x" 15.700279665012452, "y" -34.655206480938446}, :hidden? true}
