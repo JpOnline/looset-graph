@@ -584,9 +584,6 @@
    {:label "Web Development"}
    {:label "SQL"}])
 
-(def mapped-questions
-  featured-questions) ;; Eventually I can have more questions than only the featured ones.
-
 (def searchable-nodes
   (memoize
     (fn [explanations trace-scenarios]
@@ -624,6 +621,16 @@
         {}))))
 
 (def trace-scenarios (fetch-trace-scenarios-synchronously))
+
+(def mapped-questions
+  (concat
+    featured-questions
+    (->> trace-scenarios
+      (keys)
+      (filter string?)
+      (filter #(str/starts-with? % "❓ "))
+      (remove (set (map :id featured-questions)))
+      (map #(into {:id % :label (subs % 2)})))))
 
 ;; ---------------------------------------------------------
 ;; -- UTILITIES
