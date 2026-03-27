@@ -624,6 +624,29 @@ https://git-scm.com/book/en/v2/Getting-Started-What-is-Git%3F#:~:text=Undoing%20
 https://www.youtube.com/watch?v=mAFoROnOfHs&t=377s
 ```
 
+{{"git push --force-with-lease"}}
+Usually, [git push](<node:git push>) refuses to update a remote ref that is not an ancestor of the local ref used to overwrite it.
+
+This option overrides this restriction if the current value of the remote ref is the expected value. `git push` fails otherwise.
+
+Imagine that you have to rebase what you have already published. You will have to bypass the "must fast-forward" rule in order to replace the history you originally published with the rebased history. If somebody else built on top of your original history while you are rebasing, the tip of the branch at the remote may advance with their commit, and blindly pushing with [--force](<node:git push --force>) will lose their work.
+
+This option allows you to say that you expect the history you are updating is what you rebased and want to replace. If the remote ref still points at the commit you specified, you can be sure that no other people did anything to the ref. It is like taking a "lease" on the ref without explicitly locking it, and the remote ref is updated only if the "lease" is still valid.
+
+`--force-with-lease` alone, without specifying the details, will protect all remote refs that are going to be updated by requiring their current value to be the same as the remote-tracking branch we have for them.
+
+```curated-resources
+https://git-scm.com/docs/git-push#Documentation/git-push.txt---force-with-lease
+https://youtu.be/aolI_Rz0ZqY?si=q32BVmvJOIJ5SQEi&t=1065
+```
+
+
+{{"git push --force"}}
+Usually, [git push](<node:git push>) will refuse to update a branch that is not an ancestor of the commit being pushed. This flag disables that check.
+
+{{"git add -p"}}
+`git add -p` (or `--patch`) enables interactive staging. Instead of staging whole files, Git presents your changes block by block (called **hunks**). You can choose to stage (`y`), skip (`n`), or split (`s`) each individual hunk. This surgical precision allows you to separate unrelated edits within the exact same file into clean, independent, and atomic commits.
+
 {{".git/config" -"stored in"-> "Repository (.git)"}}
 Coming soon..
 
@@ -1130,4 +1153,135 @@ Maps a filename to a Blob hash.
 
 
 {{"Upstream Repository" -"source of truth of a"-> "Local Repository"}}
+
+
+{{"❓ How to bundle commits by date?" -"solved by"-> "git reset --soft"}}
+Assuming the commits that will be bundled are the last ones commited, also assuming those commits were not pushed and there's no extra undesired commit between the ones you want to bundle, this mean you can use a pointer manipulation instead of a rebase. Here are the exact steps to execute this.
+
+### **Identify the Base Commit SHA**
+
+First find the first commit from where the bundle should start. You need the commit hash (SHA) of the snapshot immediately *prior* to your target commits.
+
+Run a focused log command to view your recent history:
+
+[git log --since="2026-03-24" --format="%h - %cd : %s" --date=short](<node:git log>)
+
+Look at the output and copy the SHA of the last commit. We’ll use it with a `^` character in the next command.
+
+### **Perform a Soft Reset**
+
+Now, you will move your branch pointer back to that base commit, while leaving all your actual code changes perfectly intact and staged.
+
+[git reset --soft <base-commit-sha>^](<node:git reset --soft>). Note the `^` char.
+
+### **Verify and Commit the Bundle**
+
+Finally, wrap all those staged changes into a single new commit:
+
+[git commit](<node:git commit>)
+
+{{"git push --force-with-lease" -"safer than"-> "git push --force"}}
+
+
+{{"git push --force" -"variant of"-> "git push"}}
+
+
+{{"❓ How to bundle commits by date?" -"solved by"-> "git rebase"}}
+As the commits to be bundled were sent to the remote server already, we must introduce a critical safety layer into our workflow. Because pushing to a remote repository makes your local history public, altering it means we are now rewriting public record.
+
+### **Identify the Base Commit SHA**
+
+First find the first commit from where the bundle should start. You need the commit hash (SHA) of the snapshot immediately *prior* to your target commits.
+
+Run a focused log command to view your recent history:
+
+[git log --since="2026-03-24" --format="%h - %cd : %s" --date=short](<node:git log>)
+
+Look at the output and copy the SHA of the last commit. We’ll use it with a `^` character in the next command.
+
+### **The Interactive Rebase**
+
+Initiate the rebase starting from that base commit:
+
+[git rebase -i base123^](<node:git rebase>), note the `^` char.
+
+Your configured terminal editor will open with a list of commits.
+
+### **Execute the Squash**
+
+change the word `pick` to `squash` (or just `s`) for the relevant commits.
+
+```
+pick abc1234 feat: first commit of the bundle
+squash def5678 fix: minor typo fix
+squash ghi9012 refactor: adjusted component layout
+pick jkl3456 feat: unrelated newer commit
+```
+
+### **The Safe Force Push**
+
+You must force the remote server to accept your rewritten history.
+
+[git push --force-with-lease](<node:git push --force-with-lease>)
+
+`--force-with-lease` acts as a safety valve. It checks the remote server first; if anyone else has added new commits to the branch since you last fetched, Git will abort the push and protect their work.
+
+{{"❓ How to bundle commits by date?" -"solved by"-> "git rebase -i"}}
+### **Identify the Base Commit SHA**
+
+First find the first commit from where the bundle should start. You need the commit hash (SHA) of the snapshot immediately *prior* to your target commits.
+
+Run a focused log command to view your recent history:
+
+[git log --since="2026-03-24" --format="%h - %cd : %s" --date=short](<node:git log>)
+
+Look at the output and copy the SHA of the last commit. We’ll use it with a `^` character in the next command.
+
+### **The Interactive Rebase**
+
+Initiate the rebase starting from that base commit:
+
+[git rebase -i base123^](<node:git rebase>), note the `^` char.
+
+In the text editor, manually cut and paste the lines of your target commits to group them together contiguously. Keep the top target commit as pick and change the subsequent target commits to `squash` (or `s`). Leave unrelated commits untouched. Save and close.
+
+{{"❓ How to bundle commits by date?" -"solved by"-> "git cherry-pick"}}
+You have target commits scattered among unrelated work on your current branch. You want to extract only these specific commits, isolate them on a clean branch, and bundle them into a single snapshot without affecting the original branch's history.
+
+### **Identify the Base Commit SHA**
+
+First find the first commit from where the bundle should start. You need the commit hash (SHA) of the snapshot immediately *prior* to your target commits.
+
+Run a focused log command to view your recent history:
+
+[git log --since="2026-03-24" --format="%h - %cd : %s" --date=short](<node:git log>)
+
+Look at the output and copy the SHA of the last commit. We’ll use it with a `^` character in the next command.
+
+### **Create a Clean Branch**
+
+[git checkout -b bundled-feature <base-commit-hash>^](<node:Branch>), note the `^` char.
+
+### **Cherry-Pick the Commits**
+
+Copy those specific scattered commits onto your new clean branch, ordered oldest to newest.
+
+[git cherry-pick <hash1> <hash2> <hash3>](<node:git cherry-pick>)
+
+### **Bundle (Squash) Them**
+
+```
+git reset --soft <base-commit-hash>
+git commit -m "feat: bundled scattered commits into one"
+```
+
+{{"❓ How to bundle commits by date?" -"solved by"-> "Atomic Commits"}}
+Your goal is to untangle specific commits into clean, logical units.
+
+Using [git add -p](<node:git add -p>) (patch mode) enforces the philosophy of the [Atomic Commits](<node:Atomic Commits>), i.e. ommits should do exactly one thing to make code reviews readable and future rollbacks safe.
+
+{{"git add -p" -"variant of"-> "git add"}}
+
+
+{{"git add -p" -"enables"-> "Atomic Commits"}}
 

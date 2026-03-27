@@ -862,6 +862,58 @@
    :chapter-name "git clone"
    :chapter-starts-at "44:08"}}
 
+ "https://youtu.be/aolI_Rz0ZqY?si=q32BVmvJOIJ5SQEi&t=1065"
+ {:title "Force with Lease: A Safer Alternative to Force Pushing"
+  :summary "Explains the dangers of overwriting collaborators' work with a standard force push and introduces --force-with-lease as a safeguard."
+  :diataxis-type {:how-to 0.20
+                  :tutorial 0.0
+                  :explanation 0.80
+                  :reference 0.0}
+  :media-type #{:video}
+  :segment-info {:is-segment? true
+                 :segment-focus "git push --force-with-lease"}
+  :concepts-matched ["git push"
+                     "git pull"
+                     "git commit --amend"
+                     "git rebase"
+                     "git fetch"
+                     "Remote Repository"
+                     "Collaboration"
+                     "History"]
+  :concepts-new ["git push --force"
+                 "git push --force-with-lease"]
+  :commands-mentioned ["git push"
+                       "git pull"
+                       "git commit"
+                       "git commit --amend"
+                       "git rebase"
+                       "git fetch"]
+  :prerequisites-matched ["Remote Repository"
+                          "Collaboration"
+                          "git push"
+                          "git pull"
+                          "git commit --amend"
+                          "git rebase"]
+  :prerequisites-new ["Remote Tracking Branches"]
+  :safety {:level :safe
+           :reason "The content specifically advocates for a safer command (--force-with-lease) to prevent the destructive data loss commonly associated with standard force pushing."
+           :mentions-reflog? false}
+  :interface-type :cli
+  :estimated-minutes 2
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :intermediate
+  :visual-score 3
+  :production-quality 4
+  :youtube-data {:title "So You Think You Know Git - FOSDEM 2024"
+                 :channel-name "GitButler"
+                 :channel-url "https://www.youtube.com/@gitbutler"
+                 :total-duration "47:00"
+                 :chapter-name "Force with Lease"
+                 :chapter-starts-at "17:45"
+                 :chapter-duration "01:38"
+                 :uploaded-at "2024-02-04"}}
+
 ;; -- StackOverflow
  "https://stackoverflow.com/questions/927358/how-do-i-undo-the-most-recent-local-commits-in-git/927386#927386"
  {:title "Undo the last commit but keep changes (Soft/Mixed Reset)"
@@ -16023,6 +16075,45 @@
                    :syntax-signatures-present? false
                    :has-configuration-options? false
                    :related-references []}}
+
+ "https://git-scm.com/docs/git-push#Documentation/git-push.txt---force-with-lease"
+ {:title "git-push Documentation: --force-with-lease"
+  :summary "Details the --force-with-lease flag for git push, which safely overrides the fast-forward restriction by verifying the remote ref matches an expected value before updating."
+
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.0
+                  :explanation 0.25
+                  :reference 0.75}
+
+  :media-type #{:text :reference}
+  :segment-info {:is-segment? true
+                 :segment-focus "--force-with-lease flag and its syntax variations"}
+
+  :concepts-matched ["git push" "git rebase" "Fast-Forward Merge" "Remote-Tracking Branch"]
+  :concepts-new ["Lease" "Remote Ref"]
+  :commands-mentioned ["git push" "git push -f"]
+
+  :prerequisites-matched ["Branch" "Remote Repository"]
+  :prerequisites-new ["Remote Ref" "Refname"]
+
+  :safety {:level :risky
+           :reason "Overrides the fast-forward restriction to replace published history. While safer than a standard force push, it still modifies remote history destructively."
+           :mentions-reflog? false}
+
+  :interface-type :cli
+  :estimated-minutes 4
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :advanced
+  :visual-score 1
+  :production-quality 2
+
+  :reference-meta {:source-type "Official Documentation"
+                   :software-version nil
+                   :is-deprecated? false
+                   :syntax-signatures-present? true
+                   :has-configuration-options? false
+                   :related-references nil}}
 
 ;; --
  "https://www.atlassian.com/git/tutorials/undoing-changes/git-revert"
