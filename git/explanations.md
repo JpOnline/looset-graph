@@ -1131,3 +1131,29 @@ Maps a filename to a Blob hash.
 
 {{"Upstream Repository" -"source of truth of a"-> "Local Repository"}}
 
+
+{{"❓ How to bundle commits by date?" -"solved by"-> "git reset --soft"}}
+Assuming the commits that will be bundled are the last ones commited, also assuming those commits were not pushed and there's no extra undesired commit between the ones you want to bundle, this mean you can use a pointer manipulation instead of a rebase. Here are the exact steps to execute this.
+
+### **Identify the Base Commit SHA**
+
+First find the first commit from where the bundle should start. You need the commit hash (SHA) of the snapshot immediately *prior* to your target commits.
+
+Run a focused log command to view your recent history:
+
+\[git log \--since="2026-03-24" \--format="%h \- %cd : %s" \--date=short\](\<node:git log\>)
+
+Look at the output and copy the SHA of the last commit. We’ll use it with a `^` character in the next command.
+
+### **Perform a Soft Reset**
+
+Now, you will move your branch pointer back to that base commit, while leaving all your actual code changes perfectly intact and staged.
+
+[git reset --soft <base-commit-sha>^](<node:git reset --soft>). Note the `^` char.
+
+### **Verify and Commit the Bundle**
+
+Finally, wrap all those staged changes into a single new commit:
+
+[git commit](<node:git commit>)
+

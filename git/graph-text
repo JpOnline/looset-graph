@@ -477,6 +477,7 @@
 "git push --tags" -"variant of"-> "git push"
 "git log" -"reads"-> "Commit Object"
 "git log" -"traverses"-> "DAG (Directed Acyclic Graph)"
+"❓ How to bundle commits by date?" -"solved by"-> "git reset --soft"
 "git rebase -i" -"variant of"-> "git rebase"
 "git reset --hard" -"is a variant of"-> "git reset"
 "git reset --hard" -"clears"-> "Staging Area (Index)"
@@ -618,6 +619,7 @@
 "Feature Branching" {:hidden? true}
 "git push --tags" {:position {"x" -108.04462089926903, "y" -101.6588298911434}, :hidden? true}
 "git log" {:position {"x" 522, "y" 227}, :hidden? true}
+"❓ How to bundle commits by date?" {:position {"x" -12, "y" -33}, :hidden? true}
 "git rebase -i" {:position {"x" 733, "y" 75}, :hidden? true}
 "git reset --hard" {:hidden? true, :position {"x" 368, "y" 152}}
 "user.name" {:position {"x" 15.700279665012452, "y" -34.655206480938446}, :hidden? true}
