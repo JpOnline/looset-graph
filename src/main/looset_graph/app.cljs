@@ -987,7 +987,11 @@
                                              [:dispatch [::graph-app-mode]]
                                              [:dispatch [::toggle-super-user-options]]]))
       (= "v" keypressed) (assoc-in [:db :ui :mouse-select-mode] false)
-      (= "s" keypressed) (assoc-in [:db :ui :mouse-select-mode] true)
+      (= "s" keypressed) (assoc-in [:db :ui :mouse-select-mode]
+                                   (case (get-in app-state [:ui :mouse-select-mode])
+                                     :click :drag
+                                     :drag :click
+                                     :click))
       (= " " keypressed) (assoc-in [:db :ui :mouse-drag-mode] true))))
     ;; (js/console.log keypress)))
 (re-frame/reg-event-fx ::keypress keypress)
@@ -1702,17 +1706,17 @@
                                        (js->clj (.DOMtoCanvas @network #js {:x x :y y}) :keywordize-keys false)))]
                        (.addEventListener canvas "mousedown"
                                           (fn [e]
-                                            (when (<sub [::mouse-select-mode])
+                                            (when (= :drag (<sub [::mouse-select-mode]))
                                               (let [pos (get-pos e)]
                                                 (>evt [::selection-drag-start (get pos "x") (get pos "y")])))))
                        (.addEventListener js/document "mousemove"
                                           (fn [e]
-                                            (when (and (<sub [::mouse-select-mode]) (<sub [::selection-box]))
+                                            (when (and (= :drag (<sub [::mouse-select-mode])) (<sub [::selection-box]))
                                               (let [pos (get-pos e)]
                                                 (>evt [::selection-dragging (get pos "x") (get pos "y")])))))
                        (.addEventListener js/document "mouseup"
                                           (fn [e]
-                                            (when (and (<sub [::mouse-select-mode]) (<sub [::selection-box]))
+                                            (when (and (= :drag (<sub [::mouse-select-mode])) (<sub [::selection-box]))
                                               (>evt [::selection-drag-end])))))
                      (.on @network "zoom" #(>evt [::set-vis-view {:view-position ^Object (.getViewPosition @network)
                                                                    :scale ^Object (.getScale @network)}]))
@@ -1769,7 +1773,7 @@
     :options #js {:interaction #js {:selectable (not (<sub [::mouse-drag-mode]))
                                     :dragNodes  (and (not (<sub [::mouse-drag-mode]))
                                                      (not (<sub [::mouse-select-mode])))
-                                    :dragView   (not (<sub [::mouse-select-mode]))}
+                                    :dragView   (not (= :drag (<sub [::mouse-select-mode])))}
                   :layout #js {:hierarchical #js {:enabled (<sub [::vis-option-hierarchy])
                                                   :direction "UD"
                                                   :sortMethod "directed"
@@ -1965,6 +1969,7 @@
       {:onClick #(>evt [::nodes-list-item-clicked path])
        :class (str (when selected-node? "selected-shadow ")
                    (cond
+                     (= :drag mouse-select-mode) "hover-gray drag-select-mode-cursor"
                      mouse-select-mode "hover-gray select-mode-cursor"
                      foldable-node? "hover-gray"
                      :else ""))
@@ -2048,12 +2053,15 @@
        [:svg
         {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
         [:path {:fill-rule "evenodd" :d "M14.082 2.182a.5.5 0 0 1 .103.557L8.528 15.467a.5.5 0 0 1-.917-.007L5.57 10.694.803 8.652a.5.5 0 0 1-.006-.916l12.728-5.657a.5.5 0 0 1 .556.103zM2.25 8.184l3.897 1.67a.5.5 0 0 1 .262.263l1.67 3.897L12.743 3.52z"}]]]
-      [:button.button-2
-       {:title "select (shortcut: s)"
-        :onClick #(>evt [::mouse-select-mode true])}
-       [:svg
-        {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
-        [:path {:fill-rule "evenodd" :d black-cursor-svg-path}]]]
+      (let [select-mode (<sub [::mouse-select-mode])]
+        [:button.button-2
+         {:title (str (case select-mode :click "click-select" :drag "drag-select" "select") " (shortcut: s)")
+          :onClick #(>evt [::mouse-select-mode (case select-mode :click :drag :drag :click :click)])}
+         [:svg
+          {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
+          [:path {:fill-rule "evenodd" :d black-cursor-svg-path}]
+          (when (= :drag select-mode)
+            [:text {:x "2" :y "5" :font-size "9" :font-weight "bold" :fill "currentColor"} "+"])]])
       ;; [:button.button-2.black-background
       ;;  {:title "select inverse"
       ;;   :onClick #(>evt [::mouse-select-mode true])}
@@ -2492,6 +2500,10 @@
      cursor: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 16 16'%3E%3Cpath d='"black-cursor-svg-path"'/%3E%3C/svg%3E\" ) 19 0,crosshair !important;
    }
 
+   .drag-select-mode-cursor {
+     cursor: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 16 16'%3E%3Cpath d='"black-cursor-svg-path"'/%3E%3Ctext x='2' y='5' font-size='9' font-weight='bold'%3E%2B%3C/text%3E%3C/svg%3E\" ) 19 0,crosshair !important;
+   }
+
    .grabbable {
      cursor: move; /* fallback if grab cursor is unsupported */
      cursor: grab;
@@ -2635,8 +2647,10 @@
    [global-style]
    [ctrl-c-selected-nodes]
    [:div#panel-container
-    {:class (when (<sub [::mouse-select-mode])
-               "select-mode-cursor")
+    {:class (case (<sub [::mouse-select-mode])
+               :drag "drag-select-mode-cursor"
+               :click "select-mode-cursor"
+               nil)
      :style {:display "flex"
              :user-select "none"
              :max-height "100vh"
