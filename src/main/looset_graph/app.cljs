@@ -1237,6 +1237,62 @@
   (assoc-in app-state [:ui :mouse-select-mode] state))
 (re-frame/reg-event-db ::mouse-select-mode #_[event-to-analytics] mouse-select-mode-evt)
 
+(re-frame/reg-sub
+  ::selection-box
+  :-> #(get-in % [:ui :selection-box]))
+
+(re-frame/reg-fx
+  :vis-redraw
+  (fn [_]
+    (when @network
+      (.redraw @network))))
+
+(re-frame/reg-event-fx
+ ::selection-drag-start
+ (fn [{:keys [db]} [_event x y]]
+   {:db (assoc-in db [:ui :selection-box] {:start-x x :start-y y :end-x x :end-y y})
+    :vis-redraw nil}))
+
+(re-frame/reg-event-fx
+ ::selection-dragging
+ (fn [{:keys [db]} [_event x y]]
+   {:db (update-in db [:ui :selection-box] assoc :end-x x :end-y y)
+    :vis-redraw nil}))
+
+(re-frame/reg-event-fx
+ ::selection-drag-end
+ (fn [{:keys [db]} _]
+   (let [selection-box (get-in db [:ui :selection-box])
+         db (assoc-in db [:ui :selection-box] nil)]
+     (if selection-box
+       (let [start-x (:start-x selection-box)
+             start-y (:start-y selection-box)
+             end-x (:end-x selection-box)
+             end-y (:end-y selection-box)
+             min-x (min start-x end-x)
+             max-x (max start-x end-x)
+             min-y (min start-y end-y)
+             max-y (max start-y end-y)
+             is-drag? (or (> (- max-x min-x) 5) (> (- max-y min-y) 5))
+             visible-nodes-ids (if is-drag? (get-in db [:ui :f-visible-nodes]) [])
+             positions (js->clj (.getPositions @network) :keywordize-keys false)
+             selected-in-box (set
+                               (filter (fn [node-id]
+                                         (let [pos (get positions node-id)
+                                               nx (get pos "x")
+                                               ny (get pos "y")]
+                                           (and nx ny
+                                                (<= min-x nx max-x)
+                                                (<= min-y ny max-y))))
+                                       visible-nodes-ids))]
+         (if (empty? selected-in-box)
+           {:db db :vis-redraw nil}
+           (let [toggly-add #(clojure.set/difference (clojure.set/union %1 %2) (clojure.set/intersection %1 %2))]
+             {:db (update-in db [:ui :selected-nodes] #(toggly-add (set %) selected-in-box))
+              :fx [[:dispatch-later {:ms 30 :dispatch [::prepare-to-ctrl-c-selected-nodes]}]]
+              :vis-redraw nil})))
+       {:db db :vis-redraw nil}))))
+
 (defn network-clicked
   [{app-state :db} [_event nodes]]
   (let [toggly-add #(set/difference (set/union %1 %2) (set/intersection %1 %2))]
@@ -1634,10 +1690,30 @@
                         (.selectNodes @network selected-nodes)))
         mount-comp (fn [component]
                      (let [container (-> js/document (.getElementById graph-component-id))]
-                       (reset! network (-> vis-network .-Network (new container nil #_options))))
-                     (.on @network "dragStart" #_(js/console.log "dragStart") #(>evt [::drag-changed true]))
+                       (reset! network (-> vis-network .-Network (new container nil #_options)))
+                     (.on @network "dragStart" #(>evt [::drag-changed true]))
                      (.on @network "dragEnd" #(>evt [::set-vis-view {:view-position ^Object (.getViewPosition @network)
                                                                      :scale ^Object (.getScale @network)}]))
+                     (let [canvas (first (.-children container))
+                           get-pos (fn [e]
+                                     (let [rect (.getBoundingClientRect canvas)
+                                           x (- (.-clientX e) (.-left rect))
+                                           y (- (.-clientY e) (.-top rect))]
+                                       (js->clj (.DOMtoCanvas @network #js {:x x :y y}) :keywordize-keys false)))]
+                       (.addEventListener canvas "mousedown"
+                                          (fn [e]
+                                            (when (<sub [::mouse-select-mode])
+                                              (let [pos (get-pos e)]
+                                                (>evt [::selection-drag-start (get pos "x") (get pos "y")])))))
+                       (.addEventListener js/document "mousemove"
+                                          (fn [e]
+                                            (when (and (<sub [::mouse-select-mode]) (<sub [::selection-box]))
+                                              (let [pos (get-pos e)]
+                                                (>evt [::selection-dragging (get pos "x") (get pos "y")])))))
+                       (.addEventListener js/document "mouseup"
+                                          (fn [e]
+                                            (when (and (<sub [::mouse-select-mode]) (<sub [::selection-box]))
+                                              (>evt [::selection-drag-end])))))
                      (.on @network "zoom" #(>evt [::set-vis-view {:view-position ^Object (.getViewPosition @network)
                                                                    :scale ^Object (.getScale @network)}]))
                      (.on @network "click" #(do (>evt [::network-clicked (set ^js(.-nodes %))])
@@ -1655,7 +1731,23 @@
                                     x-idx-label (- x-first-label (* idx distance-between-labels))
                                     y (some-> node-pos (aget "top"))]
                                 (draw-label canvas-ctx (text->color label) x-idx-label (- y 2))))))
-                     (update-comp component nil))]
+                     (.on @network "afterDrawing"
+                          (fn [canvas-ctx]
+                            (when-let [box (<sub [::selection-box])]
+                              (let [start-x (:start-x box)
+                                    start-y (:start-y box)
+                                    end-x (:end-x box)
+                                    end-y (:end-y box)
+                                    width (- end-x start-x)
+                                    height (- end-y start-y)]
+                                (set! (.-strokeStyle canvas-ctx) "rgba(0, 153, 255, 0.8)")
+                                (set! (.-fillStyle canvas-ctx) "rgba(0, 153, 255, 0.2)")
+                                (set! (.-lineWidth canvas-ctx) 1)
+                                (.beginPath canvas-ctx)
+                                (.rect canvas-ctx start-x start-y width height)
+                                (.fill canvas-ctx)
+                                (.stroke canvas-ctx)))))
+                     (update-comp component nil)))]
     (reagent/create-class
       {:reagent-render (fn []
                          [:div
@@ -1675,7 +1767,9 @@
     :number-input2 (<sub [::number-input 2])
     :view (<sub [::vis-view])
     :options #js {:interaction #js {:selectable (not (<sub [::mouse-drag-mode]))
-                                    :dragNodes  (not (<sub [::mouse-drag-mode]))}
+                                    :dragNodes  (and (not (<sub [::mouse-drag-mode]))
+                                                     (not (<sub [::mouse-select-mode])))
+                                    :dragView   (not (<sub [::mouse-select-mode]))}
                   :layout #js {:hierarchical #js {:enabled (<sub [::vis-option-hierarchy])
                                                   :direction "UD"
                                                   :sortMethod "directed"
