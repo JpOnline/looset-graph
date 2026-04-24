@@ -379,17 +379,16 @@
 
         ->edge
         (fn [[from-id node-data]]
-          (let [visible-from (resolve-node from-id)]
-            ;; Only proceed if the source (or its Outer) is actually visible
-            (when visible-from
+          (let [hidden? (:hidden? node-data) ;; Prevent processing if the source node itself is explicitly hidden.
+                visible-from (resolve-node from-id)] ;; Only proceed if the source (or its Outer) is actually visible
+            (when (and (not hidden?) visible-from)
               (for [[edge-string target-ids] (:edges-to node-data)
                     to-id target-ids
-                    :let [visible-to (resolve-node to-id)]
-                    ;; 1. Check if target is visible
-                    ;; 2. Prevent self-loops (e.g. node A pointing to node B,
-                    ;;    but both are collapsed inside Label X)
-                    :when (and visible-to
-                               (not= visible-from visible-to))]
+                    :let [target-node (get nodes-map to-id)
+                          visible-to (resolve-node to-id)]
+                    :when (and (not (:hidden? target-node)) ;; Prevent inherited edge if target is explicitly hidden.
+                               visible-to ;; Check if target ancestor is visible.
+                               (not= visible-from visible-to))] ;; Prevent self-loops.
                 {:from visible-from
                  :to visible-to
                  :arrows {:to {:enabled true :type "arrow"}}
