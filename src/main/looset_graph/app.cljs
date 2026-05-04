@@ -857,12 +857,28 @@
   (->> nodes-map
     (reduce (nodes-map->graph-text-reduce-step nodes-map) ["" "" ""])
     ((fn [[children edges props]]
-       (str children edges"\n"props)))))
+       {:folds children :relationships edges :props props}))))
 (re-frame/reg-flow
-  {:id :graph-text
+  {:id :graph-text-areas
    :inputs {:nodes-map (re-frame/flow<- :nodes-map)}
    :output (with-defaults nodes-map->graph-text [:nodes-map {}])
+   :path [:flow-paths :graph-text-areas]})
+
+(defn graph-text-areas->graph-text
+  [[{:keys [folds relationships props]}]]
+  (str folds relationships"\n"props))
+(re-frame/reg-flow
+  {:id :graph-text
+   :inputs {:areas (re-frame/flow<- :graph-text-areas)}
+   :output (with-defaults graph-text-areas->graph-text [:areas {}])
    :path [:domain :graph-text]})
+
+(re-frame/reg-flow
+  {:id :props-area-str
+   :inputs {:areas (re-frame/flow<- :graph-text-areas)}
+   :output (fn [{:keys [areas]}]
+             (:props areas))
+   :path [:flow-paths :props-area-str]})
 
 ;; This would be an example of a layer 2 reg-flow instead of reg-sub
 ;; Does it make sense to use it like this instead of a subscription? 🤷
@@ -2337,16 +2353,28 @@
 (def code-margin "0")
 (def code-padding "0 10px")
 
+(re-frame/reg-event-fx
+  ::set-graph-props-text
+  (fn [{:keys [db]} [_ new-props-text]]
+    (let [{:keys [folds relationships]} (get-in db [:flow-paths :graph-text-areas])
+          full-text (str folds relationships "\n" new-props-text)]
+      {:dispatch [::set-graph-text full-text]})))
+
 (defn edit-raw-graph-text []
-  [:textarea
-   {:style {:flex-grow "1"
-            :margin code-margin
-            :padding code-padding
-            :min-height "20vw"
-            :font-family code-font-family
-            :font-size code-font-size}
-    :onChange #(>evt [::set-graph-text (-> % .-target .-value)])
-    :value @(re-frame/sub :flow {:id :graph-text}) #_(<sub [::graph-text])}])
+  [:<>
+   [:textarea
+    {:style {:flex-grow "1"
+             :margin code-margin
+             :padding code-padding
+             :min-height "20vw"
+             :font-family code-font-family
+             :font-size code-font-size}
+     :onChange #(>evt [::set-graph-text (-> % .-target .-value)])
+     :value @(re-frame/sub :flow {:id :graph-text}) #_(<sub [::graph-text])}]
+   [:textarea
+    {:style {:height "5vw"}
+     :onChange #(>evt [::set-graph-props-text (-> % .-target .-value)])
+     :value @(re-frame/sub :flow {:id :props-area-str})}]])
 
 (defn debug-quick-val-set []
   [:<>
