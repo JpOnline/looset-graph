@@ -446,109 +446,6 @@
     .btn-continue:hover { background: #4e813bd6; }
 
     /* -----------------------------------------
-;; --- RIGHT PANEL (Node Details & Resources)
-       ----------------------------------------- */
-    .node-details-panel {
-      position: absolute; top: 0; right: 0; width: 380px; height: 100%;
-      background: #ffffff; border-left: 1px solid #e5e7eb;
-      box-shadow: -4px 0 15px rgba(0,0,0,0.03); z-index: 5;
-      padding: 30px 24px; display: flex; flex-direction: column;
-      transform: translateX(100%); transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
-      text-wrap-style: balance;
-      overflow-y: auto;
-    }
-    .state-trace .node-details-panel { transform: translateX(0); } /* Slides in when trace starts */
-
-    .node-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
-    .node-desc {
-      color: #6b7280;
-      font-size: 0.95rem;
-      line-height: 1.5;
-      margin-bottom: 30px;
-      padding-bottom: calc(30vh + 30px);
-    }
-
-    /* Resource Cards */
-    .resource-list { display: flex; flex-direction: column; gap: 12px; }
-    .resource-card {
-      position: relative; padding: 12px 16px 12px 24px; border-radius: 8px;
-      background: #f9fafb; border: 1px solid #f3f4f6;
-      display: flex; flex-direction: column; overflow: hidden;
-      text-decoration: none; /* Prevents the default link underline */
-      color: inherit;        /* Prevents the default link blue color */
-      cursor: pointer;       /* Ensures the mouse pointer turns into a hand */
-    }
-    .resource-card:hover { background: #f3f4f6; }
-
-    /* The Depth Gradient Indicator */
-    .depth-indicator {
-      position: absolute; left: 0; top: 0; bottom: 0; width: 6px;
-    }
-    .res-title { font-weight: 600; color: #374151; font-size: 0.95rem; }
-    .res-meta { font-size: 0.8rem; color: #9ca3af; margin-top: 4px; }
-
-    .internal-link {
-      display: inline-block;
-      background: #f3f4f6;
-      border: 1px solid #d1d5db;
-      border-radius: 12px;
-      padding: 0px 8px;
-      margin: 0 2px;
-      color: #374151;
-      font-weight: 500;
-      font-size: 0.9em;
-      text-decoration: none;
-      transition: all 0.2s ease;
-      cursor: pointer;
-    }
-    .internal-link:hover {
-      background: #eff6ff;
-      border-color: #3b82f6;
-      color: #1d4ed8;
-      transform: translateY(-1px);
-      box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
-    }
-
-    @keyframes highlight-update {
-      0% {
-        background-color: #fef8c7; /* Light yellow */
-      }
-      100% {
-        background-color: #ffffff;
-      }
-    }
-    .content-updated-flash {
-      /* Runs for 1.2 seconds, perfectly catching the eye without being annoying */
-      animation: highlight-update 1.2s ease-out;
-    }
-
-    /* -----------------------------------------
-;; --- Markdown Code Styles
-       ----------------------------------------- */
-    .markdown-inline-code {
-      background-color: #f3f4f6;
-      padding: 2px 6px;
-      border-radius: 4px;
-      color: #ef4444;
-      font-family: monospace;
-      font-size: 0.9em;
-    }
-
-    .markdown-block-code {
-      display: block;
-      overflow-x: auto;
-      white-space: pre;
-      background-color: #f1f5f9;
-      border: 1px solid #e2e8f0;
-      padding: 16px;
-      margin: 12px 0;
-      border-radius: 8px;
-      color: #334155;
-      font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
-      font-size: 0.9rem;
-      line-height: 1.5;
-    }
-    /* -----------------------------------------
 ;; --- Email Capture Prompt (modal/popup)
        ----------------------------------------- */
     .modal-overlay {
@@ -809,6 +706,114 @@
 ;; ---------------------------------------------------------
 ;; -- COMPONENTS---------------------------------------------------------
 
+(def right-panel-style
+  "
+    /* -----------------------------------------
+;; --- RIGHT PANEL (Node Details & Resources)
+       ----------------------------------------- */
+    .node-details-panel {
+      position: absolute; top: 0; right: 0; width: 380px; height: 100%;
+      background: #ffffff; border-left: 1px solid #e5e7eb;
+      box-shadow: -4px 0 15px rgba(0,0,0,0.03); z-index: 5;
+      padding: 30px 24px; display: flex; flex-direction: column;
+      transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+      text-wrap-style: balance;
+      overflow-y: auto;
+    }
+    .state-trace .node-details-panel { transform: translateX(0); } /* Slides in when trace starts */
+
+    .node-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
+    .node-desc {
+      color: #6b7280;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      margin-bottom: 30px;
+      padding-bottom: calc(30vh + 30px);
+    }
+
+    /* Resource Cards */
+    .resource-list { display: flex; flex-direction: column; gap: 12px; }
+    .resource-card {
+      position: relative; padding: 12px 16px 12px 24px; border-radius: 8px;
+      background: #f9fafb; border: 1px solid #f3f4f6;
+      display: flex; flex-direction: column; overflow: hidden;
+      text-decoration: none; /* Prevents the default link underline */
+      color: inherit;        /* Prevents the default link blue color */
+      cursor: pointer;       /* Ensures the mouse pointer turns into a hand */
+    }
+    .resource-card:hover { background: #f3f4f6; }
+
+    /* The Depth Gradient Indicator */
+    .depth-indicator {
+      position: absolute; left: 0; top: 0; bottom: 0; width: 6px;
+    }
+    .res-title { font-weight: 600; color: #374151; font-size: 0.95rem; }
+    .res-meta { font-size: 0.8rem; color: #9ca3af; margin-top: 4px; }
+
+    .internal-link {
+      display: inline-block;
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      padding: 0px 8px;
+      margin: 0 2px;
+      color: #374151;
+      font-weight: 500;
+      font-size: 0.9em;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .internal-link:hover {
+      background: #eff6ff;
+      border-color: #3b82f6;
+      color: #1d4ed8;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+    }
+
+    @keyframes highlight-update {
+      0% {
+        background-color: #fef8c7; /* Light yellow */
+      }
+      100% {
+        background-color: #ffffff;
+      }
+    }
+    .content-updated-flash {
+      /* Runs for 1.2 seconds, perfectly catching the eye without being annoying */
+      animation: highlight-update 1.2s ease-out;
+    }
+
+    /* -----------------------------------------
+;; --- Markdown Code Styles
+       ----------------------------------------- */
+    .markdown-inline-code {
+      background-color: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #ef4444;
+      font-family: monospace;
+      font-size: 0.9em;
+    }
+
+    .markdown-block-code {
+      display: block;
+      overflow-x: auto;
+      white-space: pre;
+      background-color: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      padding: 16px;
+      margin: 12px 0;
+      border-radius: 8px;
+      color: #334155;
+      font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+    /* -----------------------------------------
+  ")
+
 (defn left-buttons []
   (let [icons-size "22"]
     [:div
@@ -908,9 +913,10 @@
                              (get explanations {:type :edge :src selected-or-fallback-node :edge-string "solved by" :target matched-solution})
                              "More curated resources coming soon..")]
     ^{:key markdown-content}
-    [:div.node-details-panel.content-updated-flash
-     [:h2.node-title selected-or-fallback-node]
-     [:span.node-desc [markdown-view markdown-content]]]))
+    [util/shadow-container right-panel-style
+      [:div.node-details-panel.content-updated-flash
+       [:h2.node-title selected-or-fallback-node]
+       [:span.node-desc [markdown-view markdown-content]]]]))
 
 ;; ---   PROBLEM QUIZ COMPONENT ---
 ;; ----    re-frame subs/events

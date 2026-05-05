@@ -1,7 +1,8 @@
 (ns looset-graph.util
   (:require
     [re-frame.alpha :as re-frame]
-    [reagent.core :as reagent]))
+    [reagent.core :as reagent]
+    ["react-dom" :as react-dom]))
 
 (defn with-mount-fn
   "Wrap component in the create-class fn so the react component-did-mount
@@ -91,3 +92,31 @@
 ;; I won't need it, and if I need might not be such a problem. I might generalize
 ;; the layer 2 subs and simple events and define defaults value in the initial-state.
 ;; --
+
+(defn shadow-container
+  "Mounts its children inside a Shadow DOM, perfectly isolating the CSS."
+  [css-string & children]
+  (let [host-ref    (reagent/atom nil)
+        shadow-root (reagent/atom nil)]
+    (reagent/create-class
+     {:component-did-mount
+      (fn [_]
+        (when-let [el @host-ref]
+          ;; 1. Attach the shadow root to our host div
+          (reset! shadow-root (.attachShadow el #js {:mode "open"}))))
+
+      :reagent-render
+      (fn [css-string & children]
+        ;; 2. This is the host element that lives in the main document
+        [:div {:ref #(reset! host-ref %)}
+
+         ;; 3. Once the shadow root exists, portal the content inside it
+         (when @shadow-root
+           (react-dom/createPortal
+             (reagent/as-element
+              [:<>
+               ;; Your plain CSS string goes here, completely isolated!
+               [:style css-string]
+               ;; Your isolated component content
+               (into [:div.shadow-content] children)])
+            @shadow-root))])})))
