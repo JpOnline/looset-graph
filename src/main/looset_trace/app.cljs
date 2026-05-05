@@ -918,6 +918,9 @@
        [:h2.node-title selected-or-fallback-node]
        [:span.node-desc [markdown-view markdown-content]]]]))
 
+(defmethod looset-graph/right-panel-content :trace-right-panel [& _]
+  right-panel-view)
+
 ;; ---   PROBLEM QUIZ COMPONENT ---
 ;; ----    re-frame subs/events
 (re-frame/reg-sub ::problem-path-taken

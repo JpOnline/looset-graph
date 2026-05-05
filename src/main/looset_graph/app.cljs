@@ -2329,7 +2329,7 @@
                                      :selected-node-id selected-node-id}]
            expl])]])))
 
-(defn explanation-panel-content []
+(defn panel-content-v1 []
   (let [selected-nodes @(re-frame/sub :flow {:id :f-selected-nodes})
         explanations (<sub [::explanation-content])
         nodes-map (<sub [::nodes-map])]
@@ -2626,6 +2626,12 @@
             style)}
    [svg-close-x]])
 
+;; Using the defmulti here to also be able to use the
+;; right-panel-view that is defined in looset-trace ns.
+(defmulti right-panel-content identity)
+(defmethod right-panel-content nil [& _] ;; default
+  panel-content-v1)
+
 (defn right-panel-overlay []
   (let [width (<sub [::right-panel-size])
         shows-content? (<sub [::right-panel-shows-content?])]
@@ -2667,7 +2673,7 @@
                 :padding "7px 0"}}
        [util/error-boundary
         {:if-error [:h2 "Error"]}
-        [explanation-panel-content]]]]]))
+        [right-panel-content #_:trace-right-panel]]]]]))
 
 ;; --- Main Entry --------------------------------------------------------------
 
