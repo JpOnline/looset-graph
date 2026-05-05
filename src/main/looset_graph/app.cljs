@@ -397,6 +397,7 @@
                  ;; Helper for the `remove-duplications-to-original`
                  :is-direct (and (= from-id visible-from)
                                  (= to-id   visible-to))}))))
+
         ;; Reduce to original edges when there's a duplication. Original here
         ;; means the relationship was actually defined from both source node
         ;; and target node, instead of a calculation of the Outers and Inners
@@ -424,6 +425,7 @@
       (mapcat ->edge)
       (reduce remove-duplications-to-original {})
       (vals))))
+
 (re-frame/reg-flow
   {:id :f-edges
    :inputs {:visible-nodes (re-frame/flow<- :f-visible-nodes)
@@ -2044,7 +2046,7 @@
    {:style {:opacity (if (<sub [::valid-graph?]) "100%" "40%")}}
    (for [node-item (<sub [::fold-list])
          :let [node-type-comp ({:label label-node :lix lix-node} (:node-type node-item))]]
-     ;; ^{:key text} ;; Somehow I'm using this key wrongly, if it's uncomment, the items repeat depending on the change.
+     ^{:key (:path node-item)}
      [node-type-comp node-item])])
 
 (def black-cursor-svg-path "M14.082 2.182a.5.5 0 0 1 .103.557L8.528 15.467a.5.5 0 0 1-.917-.007L5.57 10.694.803 8.652a.5.5 0 0 1-.006-.916l12.728-5.657a.5.5 0 0 1 .556.103z")

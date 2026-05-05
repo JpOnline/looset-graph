@@ -910,7 +910,7 @@
     ^{:key markdown-content}
     [:div.node-details-panel.content-updated-flash
      [:h2.node-title selected-or-fallback-node]
-     [:p.node-desc [markdown-view markdown-content]]]))
+     [:span.node-desc [markdown-view markdown-content]]]))
 
 ;; ---   PROBLEM QUIZ COMPONENT ---
 ;; ----    re-frame subs/events
@@ -1371,8 +1371,19 @@
   (assoc-in app-state [:ui :selected-nodes] #{node-id}))
 (re-frame/reg-event-db ::node-link-clicked node-link-clicked)
 
+(defn assert-resources-meta!
+  [resources-meta]
+  ;; Every key is a string.
+  (when-let [resources-with-problem (seq (remove string? (keys resources-meta)))]
+    (throw (ex-info "resources-meta has a problem. Some key is not a string." {:keys-with-problem resources-with-problem})))
+  ;; No resource key is a string.
+  (when-let [resources-with-problem (seq (remove keyword? (->> resources-meta (vals) (map keys) (flatten))))]
+    (throw (ex-info "resources-meta has a problem. Some resource has a string." {:keys-with-problem resources-with-problem}))))
+
 (defn all-resources-meta [app-state]
-  (get-in app-state [:domain :resources-meta] {}))
+  (let [resources-meta (get-in app-state [:domain :resources-meta] {})]
+    (when ^boolean js/goog.DEBUG (assert-resources-meta! resources-meta))
+    resources-meta))
 (re-frame/reg-sub ::all-resources-meta all-resources-meta)
 ;; ----
 ;; ---------------------------------------------------------
@@ -1622,5 +1633,4 @@
     {:description question
      :options [{:id e-id :text option-e}
                {:id h1-id :text option-h1}
-               {:id h2-id :text option-h2}]})
-  )
+               {:id h2-id :text option-h2}]}))
