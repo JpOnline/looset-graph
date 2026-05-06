@@ -503,7 +503,7 @@
 (re-frame/reg-sub ::graph-ast graph-ast)
 
 (defn extract-nodes-from-foldable-rule
-  [foldable]
+  [idx foldable]
   (let [foldable-id-name (clean-surrounding-quotes (get-in foldable [1 1 1 1]))
         foldable-type-str (get-in foldable [1 1 0])
         foldable-type (type-str->type foldable-type-str)
@@ -517,6 +517,7 @@
                               {id (assoc label-or-parent :type type)}))
         inner-nodes (map extract-node-info (drop 2 foldable))
         foldable-id-node {foldable-id-name {:type foldable-type
+                                            :mentioned-order idx
                                             :children (set (mapcat keys inner-nodes))
                                             :foldable (if (seq inner-nodes) true false)}}]
     (apply merge foldable-id-node inner-nodes)))
@@ -607,11 +608,11 @@
   (get-in app-state [:ui :fold] {}))
 (re-frame/reg-sub ::fold-ui fold-ui)
 
-;; TODO: Also sort by the order that it was mentioned
-;; TODO: Also sort inner structure
 (defn sort-nodes
   [nodes-map nodes-hierarchy]
-  (sort-by (fn [[k _v]] (-> k nodes-map :type)) nodes-hierarchy))
+  (->> nodes-hierarchy
+    (sort-by (fn [[k _v]] (-> k nodes-map :mentioned-order)))
+    (sort-by (fn [[k _v]] (-> k nodes-map :type)))))
 
 (defn all-instances-of-node-with-same-open-state-with-default
   "I created this version just I can use it with an existing fold-ui and use its
@@ -682,7 +683,8 @@
   [{:keys [graph-ast]}]
   (let [nodes-from-foldable-rules (->> graph-ast
                                     (filter #(= "foldable" (first %)))
-                                    (mapv extract-nodes-from-foldable-rule))
+                                    (map-indexed extract-nodes-from-foldable-rule)
+                                    (vec))
 
         nodes-from-edges (->> graph-ast
                            (filter #(= "edge" (first %)))
@@ -833,8 +835,10 @@
           node-k (rename-if-label node-k*)
           node-children (seq (map rename-if-label (:children node-v)))
           edges-to (->> node-v :edges-to flatten-rels (map #(update % 1 rename-if-label)))
-          custom-props (dissoc node-v :type :edges-to :edges-from :label :children :foldable :parent)
-          custom-props* (select-keys node-v [:name :position :hidden? :opened? :color])
+          hidden-props [:type :edges-to :edges-from :label :children :foldable :parent :mentioned-order]
+          model-props [:name :position :hidden? :opened? :color]
+          custom-props (apply dissoc node-v hidden-props)
+          custom-props* (select-keys node-v model-props)
           _ (assert (= custom-props custom-props*)
                     (str "Some new node property was added, so should it be included in the text model or not?\nThe difference was "(clojure.data/diff custom-props custom-props*)))]
       [(if node-children
@@ -857,6 +861,7 @@
    Then joins them into a single string."
   [[nodes-map]]
   (->> nodes-map
+    (sort-by (fn [[_k v]] (:mentioned-order v)))
     (reduce (nodes-map->graph-text-reduce-step nodes-map) ["" "" ""])
     ((fn [[children edges props]]
        {:folds children :relationships edges :props props}))))
