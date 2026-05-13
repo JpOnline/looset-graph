@@ -2053,13 +2053,24 @@
       [svg-arrow-triangle {:opened? opened?}])
     node-id]])
 
+(defn with-goto-button [node-id component]
+  [:div.flex.items-center
+   [:div.flex.items-center.justify-between.w-full
+    [:div.flex-grow component]
+    [:div.flex.items-center.justify-center.px-2
+     [svg-chevron-right
+      {:class "hover-gray-svg"
+       :style {:width "12px" :height "12px" :color "#aaa"}
+       :onClick #(do (.stopPropagation %)
+                     (>evt [::network-clicked #{node-id}]))}]]]])
+
 (defn nodes-list-view []
   [:div
    {:style {:opacity (if (<sub [::valid-graph?]) "100%" "40%")}}
    (for [node-item (<sub [::fold-list])
          :let [node-type-comp ({:label label-node :lix lix-node} (:node-type node-item))]]
      ^{:key (:path node-item)}
-     [node-type-comp node-item])])
+     [with-goto-button (:node-id node-item) [node-type-comp node-item]])])
 
 (def black-cursor-svg-path "M14.082 2.182a.5.5 0 0 1 .103.557L8.528 15.467a.5.5 0 0 1-.917-.007L5.57 10.694.803 8.652a.5.5 0 0 1-.006-.916l12.728-5.657a.5.5 0 0 1 .556.103z")
 
@@ -2283,7 +2294,7 @@
      (if with-controls?
        [node-header-controls {:node-id node-id}]
        [control-spacer])
-     [node-title-display {:node-id node-id}]]))
+     [with-goto-button node-id [node-title-display {:node-id node-id}]]]))
 
 (defn edge-explanation-header [{:keys [src edge-string target selected-node-id]}]
   (let [src-is-selected? (= src selected-node-id)
@@ -2330,11 +2341,11 @@
                        :disable-mouse-over? true})]
     (when (seq label-items)
       [:div
-       (for [item label-items]
-         ^{:key (:node-id item)}
-         [:span
-          (when-not (expanded-nodes (:node-id item)) {:style {:filter "opacity(0.3)"}})
-          [label-node item]])])))
+        (for [item label-items]
+          ^{:key (:node-id item)}
+          [:span
+           (when-not (expanded-nodes (:node-id item)) {:style {:filter "opacity(0.3)"}})
+           [with-goto-button (:node-id item) [label-node item]]])])))
 
 (defn edges-explanations []
   (let [selected-nodes (<sub [::raw-selected-nodes])
@@ -2552,7 +2563,7 @@
      flex-direction: row;
      font-family: "label-font-family", sans-serif;
      font-size: large;
-     padding-bottom: 10px;
+     padding: 5px 0;
      align-items: center;
      color: #4a484a;
    }
@@ -2563,7 +2574,7 @@
      font-family: "label-font-family", sans-serif;
      font-size: large;
      font-weight: bold;
-     padding-bottom: 10px;
+     padding: 5px 0;
      align-items: center;
    }
 
@@ -2715,7 +2726,8 @@
                 :padding "7px 0"}}
        [util/error-boundary
         {:if-error [:h2 "Error"]}
-        [right-panel-content #_:trace-right-panel]]]]]))
+        [right-panel-content
+         :trace-right-panel]]]]]))
 
 ;; --- Main Entry --------------------------------------------------------------
 
