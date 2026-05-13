@@ -18,6 +18,28 @@
 ;;   [map1 map2]
 ;;   (= map1 (select-keys map2 (keys map1))))
 
+(deftest toggle-label-from-list
+  (re-frame.test/run-test-sync
+    (let [nodes-map (re-frame/subscribe [::app/nodes-map])
+          input-graph-text "=>label1:
+                              node1"]
+      (re-frame/dispatch [::app/set-app-state input-graph-text])
+      (is (false? (get-in @nodes-map ["label1" :opened?])))
+      (re-frame/dispatch [:looset-graph.app/nodes-list-item-clicked ["label1"]])
+      (is (true? (get-in @nodes-map ["label1" :opened?]))))))
+
+(deftest node-labels-association
+  (re-frame.test/run-test-sync
+    (let [nodes-map (re-frame/subscribe [::app/nodes-map])
+          input-graph-text "=>label1:
+                              node1
+                            =>label2:
+                              node1
+                            node1:
+                              node2"]
+      (re-frame/dispatch [::app/set-app-state input-graph-text])
+      (is (= #{"label1" "label2"} (get-in @nodes-map ["node1" :label]))))))
+
 (deftest order-of-fold-definition-2
   (re-frame.test/run-test-sync
     (let [sub-under-test (re-frame/subscribe [::app/visible-nodes])

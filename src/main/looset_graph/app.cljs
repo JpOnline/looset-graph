@@ -1965,7 +1965,7 @@
    [:path {:fill-rule "evenodd" :d "M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"}]])
 
 (defn node-view
-  [{:keys [class show-eye-toggle?]
+  [{:keys [class show-eye-toggle? disable-mouse-over?]
     {:keys [color]} :style
     {:keys [level hidden? path node-id]} :node}
    text]
@@ -1975,7 +1975,7 @@
     [:div
      {:style {:paddingLeft (+ 5 (* 12 level))}
       :class class
-      :onMouseOver #(>evt [::node-hovered #{node-id}])
+      :onMouseOver (when-not disable-mouse-over? #(>evt [::node-hovered #{node-id}]))
       :onMouseOut #(>evt [::node-hovered #{}])}
      (when show-eye-toggle?
        (if hidden?
@@ -2024,13 +2024,14 @@
       :style {:verticalAlign "middle"}}
      [:path {:d "M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"}]]))
 
-(defn label-node [{:keys [node-id color opened?] :as node-item}]
+(defn label-node [{:keys [node-id color opened? disable-mouse-over?] :as node-item}]
   (let [node-name (<sub [::nodes-map-name node-id])]
     [node-view
      {:node node-item
       :show-eye-toggle? (<sub [::super-user-options?])
       :class "label-style"
-      :style {:color color}}
+      :style {:color color}
+      :disable-mouse-over? disable-mouse-over?}
      [:<>
       [svg-label {:opened? opened?
                   :color color}]
@@ -2300,6 +2301,32 @@
       [node-display-row {:node-id target
                          :with-controls? (and src-is-selected? (not= :label type))}]]]))
 
+(defn node-labels-list []
+  (let [selected-nodes (<sub [::raw-selected-nodes])
+        nodes-map (<sub [::nodes-map])
+        fold-ui (<sub [::fold-ui])
+        all-labels (->> selected-nodes
+                        (mapcat #(get-in nodes-map [% :label]))
+                        (distinct))
+        label-items (for [label-id all-labels
+                          :let [node-data (get nodes-map label-id)]
+                          :when node-data]
+                      {:node-id label-id
+                       :node-type :label
+                       :path [label-id]
+                       :level 0
+                       :color (text->color label-id)
+                       :opened? (if FEATURE_SYNC_OPEN_STATE
+                                  (:opened? node-data)
+                                  (:opened? (get fold-ui label-id) false))
+                       :hidden? (:hidden? node-data)
+                       :disable-mouse-over? true})]
+    (when (seq label-items)
+      [:div
+       (for [item label-items]
+         ^{:key (:node-id item)}
+         [label-node item])])))
+
 (defn edges-explanations []
   (let [selected-nodes (<sub [::raw-selected-nodes])
         nodes-map (<sub [::nodes-map])
@@ -2320,9 +2347,6 @@
 
     (when (seq relevant-edges)
       [:<>
-       ;; Visual Separator: A subtle double line with a background shift
-       [:div.w-full.border-t-4.border-double.border-gray-200.my-2]
-
        ;; Background Container for Relationships
        [:div.bg-gray-50.p-6.flex-grow
         (for [{:keys [src edge-string target expl selected-node-id]} relevant-edges]
@@ -2337,7 +2361,8 @@
 (defn panel-content-v1 []
   (let [selected-nodes @(re-frame/sub :flow {:id :f-selected-nodes})
         explanations (<sub [::explanation-content])
-        nodes-map (<sub [::nodes-map])]
+        nodes-map (<sub [::nodes-map])
+        visual-separator :div.w-full.border-t-4.border-double.border-gray-200.my-2] ;; A subtle double line
 
     [:div.h-full.overflow-y-auto.flex.flex-col
 
@@ -2350,8 +2375,11 @@
           [explanation-block
            [node-display-row {:node-id node-id :with-controls? (not= :label type)}]
            (get explanations {:type :node :id node-id})])])
-
-     [edges-explanations]]))
+     ;; Visual Separator: 
+     [visual-separator]
+     [edges-explanations]
+     [visual-separator]
+     [node-labels-list]]))
 
 ;; ----
 
