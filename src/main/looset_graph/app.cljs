@@ -2054,15 +2054,15 @@
     node-id]])
 
 (defn with-goto-button [node-id component]
-  [:div.flex.items-center
-   [:div.flex.items-center.justify-between.w-full
-    [:div.flex-grow component]
-    [:div.flex.items-center.justify-center.px-2
+  [:div.flex.items-center.w-full
+   [:div.flex-grow component]
+   [:div.flex.items-center.justify-center.px-2
+    [:div.blurred-circle-hover.flex.items-center.justify-center
+     {:style {:width "12px" :height "22px"}
+      :onClick #(do (.stopPropagation %)
+                    (>evt [::network-clicked #{node-id}]))}
      [svg-chevron-right
-      {:class "hover-gray-svg"
-       :style {:width "12px" :height "12px" :color "#aaa"}
-       :onClick #(do (.stopPropagation %)
-                     (>evt [::network-clicked #{node-id}]))}]]]])
+      {:style {:width "12px" :height "12px" :color "#888"}}]]]])
 
 (defn nodes-list-view []
   [:div
@@ -2480,6 +2480,17 @@
 
    .hover-gray-svg:hover {
      filter: drop-shadow(0px 2px 6px #0008);
+     cursor: pointer;
+   }
+
+   .blurred-circle-hover {
+     transition: all 0.2s ease;
+     border-radius: 50%;
+   }
+
+   .blurred-circle-hover:hover {
+     background-color: rgba(0,0,0,0.1);
+     box-shadow: 0 0 10px 5px rgba(0,0,0,0.1);
      cursor: pointer;
    }
 
