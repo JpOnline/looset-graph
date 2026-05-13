@@ -666,6 +666,12 @@
    ;; :output (with-defaults nodes-map->fold-list [:nodes-map {} :fold-ui {}])})
    :path [:flow-paths :f-fold-list]})
 
+(re-frame/reg-flow
+  {:id :f-fold-list-set
+   :inputs {:fold-list (re-frame/flow<- :f-fold-list)}
+   :output #(set (map :node-id (:fold-list %)))
+   :path [:flow-paths :f-fold-list-set]})
+
 (defn get-edn-string
   ([all] (get-edn-string "" all))
   ([acc [_ s :as all]]
@@ -2271,9 +2277,9 @@
        "some node"]])])
 
 (defn node-display-row [{:keys [node-id with-controls?]}]
-  (let [visible-nodes @(re-frame/sub :flow {:id :f-visible-nodes})]
+  (let [expanded-nodes @(re-frame/sub :flow {:id :f-fold-list-set})]
     [:div.flex.items-center
-     (when-not (visible-nodes node-id) {:style {:filter "opacity(0.3)"}})
+     (when-not (expanded-nodes node-id) {:style {:filter "opacity(0.3)"}})
      (if with-controls?
        [node-header-controls {:node-id node-id}]
        [control-spacer])
@@ -2302,7 +2308,8 @@
                          :with-controls? (and src-is-selected? (not= :label type))}]]]))
 
 (defn node-labels-list []
-  (let [selected-nodes (<sub [::raw-selected-nodes])
+  (let [expanded-nodes @(re-frame/sub :flow {:id :f-fold-list-set})
+        selected-nodes (<sub [::raw-selected-nodes])
         nodes-map (<sub [::nodes-map])
         fold-ui (<sub [::fold-ui])
         all-labels (->> selected-nodes
@@ -2325,7 +2332,9 @@
       [:div
        (for [item label-items]
          ^{:key (:node-id item)}
-         [label-node item])])))
+         [:span
+          (when-not (expanded-nodes (:node-id item)) {:style {:filter "opacity(0.3)"}})
+          [label-node item]])])))
 
 (defn edges-explanations []
   (let [selected-nodes (<sub [::raw-selected-nodes])
