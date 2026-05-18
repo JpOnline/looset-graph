@@ -29,7 +29,7 @@
 ;; another.
 (def FEATURE_SYNC_OPEN_STATE true)
 
-(def secret-sequence ["c""o""n""s""c""i""e""n""c""i""a"])
+(def secret-sequence ["w""e""f""w""e""f"])
 
 ;; -- Util ----
 
@@ -2841,7 +2841,7 @@
 ;; -- Lifecycle & Initialization -----------------------------------------------
 
 (def initial-state
-  {;:app-mode :graph ;; TODO: this is only temporary for dev time.
+  {:app-mode :graph ;; TODO: this is only temporary for dev time.
    :domain {:graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label2:\n  node5\n\nnode3:\n  node4\n  node5\n\nnode1 -> node2\nnode4 -> node1\nnodeA -> nodeB"
             :nodes-map {}}
    :ui {:panels {:resizing-panels nil

@@ -3,7 +3,6 @@ public/js
 public/test
 /target
 /.shadow-cljs
-packages/antlr4
 gh-pages
 public/explanations.md
 public/trace-scenarios.edn
