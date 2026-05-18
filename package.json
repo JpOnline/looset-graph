@@ -2,7 +2,13 @@
   "name": "looset-graph",
   "version": "0.0.1",
   "private": true,
+  "scripts": {
+    "test": "shadow-cljs compile ci && karma start --single-run"
+  },
   "devDependencies": {
+    "karma": "^6.4.4",
+    "karma-chrome-launcher": "^3.2.0",
+    "karma-cljs-test": "^0.1.0",
     "shadow-cljs": "2.23.3"
   },
   "dependencies": {
