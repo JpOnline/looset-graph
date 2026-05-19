@@ -1525,15 +1525,60 @@
     [:div.app-container {:class (when is-tracing? "state-trace")}
      [trace-styles]
 
-     (when ^boolean js/goog.DEBUG
-       [:div "debug"
-        [:pre (str "problem-node: "problem-node)]
-        [:pre (str "current-target "(<sub [::target-node]))]
-        [:pre (str "current-brain: "(<sub [::brain-node]))]
-        [:pre (str "problem-path-takeen: "(<sub [::problem-path-taken]))]
-        [:pre (str "Assumed id: "(<sub [::problem-evaluation]))]
-        [:pre (str "problem-question-data: "problem-question-data)]
-        [:pre (str "knowledge-question-data: "knowledge-question-data)]])
+     ; (when ^boolean js/goog.DEBUG
+     ;   [:div "debug"
+     ;    [:pre (str "problem-node: "problem-node)]
+     ;    [:pre (str "current-target "(<sub [::target-node]))]
+     ;    [:pre (str "current-brain: "(<sub [::brain-node]))]
+     ;    [:pre (str "problem-path-takeen: "(<sub [::problem-path-taken]))]
+     ;    [:pre (str "Assumed id: "(<sub [::problem-evaluation]))]
+     ;    [:pre (str "problem-question-data: "problem-question-data)]
+     ;    [:pre (str "knowledge-question-data: "knowledge-question-data)]])
+
+     [looset-graph/global-style]
+     [:div#panel-container
+      {:class (case (<sub [::looset-graph/mouse-select-mode])
+                 :drag "drag-select-mode-cursor"
+                 :click "select-mode-cursor"
+                 nil)
+       :style {:display "flex"
+               :user-select "none"
+               :max-height "100vh"
+               :height "100vh"
+               :width "100vw"
+               :overflow "hidden"
+               :position "relative"}}
+
+      [:div#left-panel
+       {:style {:width (if (<sub [::looset-graph/left-panel-open?])
+                         (<sub [::looset-graph/left-panel-size])
+                         "0px")
+                :overflow "hidden"
+                :display "flex"
+                :flex-direction "column"
+                :min-width (if (<sub [::looset-graph/left-panel-open?]) "20vw" "0px")
+                :opacity (if (<sub [::looset-graph/left-panel-open?]) 1 0)
+                :max-width "45vw"
+                :flex-shrink 0
+                :z-index "10"
+                :position "relative"
+                :transition looset-graph/transition-css}}
+       [looset-graph/panel-close-button
+        {:on-click #(>evt [::looset-graph/close-left-panel])}]
+       [:div#text-component
+        {:style {:overflow "auto"
+                 :display "grid"
+                 :flex-grow "1"
+                 :padding "7px 0"}}
+        [util/error-boundary
+         {:if-error [:h2 "erro"]}
+         [looset-graph/nodes-list-view]]
+        (when (or @(re-frame/sub :flow {:id :f-editing-graph-text})
+                  (<sub [::looset-graph/super-user-options?]))
+          [looset-graph/edit-raw-graph-text])]]
+      [looset-graph/left-panel-splitter]]
+      ; (when (<sub [::super-user-options?])
+      ;   [botton-buttons])]
 
      (when is-tracing?
        [left-buttons])
@@ -1597,6 +1642,44 @@
     (cljs.core.async/<! (cljs.core.async/timeout 1800))
     (re-frame/dispatch-sync [:looset-trace.app/answered-problem :premature]))
 
+  (defn animate-view [init-pos init-scale final-pos final-scale speed]
+    "Speed is in pxs per second."
+    (cljs.core.async/go
+      (let [frame-rate 24
+            x-diff (- (:x final-pos) (:x init-pos))
+            y-diff (- (:y final-pos) (:y init-pos))
+            scale-diff (- final-scale init-scale)
+            greater-diff (max (Math/abs x-diff) (Math/abs y-diff)) ;; TODO: I also need to consider the scale. I can do that by calculating the n-frames first and then comparing.
+            n-frames (* frame-rate (/ greater-diff speed))
+            x-step (/ x-diff n-frames)
+            y-step (/ y-diff n-frames)
+            scale-step (/ scale-diff n-frames)]
+        (doseq [frame (range n-frames)
+                :let [x (+ (* frame x-step) (:x init-pos))
+                      y (+ (* frame y-step) (:y init-pos))
+                      scale (+ (* frame scale-step) init-scale)]]
+          (re-frame/dispatch-sync [::looset-graph/set-vis-view {:view-position #js {:x x :y y} :scale scale}])
+          (cljs.core.async/<! (cljs.core.async/timeout (/ 1000 frame-rate))))
+        (re-frame/dispatch-sync [::looset-graph/set-vis-view {:view-position (clj->js final-pos) :scale final-scale}])
+        (cljs.core.async/<! (cljs.core.async/timeout (/ 1000 frame-rate))))))
+
+  (cljs.core.async/go
+    ; (looset-graph/init-state)
+    ; (looset-graph/load-graph-text)
+    ; (core/load-resources-meta!)
+    (re-frame/dispatch-sync [::looset-graph/set-vis-view {:view-position #js {:x 86 :y -32} :scale 2.2}])
+    (cljs.core.async/<! (animate-view {:x 86 :y -32} 2.2 {:x 500 :y 1} 2 1400))
+    (re-frame/dispatch-sync [::looset-graph/set-vis-view {:view-position #js {:x 440 :y 48} :scale 2.5}])
+    (re-frame/dispatch-sync [::add-node-props ["Git Model" {:name "Git Architecture"}]])
+    (re-frame/dispatch-sync [::add-node-props ["Git Model" {:name "Jeitinho Git"}]]))
+
+    ; (re-frame/dispatch-sync [::add-node-props ["Remote Repository" {:position {"x" 86 "y" -50}}]]))
+    ; (cljs.core.async/<! (animate-view {:x 680 :y 48} 2.5 {:x 620 :y 48} 1.5 240)))
+    ; (re-frame/dispatch-sync [::looset-graph/set-vis-view {:view-position #js {:x 440 :y 48} :scale 2.5}])
+    ; (cljs.core.async/<! (cljs.core.async/timeout 70))
+    ; (re-frame/dispatch-sync [::looset-graph/set-vis-view {:view-position #js {:x 620 :y 48} :scale 2.5}])
+    ; (cljs.core.async/<! (cljs.core.async/timeout 90))
+    ; (re-frame/dispatch-sync [::looset-graph/set-vis-view {:view-position #js {:x 680 :y 48} :scale 2.5}]))
 
   (some #{:xgame} (:media-type (second (first res))))
   (map first (filter (fn [[k v]] (some #(re-find #"index" %) (:concepts-matched v))) res))
