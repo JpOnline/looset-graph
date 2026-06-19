@@ -517,7 +517,7 @@
                               {id (assoc label-or-parent :type type)}))
         inner-nodes (map extract-node-info (drop 2 foldable))
         foldable-id-node {foldable-id-name {:type foldable-type
-                                            :mentioned-order idx
+                                            :mentioned-order-fold idx ;; TODO: Test mentioned-order properly.
                                             :children (set (mapcat keys inner-nodes))
                                             :foldable (if (seq inner-nodes) true false)}}]
     (apply merge foldable-id-node inner-nodes)))
@@ -611,7 +611,8 @@
 (defn sort-nodes
   [nodes-map nodes-hierarchy]
   (->> nodes-hierarchy
-    (sort-by (fn [[k _v]] (-> k nodes-map :mentioned-order)))
+    (sort-by (fn [[k _v]] (-> k nodes-map :mentioned-order-prop)))
+    (sort-by (fn [[k _v]] (-> k nodes-map :mentioned-order-fold)))
     (sort-by (fn [[k _v]] (-> k nodes-map :type)))))
 
 (defn all-instances-of-node-with-same-open-state-with-default
@@ -697,7 +698,8 @@
                            (mapcat extract-nodes-from-edge-rule))
         node-props (->> graph-ast
                      (filter #(= "nodeProps" (first %)))
-                     (mapcat extract-edn-props))
+                     (mapcat extract-edn-props)
+                     (map-indexed (fn [idx m] {(first (keys m)) (assoc (first (vals m)) :mentioned-order-prop idx)})))
 
         ;; Consolidates the nodes from the 3 types of rules.
         merged-nodes
@@ -823,6 +825,8 @@
 
 ;; --- Export & Text Gen -------------------------------------------------------
 
+;; TODO: I believe it's not hard to keep the order of all areas (fold, edge, prop). I already included a :mentioned-order in both fold and prop. What I need to do is to include
+;; one also in edge and this function will return a map (instead of a string), then the sort-by happens after this reduce, with a lookup of the mentioned orders from the nodes-map.
 (defn nodes-map->graph-text-reduce-step
   [nodes-map]
   (fn [[children edges props] [node-k* node-v]]
@@ -841,7 +845,7 @@
           node-k (rename-if-label node-k*)
           node-children (seq (map rename-if-label (:children node-v)))
           edges-to (->> node-v :edges-to flatten-rels (map #(update % 1 rename-if-label)))
-          hidden-props [:type :edges-to :edges-from :label :children :foldable :parent :mentioned-order]
+          hidden-props [:type :edges-to :edges-from :label :children :foldable :parent :mentioned-order-fold :mentioned-order-prop]
           model-props [:name :position :hidden? :opened? :color]
           custom-props (apply dissoc node-v hidden-props)
           custom-props* (select-keys node-v model-props)
@@ -867,7 +871,8 @@
    Then joins them into a single string."
   [[nodes-map]]
   (->> nodes-map
-    ; (sort-by (fn [[_k v]] (:mentioned-order v)))
+    (sort-by (fn [[_k v]] (:mentioned-order-prop v)))
+    (sort-by (fn [[_k v]] (:mentioned-order-fold v)))
     (reduce (nodes-map->graph-text-reduce-step nodes-map) ["" "" ""])
     ((fn [[children edges props]]
        {:folds children :relationships edges :props props}))))
