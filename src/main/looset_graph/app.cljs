@@ -3044,3 +3044,52 @@
 
 ;; fn to quickly change app-modes in the repl.
 ; (re-frame/dispatch-sync [::toggle-app-mode])
+
+;; ---------------------------------------------------------
+;; ---   Aux for video recording ---------------------------------------------------------
+;; ---------------------------------------------------------
+(defn animate-view
+  "Speed is in pxs per second."
+  [init-pos init-scale final-pos final-scale speed]
+  (cljs.core.async/go
+    (let [frame-rate 24
+          x-diff (- (:x final-pos) (:x init-pos))
+          y-diff (- (:y final-pos) (:y init-pos))
+          scale-diff (- final-scale init-scale)
+          greater-diff (max (Math/abs x-diff) (Math/abs y-diff)) ;; TODO: I also need to consider the scale. I can do that by calculating the n-frames first and then comparing.
+          n-frames (* frame-rate (/ greater-diff speed))
+          x-step (/ x-diff n-frames)
+          y-step (/ y-diff n-frames)
+          scale-step (/ scale-diff n-frames)]
+      (doseq [frame (range n-frames)
+              :let [x (+ (* frame x-step) (:x init-pos))
+                    y (+ (* frame y-step) (:y init-pos))
+                    scale (+ (* frame scale-step) init-scale)]]
+        (re-frame/dispatch-sync [::set-vis-view {:view-position #js {:x x :y y} :scale scale}])
+        (cljs.core.async/<! (cljs.core.async/timeout (/ 1000 frame-rate))))
+      (re-frame/dispatch-sync [::set-vis-view {:view-position (clj->js final-pos) :scale final-scale}])
+      (cljs.core.async/<! (cljs.core.async/timeout (/ 1000 frame-rate))))))
+
+#_:clj-kondo/ignore
+(comment
+  (require '[cljs.core.async :refer [go <!]])
+  (require '[cljs.core.async.interop :refer-macros [<p!]])
+  (cljs.core.async/go
+    ; (looset-graph/init-state)
+    ; (looset-graph/load-graph-text)
+    ; (core/load-resources-meta!)
+    (re-frame/dispatch-sync [::set-vis-view {:view-position #js {:x 86 :y -32} :scale 2.2}])
+    (cljs.core.async/<! (animate-view {:x 86 :y -32} 2.2 {:x 500 :y 1} 2 1400))
+    (cljs.core.async/<! (animate-view {:x 500 :y 1} 2 {:x 440 :y 120} 2.5 1400))
+    (re-frame/dispatch-sync [::add-node-props ["Git Model" {:name "Git Architecture"}]])
+    (re-frame/dispatch-sync [::add-node-props ["Git Model" {:name "Jeitinho Git"}]])
+    (cljs.core.async/<! (animate-view {:x 440 :y 120} 2.5 {:x 247 :y 93} 1.82 1400))
+    ;; aba 2
+    (cljs.core.async/<! (animate-view {:x 247 :y 93} 1.82 {:x 61 :y 420} 1 1400))
+    ;; aba 4
+    (re-frame/dispatch-sync [::add-node-props ["HEAD" {:name "HEAD [current]"}]])
+    (re-frame/dispatch-sync [::add-node-props ["git checkout" {:name "git checkout [mv-head]"}]])
+    (re-frame/dispatch-sync [::add-node-props ["git checkout -b" {:name "git checkout -b [branch --mv-head]"}]])
+    (re-frame/dispatch-sync [::add-node-props ["git reset" {:name "git reset [mv-branch]"}]])
+    (re-frame/dispatch-sync [::add-node-props ["git checkout" {:name "git checkout"}]])
+    (re-frame/dispatch-sync [::add-node-props ["git checkout -b" {:name "git checkout -b"}]])))
