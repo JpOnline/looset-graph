@@ -2000,6 +2000,9 @@
            :width "27" :height "27"}]))
      [:div
       {:onClick #(>evt [::nodes-list-item-clicked path])
+       :onContextMenu #(when (and (.-ctrlKey %) (.-altKey %)) ;; Just a shortcut to hide labels when the eye svg is not showing up.
+                         (.preventDefault %)
+                         (>evt [::toggle-hidden node-id]))
        :class (str (when selected-node? "selected-shadow ")
                    (cond
                      (= :drag mouse-select-mode) "hover-gray drag-select-mode-cursor"
