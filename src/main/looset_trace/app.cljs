@@ -779,6 +779,10 @@
       flex-direction: column;
       animation: dropdown-fade-in 0.15s ease-out;
     }
+    .dropdown-menu.align-left {
+      right: auto;
+      left: 0;
+    }
     .dropdown-item {
       padding: 8px 12px;
       font-size: 0.875rem;
@@ -1010,7 +1014,8 @@
          (map #(str/join "/" %)))))
 
 (defn options-dropdown [{:keys [options]}]
-  (let [open? (reagent/atom false)]
+  (let [open? (reagent/atom false)
+        align-left? (reagent/atom false)]
     (fn [{:keys [options]}]
       [:div.dropdown-container
        [:button.dropdown-btn
@@ -1021,14 +1026,29 @@
          [:path {:d "M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"}]]]
        (when @open?
          [:<>
-          [:div.dropdown-backdrop {:on-click #(reset! open? false)}]
+          [:div.dropdown-backdrop {:on-click #(do (reset! open? false) (reset! align-left? false))}]
           [:div.dropdown-menu
+           {:class (when @align-left? "align-left")
+            :ref (fn [el]
+                   (when el
+                     (let [rect (.getBoundingClientRect el)
+                           container (.closest el ".node-details-panel") ;; .closest is needed because we are in a shadow-root and querying the document is not possible.
+                           container-rect (when container (.getBoundingClientRect container))
+                           container-left (or (and container-rect (.-left container-rect)) 0)
+                           container-right (or (and container-rect (.-right container-rect)) js/window.innerWidth)]
+                       (cond
+                         (< (.-left rect) container-left)
+                         (reset! align-left? true)
+
+                         (> (.-right rect) container-right)
+                         (reset! align-left? false)))))}
            (for [{:keys [label on-click]} options]
              ^{:key label}
              [:div.dropdown-item
               {:on-click #(do
                             (when on-click (on-click))
-                            (reset! open? false))}
+                            (reset! open? false)
+                            (reset! align-left? false))}
               label])]])])))
 
 (defn right-panel-view []
