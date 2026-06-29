@@ -1056,7 +1056,7 @@
          [options-dropdown
           {:options (map (fn [opt-str]
                            {:label opt-str
-                            :on-click #(js/console.log opt-str)})
+                            :on-click #(>evt [::set-node-name selected-or-fallback-node opt-str])})
                          (generate-aka-options selected-or-fallback-node aka))}])]
       [:span.node-desc [markdown-view markdown-content]]]]))
 
@@ -1559,6 +1559,10 @@
 (defn add-node-props [app-state [_e [node props]]]
   (update-in app-state [:domain :nodes-map node] merge props))
 (re-frame/reg-event-db ::add-node-props add-node-props)
+
+(defn set-node-name [app-state [_e node-id name]]
+  (assoc-in app-state [:domain :nodes-map node-id :name] name))
+(re-frame/reg-event-db ::set-node-name set-node-name)
 
 (defn target-node
   "Depends on the problem the user has and the problem related questions she answered.
