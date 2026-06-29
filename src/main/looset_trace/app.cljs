@@ -722,7 +722,86 @@
     }
     .state-trace .node-details-panel { transform: translateX(0); } /* Slides in when trace starts */
 
-    .node-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
+    .node-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+      position: relative;
+    }
+    .node-title { font-size: 1.5rem; font-weight: 700; margin: 0; }
+    .dropdown-container {
+      position: relative;
+      display: inline-block;
+      padding-left: 3px;
+    }
+    .dropdown-btn {
+      background: none;
+      border: none;
+      color: #6b7280;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.2s, color 0.2s;
+    }
+    .dropdown-btn:hover {
+      background-color: #f3f4f6;
+      color: #1f2937;
+    }
+    .dropdown-btn:focus {
+      outline: none;
+      background-color: #e5e7eb;
+    }
+    .dropdown-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 99;
+      background: transparent;
+    }
+    .dropdown-menu {
+      position: absolute;
+      right: 0;
+      top: 100%;
+      margin-top: 6px;
+      background-color: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+      z-index: 100;
+      min-width: 140px;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+      animation: dropdown-fade-in 0.15s ease-out;
+    }
+    .dropdown-item {
+      padding: 8px 12px;
+      font-size: 0.875rem;
+      color: #374151;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: background-color 0.15s, color 0.15s;
+      text-align: left;
+    }
+    .dropdown-item:hover {
+      background-color: #f3f4f6;
+      color: #111827;
+    }
+    @keyframes dropdown-fade-in {
+      from {
+        opacity: 0;
+        transform: scale(0.95) translateY(-4px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
     .node-desc {
       color: #6b7280;
       font-size: 0.95rem;
@@ -916,23 +995,50 @@
       :children content}]))
 
 (defn right-panel-view []
-  (let [target (<sub [::target-node])
-        selected-or-fallback-node (let [[selected-node & osn] @(re-frame/sub :flow {:id :f-selected-nodes})
-                                        _ (when (seq osn) (js/console.error "Mais de um Node selecionado:" (cons selected-node osn)))
-                                        visible-nodes (when-not selected-node @(re-frame/sub :flow {:id :f-visible-nodes}))]
-                                    (or selected-node
-                                        (util/get-pred #(when % (str/starts-with? % "❓")) visible-nodes)
-                                        target))
-        explanations (<sub [::looset-graph/explanation-content])
-        matched-solution (:matched-node (<sub [::problem-evaluation]))
-        markdown-content (or (get explanations {:type :node :id selected-or-fallback-node})
-                             (get explanations {:type :edge :src selected-or-fallback-node :edge-string "solved by" :target matched-solution})
-                             "More curated resources coming soon..")]
-    ^{:key markdown-content}
-    [util/shadow-container right-panel-style
-      [:div.node-details-panel.content-updated-flash
-       [:h2.node-title selected-or-fallback-node]
-       [:span.node-desc [markdown-view markdown-content]]]]))
+  (let [dropdown-open? (reagent/atom false)
+        last-node (reagent/atom nil)]
+    (fn []
+      (let [target (<sub [::target-node])
+            selected-or-fallback-node (let [[selected-node & osn] @(re-frame/sub :flow {:id :f-selected-nodes})
+                                            _ (when (seq osn) (js/console.error "Mais de um Node selecionado:" (cons selected-node osn)))
+                                            visible-nodes (when-not selected-node @(re-frame/sub :flow {:id :f-visible-nodes}))]
+                                        (or selected-node
+                                            (util/get-pred #(when % (str/starts-with? % "❓")) visible-nodes)
+                                            target))
+            _ (when-not (= @last-node selected-or-fallback-node)
+                (reset! last-node selected-or-fallback-node)
+                (reset! dropdown-open? false))
+            explanations (<sub [::looset-graph/explanation-content])
+            matched-solution (:matched-node (<sub [::problem-evaluation]))
+            markdown-content (or (get explanations {:type :node :id selected-or-fallback-node})
+                                 (get explanations {:type :edge :src selected-or-fallback-node :edge-string "solved by" :target matched-solution})
+                                 "More curated resources coming soon..")]
+        ^{:key markdown-content}
+        [util/shadow-container right-panel-style
+         [:div.node-details-panel.content-updated-flash
+          [:div.node-header
+           [:h2.node-title selected-or-fallback-node]
+           [:div.dropdown-container
+            [:button.dropdown-btn
+             {:title "Options"
+              :on-click #(swap! dropdown-open? not)}
+             [:svg
+              {:width "16" :height "16" :fill "currentColor" :viewBox "0 0 16 16"}
+              [:path {:d "M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"}]]]
+            (when @dropdown-open?
+              [:<>
+               [:div.dropdown-backdrop {:on-click #(reset! dropdown-open? false)}]
+               [:div.dropdown-menu
+                [:div.dropdown-item
+                 {:on-click #(do (js/console.log "op 1") (reset! dropdown-open? false))}
+                 "op 1"]
+                [:div.dropdown-item
+                 {:on-click #(do (js/console.log "op 2") (reset! dropdown-open? false))}
+                 "op 2"]
+                [:div.dropdown-item
+                 {:on-click #(do (js/console.log "op 3") (reset! dropdown-open? false))}
+                 "op 3"]]])]]
+          [:span.node-desc [markdown-view markdown-content]]]]))))
 
 (defmethod looset-graph/right-panel-content :trace-right-panel [& _]
   right-panel-view)
