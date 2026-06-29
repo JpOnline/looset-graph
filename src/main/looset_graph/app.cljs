@@ -846,7 +846,7 @@
           node-children (seq (map rename-if-label (:children node-v)))
           edges-to (->> node-v :edges-to flatten-rels (map #(update % 1 rename-if-label)))
           hidden-props [:type :edges-to :edges-from :label :children :foldable :parent :mentioned-order-fold :mentioned-order-prop]
-          model-props [:name :position :hidden? :opened? :color]
+          model-props [:name :position :hidden? :opened? :color :aka]
           custom-props (apply dissoc node-v hidden-props)
           custom-props* (select-keys node-v model-props)
           _ (assert (= custom-props custom-props*)

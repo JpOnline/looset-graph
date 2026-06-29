@@ -994,6 +994,21 @@
      {:components (clj->js custom-components)
       :children content}]))
 
+(defn- subset-combinations [coll]
+  (let [vec-coll (vec coll)]
+    (reduce
+      (fn [acc x]
+        (concat acc (map #(conj % x) acc)))
+      [[]]
+      vec-coll)))
+
+(defn- generate-aka-options [node-id aka]
+  (let [elements (into [node-id] aka)]
+    (->> (subset-combinations elements)
+         (filter seq)
+         (sort-by count)
+         (map #(str/join "/" %)))))
+
 (defn options-dropdown [{:keys [options]}]
   (let [open? (reagent/atom false)]
     (fn [{:keys [options]}]
@@ -1024,6 +1039,8 @@
                                     (or selected-node
                                         (util/get-pred #(when % (str/starts-with? % "❓")) visible-nodes)
                                         target))
+        nodes-map (<sub [::looset-graph/nodes-ui])
+        aka (get-in nodes-map [selected-or-fallback-node :aka])
         explanations (<sub [::looset-graph/explanation-content])
         matched-solution (:matched-node (<sub [::problem-evaluation]))
         markdown-content (or (get explanations {:type :node :id selected-or-fallback-node})
@@ -1034,11 +1051,13 @@
      [:div.node-details-panel.content-updated-flash
       [:div.node-header
        [:h2.node-title selected-or-fallback-node]
-       ^{:key selected-or-fallback-node}
-       [options-dropdown
-        {:options [{:label "op 1" :on-click #(js/console.log "op 1")}
-                   {:label "op 2" :on-click #(js/console.log "op 2")}
-                   {:label "op 3" :on-click #(js/console.log "op 3")}] }]]
+       (when (seq aka)
+         ^{:key selected-or-fallback-node}
+         [options-dropdown
+          {:options (map (fn [opt-str]
+                           {:label opt-str
+                            :on-click #(js/console.log opt-str)})
+                         (generate-aka-options selected-or-fallback-node aka))}])]
       [:span.node-desc [markdown-view markdown-content]]]]))
 
 (defmethod looset-graph/right-panel-content :trace-right-panel [& _]
