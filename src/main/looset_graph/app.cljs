@@ -2746,6 +2746,7 @@
        [util/error-boundary
         {:if-error [:h2 "Error"]}
         [right-panel-content
+         ; #_
          :trace-right-panel]]]]]))
 
 ;; --- Main Entry --------------------------------------------------------------

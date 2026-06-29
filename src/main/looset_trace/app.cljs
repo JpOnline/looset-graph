@@ -847,6 +847,22 @@
         {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
         [:path {:fill-rule "evenodd" :d "M5.828 10.172a.5.5 0 0 0-.707 0l-4.096 4.096V11.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H4.5a.5.5 0 0 0 0-1H1.732l4.096-4.096a.5.5 0 0 0 0-.707m4.344-4.344a.5.5 0 0 0 .707 0l4.096-4.096V4.5a.5.5 0 1 0 1 0V.525a.5.5 0 0 0-.5-.5H11.5a.5.5 0 0 0 0 1h2.768l-4.096 4.096a.5.5 0 0 0 0 .707"}]]]]]))
 
+(defn ->content-type [diataxis-type]
+  (let [{:keys [how-to tutorial explanation reference]}
+        (if (set? diataxis-type)
+          (reduce #(into %1 {%2 (/ 1 (count diataxis-type))}) {} diataxis-type)
+          diataxis-type)]
+    (cond
+      (and (>= tutorial 0.4) (>= explanation 0.4)) "Learn it"
+      (and (>= how-to 0.4) (>= reference 0.4)) "Do it"
+      (and (>= tutorial 0.4) (>= how-to 0.4)) "Heands on"
+      (and (>= explanation 0.4) (>= reference 0.4)) "Understand"
+      (>= tutorial 0.5) "Practice"
+      (>= explanation 0.5) "Theory"
+      (>= reference 0.5) "Reference"
+      (>= how-to 0.5) "How-to Guide"
+      :else nil)))
+
 (defn markdown-view [content]
   (let [custom-components
         {:a looset-graph/markdown-view-node-link
@@ -870,7 +886,7 @@
                      (= class-name "language-curated-resources")
                      (reagent/as-element
                       [:div.resource-list
-                        (for [{:keys [url title media-type summary start-depth end-depth]} resources-with-gradient
+                        (for [{:keys [url title media-type summary start-depth end-depth diataxis-type]} resources-with-gradient
                               :let [type (condp some media-type
                                            #{:game} "🎮 "
                                            #{:video} "🎬 "
@@ -889,7 +905,7 @@
                            ;; The Visual Depth Gradient
                            [:div.depth-indicator {:style (get-gradient-style start-depth end-depth)}]
                            [:div.res-title title]
-                           [:div.res-meta (str type summary)]])])
+                           [:div.res-meta (str type (or (->content-type diataxis-type) summary))]])])
 
                      :else ;; Fallback: Default Code Block
                      (reagent/as-element [:code.markdown-block-code {:class class-name} children]))))}]
