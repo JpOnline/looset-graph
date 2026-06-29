@@ -1050,7 +1050,7 @@
     [util/shadow-container right-panel-style
      [:div.node-details-panel.content-updated-flash
       [:div.node-header
-       [:h2.node-title selected-or-fallback-node]
+       [:h2.node-title (get-in nodes-map [selected-or-fallback-node :name] selected-or-fallback-node)]
        (when (seq aka)
          ^{:key selected-or-fallback-node}
          [options-dropdown

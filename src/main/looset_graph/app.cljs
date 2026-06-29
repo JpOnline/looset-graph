@@ -2052,14 +2052,15 @@
       (or node-name node-id)]]))
 
 (defn lix-node [{:keys [node-id opened?] :as node-item}]
-  [node-view
-   {:node node-item
-    :show-eye-toggle? true
-    :class "lix-style"}
-   [:<>
-    (when-not (nil? opened?)
-      [svg-arrow-triangle {:opened? opened?}])
-    node-id]])
+  (let [node-name (<sub [::nodes-map-name node-id])]
+    [node-view
+     {:node node-item
+      :show-eye-toggle? true
+      :class "lix-style"}
+     [:<>
+      (when-not (nil? opened?)
+        [svg-arrow-triangle {:opened? opened?}])
+      (or node-name node-id)]]))
 
 (defn with-goto-button [node-id component]
   [:div.flex.items-center.w-full
