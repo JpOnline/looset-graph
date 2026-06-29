@@ -994,51 +994,52 @@
      {:components (clj->js custom-components)
       :children content}]))
 
+(defn options-dropdown [{:keys [options]}]
+  (let [open? (reagent/atom false)]
+    (fn [{:keys [options]}]
+      [:div.dropdown-container
+       [:button.dropdown-btn
+        {:title "Options"
+         :on-click #(swap! open? not)}
+        [:svg
+         {:width "16" :height "16" :fill "currentColor" :viewBox "0 0 16 16"}
+         [:path {:d "M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"}]]]
+       (when @open?
+         [:<>
+          [:div.dropdown-backdrop {:on-click #(reset! open? false)}]
+          [:div.dropdown-menu
+           (for [{:keys [label on-click]} options]
+             ^{:key label}
+             [:div.dropdown-item
+              {:on-click #(do
+                            (when on-click (on-click))
+                            (reset! open? false))}
+              label])]])])))
+
 (defn right-panel-view []
-  (let [dropdown-open? (reagent/atom false)
-        last-node (reagent/atom nil)]
-    (fn []
-      (let [target (<sub [::target-node])
-            selected-or-fallback-node (let [[selected-node & osn] @(re-frame/sub :flow {:id :f-selected-nodes})
-                                            _ (when (seq osn) (js/console.error "Mais de um Node selecionado:" (cons selected-node osn)))
-                                            visible-nodes (when-not selected-node @(re-frame/sub :flow {:id :f-visible-nodes}))]
-                                        (or selected-node
-                                            (util/get-pred #(when % (str/starts-with? % "❓")) visible-nodes)
-                                            target))
-            _ (when-not (= @last-node selected-or-fallback-node)
-                (reset! last-node selected-or-fallback-node)
-                (reset! dropdown-open? false))
-            explanations (<sub [::looset-graph/explanation-content])
-            matched-solution (:matched-node (<sub [::problem-evaluation]))
-            markdown-content (or (get explanations {:type :node :id selected-or-fallback-node})
-                                 (get explanations {:type :edge :src selected-or-fallback-node :edge-string "solved by" :target matched-solution})
-                                 "More curated resources coming soon..")]
-        ^{:key markdown-content}
-        [util/shadow-container right-panel-style
-         [:div.node-details-panel.content-updated-flash
-          [:div.node-header
-           [:h2.node-title selected-or-fallback-node]
-           [:div.dropdown-container
-            [:button.dropdown-btn
-             {:title "Options"
-              :on-click #(swap! dropdown-open? not)}
-             [:svg
-              {:width "16" :height "16" :fill "currentColor" :viewBox "0 0 16 16"}
-              [:path {:d "M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"}]]]
-            (when @dropdown-open?
-              [:<>
-               [:div.dropdown-backdrop {:on-click #(reset! dropdown-open? false)}]
-               [:div.dropdown-menu
-                [:div.dropdown-item
-                 {:on-click #(do (js/console.log "op 1") (reset! dropdown-open? false))}
-                 "op 1"]
-                [:div.dropdown-item
-                 {:on-click #(do (js/console.log "op 2") (reset! dropdown-open? false))}
-                 "op 2"]
-                [:div.dropdown-item
-                 {:on-click #(do (js/console.log "op 3") (reset! dropdown-open? false))}
-                 "op 3"]]])]]
-          [:span.node-desc [markdown-view markdown-content]]]]))))
+  (let [target (<sub [::target-node])
+        selected-or-fallback-node (let [[selected-node & osn] @(re-frame/sub :flow {:id :f-selected-nodes})
+                                        _ (when (seq osn) (js/console.error "Mais de um Node selecionado:" (cons selected-node osn)))
+                                        visible-nodes (when-not selected-node @(re-frame/sub :flow {:id :f-visible-nodes}))]
+                                    (or selected-node
+                                        (util/get-pred #(when % (str/starts-with? % "❓")) visible-nodes)
+                                        target))
+        explanations (<sub [::looset-graph/explanation-content])
+        matched-solution (:matched-node (<sub [::problem-evaluation]))
+        markdown-content (or (get explanations {:type :node :id selected-or-fallback-node})
+                             (get explanations {:type :edge :src selected-or-fallback-node :edge-string "solved by" :target matched-solution})
+                             "More curated resources coming soon..")]
+    ^{:key markdown-content}
+    [util/shadow-container right-panel-style
+     [:div.node-details-panel.content-updated-flash
+      [:div.node-header
+       [:h2.node-title selected-or-fallback-node]
+       ^{:key selected-or-fallback-node}
+       [options-dropdown
+        {:options [{:label "op 1" :on-click #(js/console.log "op 1")}
+                   {:label "op 2" :on-click #(js/console.log "op 2")}
+                   {:label "op 3" :on-click #(js/console.log "op 3")}] }]]
+      [:span.node-desc [markdown-view markdown-content]]]]))
 
 (defmethod looset-graph/right-panel-content :trace-right-panel [& _]
   right-panel-view)
