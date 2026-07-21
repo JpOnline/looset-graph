@@ -5,6 +5,7 @@
     [clojure.edn :as edn]
     [clojure.set :as set]
     [clojure.string]
+    [clojure.walk :as walk]
     [goog.net.XhrIo :as xhr]
     [looset-graph.graph-parser :as graph-parser]
     [looset-graph.util :as util :refer [<sub >evt]]
@@ -510,12 +511,12 @@
         label-or-parent (if (= :label foldable-type)
                           {:label #{foldable-id-name}}
                           {:parent foldable-id-name})
-        extract-node-info (fn [node]
+        extract-node-info (fn [inner-idx node]
                             (let [id (clean-surrounding-quotes (get-in node [1 1 1]))
                                   type-str (get-in node [1 0])
                                   type (type-str->type type-str)]
-                              {id (assoc label-or-parent :type type)}))
-        inner-nodes (map extract-node-info (drop 2 foldable))
+                              {id (assoc label-or-parent :type type :mentioned-order-fold inner-idx)}))
+        inner-nodes (map-indexed extract-node-info (drop 2 foldable))
         foldable-id-node {foldable-id-name {:type foldable-type
                                             :mentioned-order-fold idx ;; TODO: Test mentioned-order properly.
                                             :children (set (mapcat keys inner-nodes))
@@ -608,12 +609,20 @@
   (get-in app-state [:ui :fold] {}))
 (re-frame/reg-sub ::fold-ui fold-ui)
 
+(defn sort-by-recursively [f data]
+  (walk/postwalk
+    (fn [node]
+      (if (map? node)
+        (sort-by f node)
+        node))
+    data))
+
 (defn sort-nodes
   [nodes-map nodes-hierarchy]
   (->> nodes-hierarchy
-    (sort-by (fn [[k _v]] (-> k nodes-map :mentioned-order-prop)))
-    (sort-by (fn [[k _v]] (-> k nodes-map :mentioned-order-fold)))
-    (sort-by (fn [[k _v]] (-> k nodes-map :type)))))
+    (sort-by-recursively (fn [[k _v]] (-> k nodes-map :mentioned-order-prop)))
+    (sort-by-recursively (fn [[k _v]] (-> k nodes-map :mentioned-order-fold)))
+    (sort-by-recursively (fn [[k _v]] (-> k nodes-map :type)))))
 
 (defn all-instances-of-node-with-same-open-state-with-default
   "I created this version just I can use it with an existing fold-ui and use its
@@ -3095,3 +3104,7 @@
     (re-frame/dispatch-sync [::add-node-props ["git reset" {:name "git reset [mv-branch]"}]])
     (re-frame/dispatch-sync [::add-node-props ["git checkout" {:name "git checkout"}]])
     (re-frame/dispatch-sync [::add-node-props ["git checkout -b" {:name "git checkout -b"}]])))
+
+; ;; To transform index in CSV.
+; (update-vals aa #(-> % :book-meta (select-keys [:chapter-title :chapter-number :page-range])))
+; (reduce (fn [acc [k v]] (println (str k"\t"(:page-range (:book-meta v))"\t"(:title v)"\t"(:chapter-number (:book-meta v))))) aa)
