@@ -9,6 +9,31 @@
 
 (set! js/gtag (constantly nil))
 
+;; NOTE: Testing fold-list ordering requires >8 top-level nodes so the
+;; hierarchy is a PersistentHashMap; a smaller PersistentArrayMap keeps
+;; insertion order and hides bugs.
+(deftest labels-stay-on-top-of-lixes
+  (re-frame.test/run-test-sync
+    (let [top-fold-order #(->> (get-in @re-frame.db/app-db [:flow-paths :f-fold-list]) (mapv :node-id))
+          ;; 5 lixes then 5 labels; lix props are mentioned first, giving the
+          ;; lixes the lowest :mentioned-order-prop values.
+          input-graph-text "lixA:\n  c1\nlixB:\n  c2\nlixC:\n  c3\nlixD:\n  c4\nlixE:\n  c5\n=>labelA:\n  c6\n=>labelB:\n  c7\n=>labelC:\n  c8\n=>labelD:\n  c9\n=>labelE:\n  c10\nlixA {:position {\"x\" 0, \"y\" 0}}\nlixB {:position {\"x\" 0, \"y\" 0}}\nlixC {:position {\"x\" 0, \"y\" 0}}\nlixD {:position {\"x\" 0, \"y\" 0}}\nlixE {:position {\"x\" 0, \"y\" 0}}\n=>labelA {:position {\"x\" 0, \"y\" 0}}\n=>labelB {:position {\"x\" 0, \"y\" 0}}\n=>labelC {:position {\"x\" 0, \"y\" 0}}\n=>labelD {:position {\"x\" 0, \"y\" 0}}\n=>labelE {:position {\"x\" 0, \"y\" 0}}"]
+      (re-frame/dispatch [::app/set-app-state input-graph-text])
+      (is (= ["labelA" "labelB" "labelC" "labelD" "labelE"
+              "lixA" "lixB" "lixC" "lixD" "lixE"]
+             (top-fold-order))))))
+
+(deftest labels-follow-mentioned-order-not-name
+  (re-frame.test/run-test-sync
+    (let [top-fold-order #(->> (get-in @re-frame.db/app-db [:flow-paths :f-fold-list]) (mapv :node-id))
+          ;; 6 labels mentioned in reverse-alphabetical order, then 3 lixes.
+          ;; Correct (pre-commit) order: the labels on top in their mentioned
+          ;; (reverse-alphabetical) order, then the lixes.
+          input-graph-text "=>zLbl:\n  a1\n=>yLbl:\n  a2\n=>xLbl:\n  a3\n=>wLbl:\n  a4\n=>vLbl:\n  a5\n=>uLbl:\n  a6\np1:\n  b1\np2:\n  b2\np3:\n  b3\np1 {:position {\"x\" 0, \"y\" 0}}\np2 {:position {\"x\" 0, \"y\" 0}}\np3 {:position {\"x\" 0, \"y\" 0}}\n=>zLbl {:position {\"x\" 0, \"y\" 0}}\n=>yLbl {:position {\"x\" 0, \"y\" 0}}\n=>xLbl {:position {\"x\" 0, \"y\" 0}}\n=>wLbl {:position {\"x\" 0, \"y\" 0}}\n=>vLbl {:position {\"x\" 0, \"y\" 0}}\n=>uLbl {:position {\"x\" 0, \"y\" 0}}"]
+      (re-frame/dispatch [::app/set-app-state input-graph-text])
+      (is (= ["zLbl" "yLbl" "xLbl" "wLbl" "vLbl" "uLbl" "p1" "p2" "p3"]
+             (top-fold-order))))))
+
 ;; (require '[re-frame.db])
 ;; (keys @re-frame.db/app-db)
 ;; (keys (:f-visible-nodes (:ui @re-frame.db/app-db)))
