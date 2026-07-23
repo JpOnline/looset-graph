@@ -610,12 +610,13 @@
 (re-frame/reg-sub ::fold-ui fold-ui)
 
 (defn sort-by-recursively [f data]
-  (walk/postwalk
-    (fn [node]
-      (if (map? node)
-        (sort-by f node)
-        node))
-    data))
+  (let [entry-seq? #(and (seq? %) (every? map-entry? %)) ;; True for a (possibly empty) seq of map entries.
+        sort-maps-and-already-sorted-entry-seqs
+        (fn [node]
+          (if (or (map? node) (entry-seq? node))
+            (sort-by f node)
+            node))]
+    (walk/postwalk sort-maps-and-already-sorted-entry-seqs data)))
 
 (defn sort-nodes
   [nodes-map nodes-hierarchy]
