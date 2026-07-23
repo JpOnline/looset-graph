@@ -1272,7 +1272,13 @@
                  (into {}))
         close-all-instances #(all-instances-of-node-with-same-open-state-with-default closed %)]
     {:fx [[:dispatch-later {:ms 20 :dispatch [::set-nodes-positions]}]]
-     :db (update-in app-state [:ui :fold] close-all-instances)}))
+     ;; Keep nodes-map :opened? in sync (like toggle-open-close). With
+     ;; FEATURE_SYNC_OPEN_STATE, visibility reads nodes-map :opened?, so updating
+     ;; only [:ui :fold] would leave the collapse invisible.
+     :db (-> app-state
+           (update-in [:ui :fold] close-all-instances)
+           (update-in [:domain :nodes-map]
+                      (fn [nodes-map] (reduce #(assoc-in %1 [%2 :opened?] false) nodes-map nodes-to-collapse))))}))
 (re-frame/reg-event-fx ::collapse-all-or-selected #_[event-to-analytics] collapse-all-or-selected)
 
 (defn expand-selected
@@ -1283,8 +1289,14 @@
                  (into {}))
         open-all-instances #(all-instances-of-node-with-same-open-state-with-default opened %)]
     {:fx [[:dispatch-later {:ms 20 :dispatch [::set-nodes-positions]}]]
-     :db (update-in app-state [:ui :fold] open-all-instances)}))
-(re-frame/reg-event-db ::expand-selected #_[event-to-analytics] expand-selected)
+     ;; Keep nodes-map :opened? in sync (like toggle-open-close). With
+     ;; FEATURE_SYNC_OPEN_STATE, visibility reads nodes-map :opened?, so updating
+     ;; only [:ui :fold] would leave the expansion invisible.
+     :db (-> app-state
+           (update-in [:ui :fold] open-all-instances)
+           (update-in [:domain :nodes-map]
+                      (fn [nodes-map] (reduce #(assoc-in %1 [%2 :opened?] true) nodes-map selected-nodes))))}))
+(re-frame/reg-event-fx ::expand-selected #_[event-to-analytics] expand-selected)
 
 (defn mouse-select-mode-evt
   [app-state [_event state]]
