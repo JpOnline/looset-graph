@@ -1092,11 +1092,14 @@
 (re-frame/reg-fx
   :prepare-to-ctrl-c-selected-nodes
   (fn []
-    (let [selection-el (-> js/document (.getElementById "selection"))
-          range (-> js/document .createRange)]
-      (-> js/window .getSelection .removeAllRanges)
-      (-> range (.selectNodeContents selection-el))
-      (-> js/window .getSelection (.addRange range)))))
+    ;; The "#selection" element only exists once the graph UI is rendered; in
+    ;; tests (and before first render) it is nil and `.selectNodeContents` would
+    ;; throw "parameter 1 is not of type 'Node'". Skip when it is not there.
+    (when-let [selection-el (-> js/document (.getElementById "selection"))]
+      (let [range (-> js/document .createRange)]
+        (-> js/window .getSelection .removeAllRanges)
+        (-> range (.selectNodeContents selection-el))
+        (-> js/window .getSelection (.addRange range))))))
 
 (re-frame/reg-event-fx
   ::prepare-to-ctrl-c-selected-nodes
