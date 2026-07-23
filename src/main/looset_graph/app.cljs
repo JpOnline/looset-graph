@@ -967,7 +967,8 @@
 (defn mouse-moved
   [app-state [_event x _y move-x move-y]]
   (let [resizing-target (get-in app-state [:ui :panels :resizing-panels])
-        dispersing-nodes? (get-in app-state [:ui :dispersing-nodes?])
+        ;; No vis-network mounted (e.g. in tests) -> no bounding boxes to read, no-op.
+        dispersing-nodes? (and @network (get-in app-state [:ui :dispersing-nodes?]))
         new-disp-x (max 0.5 (inc (/ move-x 200)))
         new-disp-y (max 0.5 (inc (/ move-y 200)))]
     (cond-> app-state
@@ -1144,7 +1145,10 @@
    6. Updates the node's position to the first non-colliding candidate.
    7. Merges new positions into `app-state`."
   [app-state [_event {:keys [dragging? _view-position _scale] :as _args}]]
-  (if dragging?
+  ;; `@network` is the vis-network instance; it is nil until the graph is
+  ;; mounted (e.g. in tests / before first render), and `.getBoundingBox`
+  ;; would throw. Nothing to lay out without it, so no-op.
+  (if (or dragging? (nil? @network))
     app-state
     (let [visible-nodes-ids (get-in app-state [:ui :f-visible-nodes])
           nodes (map
