@@ -1279,8 +1279,8 @@
                            node9 {:position {\"x\" 1, \"y\" -100}}
                            "]
       (re-frame/dispatch [::app/set-app-state input-graph-text])
-      (is (= "65vw" @left-panel-size))
-      (re-frame/dispatch [:looset-graph.app/resizing-panels true])
+      (is (= "20vw" @left-panel-size))
+      (re-frame/dispatch [:looset-graph.app/resizing-panels :left])
       (re-frame/dispatch [:looset-graph.app/mouse-moved 931 707])
       (re-frame/dispatch [:looset-graph.app/mouse-up false])
       (is (= "931px" @left-panel-size)))))
