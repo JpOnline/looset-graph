@@ -1,6 +1,6 @@
 (ns looset-graph-test
   (:require
-    [cljs.test :as t :refer [deftest #_testing is async]]
+    [cljs.test :as t :refer [deftest testing is async]]
     [looset-graph.app :as app]
     [re-frame.alpha :as re-frame]
     [day8.re-frame.test :as re-frame.test]
@@ -9,43 +9,148 @@
 
 (set! js/gtag (constantly nil))
 
+(deftest sort-by-prop-order-when-not-in-fold-area
+  (testing "GIVEN z1 and z9 are not defined in the fold area
+              AND z1 is mentioned before z9 in props area
+            WHEN the fold-list is rendered
+            THEN the order is that z1 show up before z9"
+    (re-frame.test/run-test-sync
+      (let [fold-ids-at-level (fn [level] (->> (get-in @re-frame.db/app-db [:flow-paths :f-fold-list]) (filter #(= level (:level %))) (mapv :node-id))) ;; Node ids of the fold list at the given nesting level, read from app-state.
+            ;; outerLabel > midLix > 9 inner lixes (level 2), positions written in mentioned order.
+            input-graph-text "=>outerLabel:
+                               midLix
+                             midLix:
+                               z5
+                               z3
+                               z7
+                               z2
+                               z8
+                               z4
+                               z6
+
+                             z9 -> z1
+
+                             =>outerLabel {:opened? true}
+                             midLix {:opened? true}
+                             z5 {:position {\"x\" 0, \"y\" 0}}
+                             z1 {:position {\"x\" 0, \"y\" 0}}
+                             z9 {:position {\"x\" 0, \"y\" 0}}
+                             z3 {:position {\"x\" 0, \"y\" 0}}
+                             z7 {:position {\"x\" 0, \"y\" 0}}
+                             z2 {:position {\"x\" 0, \"y\" 0}}
+                             z8 {:position {\"x\" 0, \"y\" 0}}
+                             z4 {:position {\"x\" 0, \"y\" 0}}
+                             z6 {:position {\"x\" 0, \"y\" 0}}"]
+        (re-frame/dispatch [::app/set-app-state input-graph-text])
+        (is (= ["outerLabel" "z1" "z9"]
+               (fold-ids-at-level 0))))))
+  (testing "GIVEN z1 and z9 are not defined in the fold area
+              AND z9 is mentioned before z1 in props area
+            WHEN the fold-list is rendered
+            THEN the order is that z9 show up before z1"
+    (re-frame.test/run-test-sync
+      (let [fold-ids-at-level (fn [level] (->> (get-in @re-frame.db/app-db [:flow-paths :f-fold-list]) (filter #(= level (:level %))) (mapv :node-id))) ;; Node ids of the fold list at the given nesting level, read from app-state.
+            ;; outerLabel > midLix > 9 inner lixes (level 2), positions written in mentioned order.
+            input-graph-text "=>outerLabel:
+                               midLix
+                             midLix:
+                               z5
+                               z3
+                               z7
+                               z2
+                               z8
+                               z4
+                               z6
+
+                             z9 -> z1
+
+                             =>outerLabel {:opened? true}
+                             midLix {:opened? true}
+                             z5 {:position {\"x\" 0, \"y\" 0}}
+                             z9 {:position {\"x\" 0, \"y\" 0}}
+                             z1 {:position {\"x\" 0, \"y\" 0}}
+                             z3 {:position {\"x\" 0, \"y\" 0}}
+                             z7 {:position {\"x\" 0, \"y\" 0}}
+                             z2 {:position {\"x\" 0, \"y\" 0}}
+                             z8 {:position {\"x\" 0, \"y\" 0}}
+                             z4 {:position {\"x\" 0, \"y\" 0}}
+                             z6 {:position {\"x\" 0, \"y\" 0}}"]
+        (re-frame/dispatch [::app/set-app-state input-graph-text])
+        (is (= ["outerLabel" "z9" "z1"]
+               (fold-ids-at-level 0)))))))
+
 (deftest deep-inner-lixes-sorted-by-mentioned-order
-  (re-frame.test/run-test-sync
-    (let [fold-ids-at-level (fn [level] (->> (get-in @re-frame.db/app-db [:flow-paths :f-fold-list]) (filter #(= level (:level %))) (mapv :node-id))) ;; Node ids of the fold list at the given nesting level, read from app-state.
-          ;; outerLabel > midLix > 9 inner lixes (level 2), positions written in
-          ;; mentioned order.
-          input-graph-text "=>outerLabel:
-                             midLix
-                           midLix:
-                             z9
-                             z1
-                             z5
-                             z3
-                             z7
-                             z2
-                             z8
-                             z4
-                             z6
-                           =>outerLabel {:opened? true}
-                           midLix {:opened? true}
-                           z9 {:position {\"x\" 0, \"y\" 0}}
-                           z1 {:position {\"x\" 0, \"y\" 0}}
-                           z5 {:position {\"x\" 0, \"y\" 0}}
-                           z3 {:position {\"x\" 0, \"y\" 0}}
-                           z7 {:position {\"x\" 0, \"y\" 0}}
-                           z2 {:position {\"x\" 0, \"y\" 0}}
-                           z8 {:position {\"x\" 0, \"y\" 0}}
-                           z4 {:position {\"x\" 0, \"y\" 0}}
-                           z6 {:position {\"x\" 0, \"y\" 0}}"]
-      (re-frame/dispatch [::app/set-app-state input-graph-text])
-      (is (= ["z9" "z1" "z5" "z3" "z7" "z2" "z8" "z4" "z6"]
-             (fold-ids-at-level 2))))))
+  (testing "GIVEN z9 is mentioned before z1 in fold area
+            WHEN the fold-list is rendered
+            THEN the order is that z9 show up before z1"
+    (re-frame.test/run-test-sync
+      (let [fold-ids-at-level (fn [level] (->> (get-in @re-frame.db/app-db [:flow-paths :f-fold-list]) (filter #(= level (:level %))) (mapv :node-id))) ;; Node ids of the fold list at the given nesting level, read from app-state.
+            ;; outerLabel > midLix > 9 inner lixes (level 2), positions written in mentioned order.
+            input-graph-text "=>outerLabel:
+                               midLix
+                             midLix:
+                               z9
+                               z1
+                               z5
+                               z3
+                               z7
+                               z2
+                               z8
+                               z4
+                               z6
+
+                             =>outerLabel {:opened? true}
+                             midLix {:opened? true}
+                             z5 {:position {\"x\" 0, \"y\" 0}}
+                             z9 {:position {\"x\" 0, \"y\" 0}}
+                             z1 {:position {\"x\" 0, \"y\" 0}}
+                             z3 {:position {\"x\" 0, \"y\" 0}}
+                             z7 {:position {\"x\" 0, \"y\" 0}}
+                             z2 {:position {\"x\" 0, \"y\" 0}}
+                             z8 {:position {\"x\" 0, \"y\" 0}}
+                             z4 {:position {\"x\" 0, \"y\" 0}}
+                             z6 {:position {\"x\" 0, \"y\" 0}}"]
+        (re-frame/dispatch [::app/set-app-state input-graph-text])
+        (is (= ["z9" "z1" "z5" "z3" "z7" "z2" "z8" "z4" "z6"]
+               (fold-ids-at-level 2))))))
+  (testing "GIVEN z1 is mentioned before z9 in fold area
+            WHEN the fold-list is rendered
+            THEN the order is that z1 show up before z9"
+    (re-frame.test/run-test-sync
+      (let [fold-ids-at-level (fn [level] (->> (get-in @re-frame.db/app-db [:flow-paths :f-fold-list]) (filter #(= level (:level %))) (mapv :node-id))) ;; Node ids of the fold list at the given nesting level, read from app-state.
+            ;; outerLabel > midLix > 9 inner lixes (level 2), positions written in mentioned order.
+            input-graph-text "=>outerLabel:
+                               midLix
+                             midLix:
+                               z1
+                               z9
+                               z5
+                               z3
+                               z7
+                               z2
+                               z8
+                               z4
+                               z6
+
+                             =>outerLabel {:opened? true}
+                             midLix {:opened? true}
+                             z5 {:position {\"x\" 0, \"y\" 0}}
+                             z9 {:position {\"x\" 0, \"y\" 0}}
+                             z1 {:position {\"x\" 0, \"y\" 0}}
+                             z3 {:position {\"x\" 0, \"y\" 0}}
+                             z7 {:position {\"x\" 0, \"y\" 0}}
+                             z2 {:position {\"x\" 0, \"y\" 0}}
+                             z8 {:position {\"x\" 0, \"y\" 0}}
+                             z4 {:position {\"x\" 0, \"y\" 0}}
+                             z6 {:position {\"x\" 0, \"y\" 0}}"]
+        (re-frame/dispatch [::app/set-app-state input-graph-text])
+        (is (= ["z1" "z9" "z5" "z3" "z7" "z2" "z8" "z4" "z6"]
+               (fold-ids-at-level 2)))))))
 
 (deftest deeper-inner-lixes-sorted-by-mentioned-order
   (re-frame.test/run-test-sync
     (let [fold-ids-at-level (fn [level] (->> (get-in @re-frame.db/app-db [:flow-paths :f-fold-list]) (filter #(= level (:level %))) (mapv :node-id))) ;; Node ids of the fold list at the given nesting level, read from app-state.
-          ;; topLabel > branchLix > leafLix > 9 inner lixes (level 3), positions
-          ;; written in mentioned order.
+          ;; topLabel > branchLix > leafLix > 9 inner lixes (level 3), positions written in mentioned order.
           input-graph-text "=>topLabel:
                              branchLix
                            branchLix:
