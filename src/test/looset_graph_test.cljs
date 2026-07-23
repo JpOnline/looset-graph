@@ -9,6 +9,43 @@
 
 (set! js/gtag (constantly nil))
 
+;; --- Deep inner-node ordering: post-commit behavior (regression guards) ------
+;; These lock in the behavior INTRODUCED by the commit
+;; "Also sort inner nodes by mentioned-order", which switched `sort-nodes` from
+;; `sort-by` to `sort-by-recursively`. `sort-by` only sorts the top level, so
+;; deep inner Lix nodes were left in hash/natural order. `sort-by-recursively`
+;; sorts every level, so inner nodes that carry a `:mentioned-order-prop`
+;; (i.e. have a position, written in graph-text mentioned order) come out in
+;; that mentioned order.
+;;
+;; They assert the app-state fold list (`[:flow-paths :f-fold-list]`) and
+;; FAIL on 6923c00 (sort-by) / PASS on 68b317d (sort-by-recursively).
+
+(defn- fold-ids-at-level
+  "Node ids of the fold list at the given nesting level, read from app-state."
+  [level]
+  (->> (get-in @re-frame.db/app-db [:flow-paths :f-fold-list])
+    (filter #(= level (:level %)))
+    (mapv :node-id)))
+
+(deftest deep-inner-lixes-sorted-by-mentioned-order
+  (re-frame.test/run-test-sync
+    (let [;; outerLabel > midLix > 9 inner lixes (level 2), positions written in
+          ;; mentioned order.
+          input-graph-text "=>outerLabel:\n  midLix\nmidLix:\n  z9\n  z1\n  z5\n  z3\n  z7\n  z2\n  z8\n  z4\n  z6\n=>outerLabel {:opened? true}\nmidLix {:opened? true}\nz9 {:position {\"x\" 0, \"y\" 0}}\nz1 {:position {\"x\" 0, \"y\" 0}}\nz5 {:position {\"x\" 0, \"y\" 0}}\nz3 {:position {\"x\" 0, \"y\" 0}}\nz7 {:position {\"x\" 0, \"y\" 0}}\nz2 {:position {\"x\" 0, \"y\" 0}}\nz8 {:position {\"x\" 0, \"y\" 0}}\nz4 {:position {\"x\" 0, \"y\" 0}}\nz6 {:position {\"x\" 0, \"y\" 0}}"]
+      (re-frame/dispatch [::app/set-app-state input-graph-text])
+      (is (= ["z9" "z1" "z5" "z3" "z7" "z2" "z8" "z4" "z6"]
+             (fold-ids-at-level 2))))))
+
+(deftest deeper-inner-lixes-sorted-by-mentioned-order
+  (re-frame.test/run-test-sync
+    (let [;; topLabel > branchLix > leafLix > 9 inner lixes (level 3), positions
+          ;; written in mentioned order.
+          input-graph-text "=>topLabel:\n  branchLix\nbranchLix:\n  leafLix\nleafLix:\n  w5\n  w2\n  w8\n  w1\n  w6\n  w3\n  w9\n  w4\n  w7\n=>topLabel {:opened? true}\nbranchLix {:opened? true}\nleafLix {:opened? true}\nw5 {:position {\"x\" 0, \"y\" 0}}\nw2 {:position {\"x\" 0, \"y\" 0}}\nw8 {:position {\"x\" 0, \"y\" 0}}\nw1 {:position {\"x\" 0, \"y\" 0}}\nw6 {:position {\"x\" 0, \"y\" 0}}\nw3 {:position {\"x\" 0, \"y\" 0}}\nw9 {:position {\"x\" 0, \"y\" 0}}\nw4 {:position {\"x\" 0, \"y\" 0}}\nw7 {:position {\"x\" 0, \"y\" 0}}"]
+      (re-frame/dispatch [::app/set-app-state input-graph-text])
+      (is (= ["w5" "w2" "w8" "w1" "w6" "w3" "w9" "w4" "w7"]
+             (fold-ids-at-level 3))))))
+
 ;; NOTE: Testing fold-list ordering requires >8 top-level nodes so the
 ;; hierarchy is a PersistentHashMap; a smaller PersistentArrayMap keeps
 ;; insertion order and hides bugs.
