@@ -3,7 +3,8 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "test": "shadow-cljs compile ci && karma start --single-run"
+    "test": "shadow-cljs compile ci && karma start --single-run",
+    "test:quiet": "shadow-cljs compile ci && karma start karma.quiet.conf.js --single-run"
   },
   "devDependencies": {
     "karma": "^6.4.4",
