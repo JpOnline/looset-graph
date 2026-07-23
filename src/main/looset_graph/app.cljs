@@ -518,6 +518,7 @@
                               {id (assoc label-or-parent :type type :mentioned-order-fold inner-idx)}))
         inner-nodes (map-indexed extract-node-info (drop 2 foldable))
         foldable-id-node {foldable-id-name {:type foldable-type
+                                            :opened? false ;; default; a `{:opened? true}` prop overrides via merge
                                             :mentioned-order-fold idx ;; TODO: Test mentioned-order properly.
                                             :children (set (mapcat keys inner-nodes))
                                             :foldable (if (seq inner-nodes) true false)}}]
@@ -860,15 +861,19 @@
           custom-props (apply dissoc node-v hidden-props)
           custom-props* (select-keys node-v model-props)
           _ (assert (= custom-props custom-props*)
-                    (str "Some new node property was added, so should it be included in the text model or not?\nThe difference was "(clojure.data/diff custom-props custom-props*)))]
+                    (str "Some new node property was added, so should it be included in the text model or not?\nThe difference was "(clojure.data/diff custom-props custom-props*)))
+          ;; :opened? false is the default (every folder now carries it), so it
+          ;; would be noise in the text model — only serialize it when true.
+          props-to-write (cond-> custom-props
+                           (false? (:opened? custom-props)) (dissoc :opened?))]
       [(if node-children
          (apply str (flatten (concat [children node-k ":\n"] (map #(str "  "%"\n") node-children) ["\n"])))
          children)
        (if edges-to
          (apply str (flatten (concat [edges] (map #(str node-k" "(edge-st %)" "(second %)"\n") edges-to))))
          edges)
-       (if (seq custom-props)
-         (str props node-k" "custom-props"\n")
+       (if (seq props-to-write)
+         (str props node-k" "props-to-write"\n")
          props)])))
 
 (defn nodes-map->graph-text
