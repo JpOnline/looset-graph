@@ -1029,76 +1029,85 @@
       (re-frame/dispatch [::app/toggle-hidden "node7"])
       (is (nil? (@sub-under-test "node7"))))))
 
-(deftest drag-node
-  (re-frame.test/run-test-sync
-    (let [node7-position #(-> @re-frame.db/app-db :domain :nodes-map (get "node7") :position)
-          input-graph-text "=>label1:
-                             node1
-                             node2
-                             node5
+(deftest nodes-laid-out-without-overlapping-on-drag-end
+  (testing "GIVEN the visible nodes already have positions
+              AND a drag is still in progress
+            WHEN the nodes positions are recalculated
+            THEN the positions are left untouched"
+    (re-frame.test/run-test-sync
+      (let [box-w 100
+            box-h 50
+            visible-positions (fn [] (let [db @re-frame.db/app-db] (into {} (for [id (get-in db [:ui :f-visible-nodes])] [id (get-in db [:domain :nodes-map id :position])])))) ;; {node-id position} for every visible node, read from app-state.
+            input-graph-text "=>label1:
+                               node1
+                               node2
 
-                           =>label5:
-                             =>label6
+                             node3:
+                               node4
 
-                           =>label2:
-                             node5
+                             node7:
+                               node8
 
-                           node8:
-                             node9
+                             node9:
+                               node10
 
-                           node7:
-                             node8
-                             =>label7
+                             =>label2:
+                               node5
 
-                           =>label6:
-                             =>label5
+                             =>label1 {:position {\"x\" -47, \"y\" 100}}
+                             node3 {:position {\"x\" 164, \"y\" 100}}
+                             node7 {:position {\"x\" 47, \"y\" -200}}
+                             node9 {:position {\"x\" 1, \"y\" -100}}
+                             =>label2 {:position {\"x\" 81, \"y\" -100}}"]
+        (re-frame/dispatch [::app/set-app-state input-graph-text])
+        (reset! app/network #js {:getBoundingBox (fn [_id] #js {:left 0 :right box-w :top 0 :bottom box-h})}) ;; The layout reads each node box from the vis-network instance, which only exists in the browser.
+        (try
+          (re-frame/dispatch [:looset-graph.app/drag-changed true])
+          (let [positions-before-the-drag-ends (visible-positions)]
+            (re-frame/dispatch [::app/set-nodes-positions {:dragging? true}])
+            (is (= positions-before-the-drag-ends
+                   (visible-positions))))
+          (finally
+            (reset! app/network nil)))))) ;; `network` is a defonce shared by the whole suite, so it is always put back.
+  (testing "GIVEN every visible node reports the same box, so they all sit on top of each other
+            WHEN the drag ends and the nodes positions are recalculated
+            THEN every visible node gets a position
+              AND no two visible nodes overlap"
+    (re-frame.test/run-test-sync
+      (let [box-w 100
+            box-h 50
+            visible-positions (fn [] (let [db @re-frame.db/app-db] (into {} (for [id (get-in db [:ui :f-visible-nodes])] [id (get-in db [:domain :nodes-map id :position])])))) ;; {node-id position} for every visible node, read from app-state.
+            overlapping-pairs (fn [positions] (vec (for [[a pa] positions [b pb] positions :when (and (neg? (compare a b)) pa pb (< (js/Math.abs (- (get pa "x") (get pb "x"))) box-w) (< (js/Math.abs (- (get pa "y") (get pb "y"))) box-h))] [a b]))) ;; Every unordered pair of nodes whose boxes intersect.
+            input-graph-text "=>label1:
+                               node1
+                               node2
 
-                           =>label7:
-                             node1
+                             node3:
+                               node4
 
-                           =>label3:
-                             node1
-                             node2
-                             =>label4
+                             node7:
+                               node8
 
-                           node3:
-                             node4
-                             node5
+                             node9:
+                               node10
 
-                           node9:
-                             node10
+                             =>label2:
+                               node5
 
-                           =>label1 -> node6
-                           nodeA -> nodeB
-                           node4 -> node1
-                           node1 -> node2
-
-                           =>label1 {:position {\"x\" -47, \"y\" 100}}
-                           nodeB {:position {\"x\" -164, \"y\" -100}}
-                           node6 {:position {\"x\" -139, \"y\" 100}}
-                           =>label5 {:position {\"x\" 9, \"y\" 0}}
-                           =>label2 {:position {\"x\" 81, \"y\" -100}}
-                           node7 {:position {\"x\" 47, \"y\" -200}}
-                           nodeA {:position {\"x\" -156, \"y\" 0}}
-                           =>label4 {:position {\"x\" -24, \"y\" -100}}
-                           =>label6 {:position {\"x\" 45, \"y\" -100}}
-                           =>label7 {:position {\"x\" 131, \"y\" 0}}
-                           =>label3 {:position {\"x\" 39, \"y\" 0}}
-                           node3 {:position {\"x\" 164, \"y\" 100}}
-                           node9 {:position {\"x\" 1, \"y\" -100}}
-                           "]
-      (re-frame/dispatch [::app/set-app-state input-graph-text])
-      (is (= {"x" 47, "y" -200}
-             (node7-position)))
-      (re-frame/dispatch [:looset-graph.app/drag-changed true])
-      (re-frame/dispatch [:looset-graph.app/set-nodes-positions-hierarchy {:dragging? false, :nodes-positions* {"label1" {"x" -47, "y" 100}, "nodeB" {"x" -164, "y" -100}, "node6" {"x" -139, "y" 100}, "label5" {"x" 9, "y" 0}, "label2" {"x" 81, "y" -100}, "node7" {"x" -110, "y" -252}, "nodeA" {"x" -156, "y" 0}, "label4" {"x" -24, "y" -100}, "label6" {"x" 45, "y" -100}, "label7" {"x" 131, "y" 0}, "label3" {"x" 39, "y" 0}, "node3" {"x" 164, "y" 100}, "node9" {"x" 1, "y" -100}}, :view-position #js {:x -0.3879394531248308, :y -75.45377976728982}, :scale 1.136826626375981}])
-      (re-frame/dispatch [:looset-graph.app/mouse-up false])
-      (is (= {"x" -110, "y" -252} ;; y is -300 if I'm rounding its value
-             (node7-position)))
-      (re-frame/dispatch [::app/toggle-hidden "node7"])
-      (is (= {"x" -110, "y" -252}
-             (node7-position))))))
-
+                             =>label1 {:position {\"x\" -47, \"y\" 100}}
+                             node3 {:position {\"x\" 164, \"y\" 100}}
+                             node7 {:position {\"x\" 47, \"y\" -200}}
+                             node9 {:position {\"x\" 1, \"y\" -100}}
+                             =>label2 {:position {\"x\" 81, \"y\" -100}}"]
+        (re-frame/dispatch [::app/set-app-state input-graph-text])
+        (reset! app/network #js {:getBoundingBox (fn [_id] #js {:left 0 :right box-w :top 0 :bottom box-h})}) ;; The layout reads each node box from the vis-network instance, which only exists in the browser.
+        (try
+          (re-frame/dispatch [::app/set-nodes-positions {:dragging? false}])
+          (let [positions (visible-positions)]
+            (is (every? some? (vals positions)))
+            (is (= [] (overlapping-pairs positions))))
+          (finally
+            (reset! app/network nil))))))) ;; `network` is a defonce shared by the whole suite, so it is always put back.
 ;; Avoiding the Promise by not using the compressed graph-text is an ok approach in the meanwhile.
 (deftest set-graph-text
   (re-frame.test/run-test-sync
