@@ -18,9 +18,15 @@
 
 ; There are 2 types of Nodes: Label and Lix (made up name).
 ; Any Node can have another Node inside it, but a Node cannot be in 2 different
-; lixs, only in 2 different labels.
+; Lixs, only in 2 different Labels.
 ; When a Lix has other Nodes inside it, it's said the Lix is the Parent of that nodes.
 ; A general term that references Labels and Parent Lixs is Outer, and the Nodes inside it are Inners.
+
+; Best Practices:
+; - Some entity types are easier to represent by Parents (i.e. using Lix instead
+; of Labels), like functions having a namespace as Parent, but when mapping a
+; more conceptual context or if you are exploring a subject that you don't know
+; that well, it's better to define every Outer as a Label.
 
 ;; -- Config & Utilities -------------------------------------------------------
 
@@ -621,10 +627,11 @@
 
 (defn sort-nodes
   [nodes-map nodes-hierarchy]
-  (->> nodes-hierarchy
-    (sort-by-recursively (fn [[k _v]] (-> k nodes-map :mentioned-order-prop)))
-    (sort-by-recursively (fn [[k _v]] (-> k nodes-map :mentioned-order-fold)))
-    (sort-by-recursively (fn [[k _v]] (-> k nodes-map :type)))))
+  (let [in-global-fold-level? #(and (nil? (-> % nodes-map :parent)) (nil? (-> % nodes-map :label)))] ;; i.e. Is not an Inner of any Outer, neither has a Lix as Parent or Label.
+    (->> nodes-hierarchy
+      (sort-by-recursively (fn [[k _v]] (-> k nodes-map :mentioned-order-prop)))
+      (sort-by-recursively (fn [[k _v]] (-> k nodes-map :mentioned-order-fold)))
+      (sort-by-recursively (fn [[k _v]] (when (in-global-fold-level? k) (-> k nodes-map :type)))))))
 
 (defn all-instances-of-node-with-same-open-state-with-default
   "I created this version just I can use it with an existing fold-ui and use its
@@ -2440,9 +2447,9 @@
            (get explanations {:type :node :id node-id})])])
      ;; Visual Separator: 
      [visual-separator]
-     [edges-explanations]
+     [edges-explanations] ;; TODO: Criar ícones de fechar (x) e manter fechado (right-panel-splitter e left-panel-splitter) com um corportamento parecido do right e left panels.
      [visual-separator]
-     [node-labels-list]]))
+     [node-labels-list]])) ;; TODO: Criar ícones de fechar (x) e manter fechado (right-panel-splitter e left-panel-splitter) com um corportamento parecido do right e left panels.
 
 ;; ----
 
@@ -2781,7 +2788,7 @@
        [util/error-boundary
         {:if-error [:h2 "Error"]}
         [right-panel-content
-         ; #_
+         #_
          :trace-right-panel]]]]]))
 
 ;; --- Main Entry --------------------------------------------------------------
