@@ -1089,7 +1089,8 @@
       secret-triggered? (-> (assoc-in [:db :ui :secret-buffer] [])
                             (assoc-in [:fx] [[:dispatch [::toggle-edit-graph-text-area]]
                                              [:dispatch [::graph-app-mode]]
-                                             [:dispatch [::toggle-super-user-options]]]))
+                                             [:dispatch [::toggle-super-user-options]]
+                                             [:dispatch [::toggle-right-panel-version]]]))
       (= "v" keypressed) (assoc-in [:db :ui :mouse-select-mode] false)
       (= "s" keypressed) (assoc-in [:db :ui :mouse-select-mode]
                                    (case (get-in app-state [:ui :mouse-select-mode])
@@ -2882,9 +2883,8 @@
                 :padding "7px 0"}}
        [util/error-boundary
         {:if-error [:h2 "Error"]}
-        [right-panel-content
-         #_
-         :trace-right-panel]]]]]))
+        [(right-panel-content (<sub [::right-panel-version]))]]]]]))
+
 
 ;; --- Main Entry --------------------------------------------------------------
 
@@ -3179,6 +3179,15 @@
     (update app-state :app-mode #(if (= :trace %)
                                    :graph
                                    :trace))))
+
+;; Dev-time: which right-panel version to render. nil -> panel-content-v1 (default);
+;; :trace-right-panel -> the trace panel. Toggled via the secret sequence (see
+;; keypress) or from the REPL. See `right-panel-content` multimethod.
+(re-frame/reg-sub ::right-panel-version
+  (fn [db _] (get-in db [:ui :right-panel-version])))
+(re-frame/reg-event-db ::toggle-right-panel-version
+  (fn [db] (update-in db [:ui :right-panel-version]
+                      #(if (= :trace-right-panel %) nil :trace-right-panel))))
 
 ;; fn to quickly change app-modes in the repl.
 ; (re-frame/dispatch-sync [::toggle-app-mode])
