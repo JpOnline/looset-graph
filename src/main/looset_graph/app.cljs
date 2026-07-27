@@ -2150,12 +2150,13 @@
                   :color color}]
       (or node-name node-id)]]))
 
-(defn lix-node [{:keys [node-id opened?] :as node-item}]
+(defn lix-node [{:keys [node-id opened? disable-mouse-over?] :as node-item}]
   (let [node-name (<sub [::nodes-map-name node-id])]
     [node-view
      {:node node-item
       :show-eye-toggle? true
-      :class "lix-style"}
+      :class "lix-style"
+      :disable-mouse-over? disable-mouse-over?}
      [:<>
       (when-not (nil? opened?)
         [svg-arrow-triangle {:opened? opened?}])
@@ -2469,29 +2470,34 @@
         selected-nodes (<sub [::raw-selected-nodes])
         nodes-map (<sub [::nodes-map])
         fold-ui (<sub [::fold-ui])
-        all-labels (->> selected-nodes
-                        (mapcat #(get-in nodes-map [% :label]))
-                        (distinct))
-        label-items (for [label-id all-labels
-                          :let [node-data (get nodes-map label-id)]
+        ;; Outers a selected node is an Inner of: its Labels (:label, a set) and
+        ;; its single Lix parent (:parent). Both should show up here.
+        outer-ids (->> selected-nodes
+                       (mapcat #(let [node (get nodes-map %)]
+                                  (cond-> (into '() (:label node))
+                                    (:parent node) (conj (:parent node)))))
+                       (distinct))
+        outer-items (for [outer-id outer-ids
+                          :let [node-data (get nodes-map outer-id)]
                           :when node-data]
-                      {:node-id label-id
-                       :node-type :label
-                       :path [label-id]
+                      {:node-id outer-id
+                       :node-type (:type node-data)
+                       :path [outer-id]
                        :level 0
-                       :color (text->color label-id)
+                       :color (text->color outer-id)
                        :opened? (if FEATURE_SYNC_OPEN_STATE
                                   (:opened? node-data)
-                                  (:opened? (get fold-ui label-id) false))
+                                  (:opened? (get fold-ui outer-id) false))
                        :hidden? (:hidden? node-data)
                        :disable-mouse-over? true})]
-    (when (seq label-items)
+    (when (seq outer-items)
       [:div
-        (for [item label-items]
+        (for [item outer-items
+              :let [node-comp (case (:node-type item) :lix lix-node label-node)]]
           ^{:key (:node-id item)}
           [:span
            (when-not (expanded-nodes (:node-id item)) {:style {:filter "opacity(0.3)"}})
-           [with-goto-button (:node-id item) [label-node item]]])])))
+           [with-goto-button (:node-id item) [node-comp item]]])])))
 
 (defn edges-explanations []
   (let [selected-nodes (<sub [::raw-selected-nodes])
