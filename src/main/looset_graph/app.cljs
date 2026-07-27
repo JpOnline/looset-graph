@@ -2429,7 +2429,10 @@
    [:div.mb-3 title-comp]
    (when content
      [:div.prose.prose-sm.max-w-none
-      {:style {:font-family "Proza Libre, sans-serif" :color "#4a484a"}}
+      {:style {:font-family "Proza Libre, sans-serif"
+               :text-wrap-style "balance"
+               :width (str "calc(0.9 * "(<sub [::right-panel-size])")")
+               :color "#4a484a"}}
       [markdown-view
        content
        "some node"]])])
