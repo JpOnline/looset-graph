@@ -1473,3 +1473,21 @@
              (#(app/nodes-map* {:graph-ast %}))
              (app/nodes-with-multiple-parents))))))
 
+
+
+(deftest errors-node-lists-nodes-with-multiple-parents
+  (testing "GIVEN node4 is an inner of two Lix folders (node3, node7)
+            WHEN the graph is loaded
+            THEN ::graph-errors reports node4 as a :multiple-parents problem"
+    (re-frame.test/run-test-sync
+      (let [graph-errors (re-frame/subscribe [::app/graph-errors])]
+        (re-frame/dispatch [::app/set-app-state "node3:\n  node4\nnode7:\n  node4"])
+        (is (= [{:kind :multiple-parents :node-id "node4" :parents #{"node3" "node7"}}]
+               @graph-errors)))))
+  (testing "GIVEN no node has multiple Lix parents
+            WHEN the graph is loaded
+            THEN ::graph-errors is empty"
+    (re-frame.test/run-test-sync
+      (let [graph-errors (re-frame/subscribe [::app/graph-errors])]
+        (re-frame/dispatch [::app/set-app-state "node3:\n  node4\n=>labelA:\n  node4"])
+        (is (= [] @graph-errors))))))

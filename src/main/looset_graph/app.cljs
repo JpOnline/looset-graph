@@ -796,6 +796,29 @@
   :<- [::nodes-with-multiple-parents]
   (fn [nodes->parents [_ node-id]] (get nodes->parents node-id)))
 
+;; Flat list of graph problems, computed from the whole nodes-map (independent of
+;; what is currently expanded). Adding a new error kind later means conj-ing its
+;; entries here; the errors pseudo-node in the fold list needs no change.
+(re-frame/reg-sub
+  ::graph-errors
+  :<- [::nodes-with-multiple-parents]
+  (fn [multiple-parents _]
+    (vec (for [[node-id parents] (sort-by key multiple-parents)]
+           {:kind :multiple-parents :node-id node-id :parents parents}))))
+
+;; Open/closed state of the errors pseudo-node (UI only, like ::mouse-select-mode).
+(re-frame/reg-sub ::errors-node-opened? :-> #(get-in % [:ui :errors-node-opened?] false))
+(re-frame/reg-event-db ::toggle-errors-node #(update-in % [:ui :errors-node-opened?] not))
+
+(defn error-description
+  "Human-readable description of a graph problem."
+  [{:keys [kind parents]}]
+  (case kind
+    :multiple-parents (str "A node can have many Labels but only one Lix as parent. "
+                           "This node has multiple parents: "
+                           (clojure.string/join ", " (sort parents)))
+    "This node has a problem."))
+
 (defn valid-graph?
   [app-state]
   (get-in app-state [:ui :validation :valid-graph?] false))
@@ -2061,9 +2084,7 @@
        ;; normally hide the eye (show-eye-toggle? false).
        multiple-parents
        [:span {:style {:paddingRight 6 :fontSize "18px" :cursor "help"}
-               :title (str "A node can have many Labels but only one Lix as parent. "
-                           "This node has multiple parents: "
-                           (clojure.string/join ", " (sort multiple-parents)))}
+               :title (error-description {:kind :multiple-parents :parents multiple-parents})}
         "⚠️"]
        show-eye-toggle?
        (if hidden?
@@ -2150,13 +2171,51 @@
      [svg-chevron-right
       {:style {:width "12px" :height "12px" :color "#888"}}]]]])
 
+;; One row in the errors list: the warning icon (hover shows the problem
+;; description). Clicking the row reveals the node in the graph.
+(defn error-list-item [{:keys [node-id] :as error}]
+  (let [node-name (<sub [::nodes-map-name node-id])]
+    [:div {:onClick #(>evt [::network-clicked #{node-id}])
+           :title "Reveal in graph"
+           :style {:display "flex" :alignItems "center" :gap "6px"
+                   :padding "3px 5px 3px 24px" :color "#8a6d1f"
+                   :fontSize "13px" :cursor "pointer"}}
+     [:span {:title (error-description error)
+             :style {:cursor "help"}}
+      "⚠️"]
+     [:span (or node-name node-id)]]))
+
+;; A synthetic row pinned to the bottom of the fold list. It is not a real node:
+;; it summarizes problems and, when opened, lists the offending nodes.
+(defn errors-node []
+  (let [errors (<sub [::graph-errors])
+        opened? (<sub [::errors-node-opened?])]
+    (when (seq errors)
+      [:div {:style {:borderBottom "1px solid #e5e5e5" :marginBottom "6px"}}
+       [:div {:onClick #(>evt [::toggle-errors-node])
+              :style {:display "flex" :alignItems "center" :gap "4px"
+                      :padding "6px 5px" :color "#b7791f" :fontWeight "600"
+                      :cursor "pointer" :userSelect "none"}}
+        [svg-arrow-triangle {:opened? opened?}]
+        [:span "⚠️"]
+        [:span (str (count errors) " problem" (when (> (count errors) 1) "s"))]]
+       (when opened?
+         (into [:div]
+           (for [{:keys [node-id] :as error} errors]
+             ^{:key node-id}
+             [error-list-item error])))])))
+
 (defn nodes-list-view []
   [:div
-   {:style {:opacity (if (<sub [::valid-graph?]) "100%" "40%")}}
-   (for [node-item (<sub [::fold-list])
-         :let [node-type-comp ({:label label-node :lix lix-node} (:node-type node-item))]]
-     ^{:key (:path node-item)}
-     [with-goto-button (:node-id node-item) [node-type-comp node-item]])])
+   [errors-node]
+   ;; Real nodes gets transparent when the graph text is invalid; the errors node is
+   ;; kept outside so it stays fully visible even then.
+   [:div
+    {:style {:opacity (if (<sub [::valid-graph?]) "100%" "40%")}}
+    (for [node-item (<sub [::fold-list])
+          :let [node-type-comp ({:label label-node :lix lix-node} (:node-type node-item))]]
+      ^{:key (:path node-item)}
+      [with-goto-button (:node-id node-item) [node-type-comp node-item]])]])
 
 (def black-cursor-svg-path "M14.082 2.182a.5.5 0 0 1 .103.557L8.528 15.467a.5.5 0 0 1-.917-.007L5.57 10.694.803 8.652a.5.5 0 0 1-.006-.916l12.728-5.657a.5.5 0 0 1 .556.103z")
 
