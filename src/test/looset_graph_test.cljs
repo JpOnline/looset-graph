@@ -1446,3 +1446,30 @@
            ;; (#(do (tap> {:nodes-map %}) %))
            (app/nodes-hierarchy)))))
            ;; (#(do (tap> {:nodes-hierarchy-from-test %}) %))))))
+
+(deftest node-with-multiple-lix-parents-is-detected
+  (testing "GIVEN node4 is an inner of both node3 and node7 (two Lix folders)
+            WHEN the nodes-map is built
+            THEN node4 is reported with both Lix parents"
+    (is (= {"node4" #{"node3" "node7"}}
+           (-> "node3:
+                  node4
+                node7:
+                  node4"
+             (graph-parser/graph-ast)
+             (#(app/nodes-map* {:graph-ast %}))
+             (app/nodes-with-multiple-parents)))))
+  (testing "GIVEN node4 is an inner of one Lix (node3) and two Labels (labelA, labelB)
+            WHEN the nodes-map is built
+            THEN nothing is reported, because only Lix parents count"
+    (is (= {}
+           (-> "node3:
+                  node4
+                =>labelA:
+                  node4
+                =>labelB:
+                  node4"
+             (graph-parser/graph-ast)
+             (#(app/nodes-map* {:graph-ast %}))
+             (app/nodes-with-multiple-parents))))))
+

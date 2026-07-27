@@ -771,6 +771,31 @@
   :<- [::nodes-map]
   foldable?)
 
+(defn nodes-with-multiple-parents
+  "A node may have many Labels but at most one Lix as parent. This inverts the
+  Lix folders' :children into {child-id #{lix-parent-ids}} and keeps only the
+  children claimed by 2+ Lix folders (an invalid Outer/Inner definition)."
+  [nodes-map]
+  (->> nodes-map
+    (filter (fn [[_ v]] (= :lix (:type v))))
+    (reduce (fn [acc [lix v]]
+              (reduce (fn [a child] (update a child (fnil conj #{}) lix))
+                      acc (:children v)))
+            {})
+    (filter (fn [[_ parents]] (> (count parents) 1)))
+    (into {})))
+(re-frame/reg-sub
+  ::nodes-with-multiple-parents
+  :<- [::nodes-map]
+  (fn [nodes-map _] (nodes-with-multiple-parents nodes-map)))
+
+;; The set of Lix parents for one node, or nil. Cheap map lookup over the cached
+;; sub above, so it is fine to call once per rendered node.
+(re-frame/reg-sub
+  ::node-multiple-parents
+  :<- [::nodes-with-multiple-parents]
+  (fn [nodes->parents [_ node-id]] (get nodes->parents node-id)))
+
 (defn valid-graph?
   [app-state]
   (get-in app-state [:ui :validation :valid-graph?] false))
@@ -2023,13 +2048,24 @@
    text]
   (let [selected-node? (<sub [::selected-node? node-id])
         mouse-select-mode (<sub [::mouse-select-mode])
-        foldable-node? (<sub [::foldable-node? node-id])]
+        foldable-node? (<sub [::foldable-node? node-id])
+        multiple-parents (<sub [::node-multiple-parents node-id])]
     [:div
      {:style {:paddingLeft (+ 5 (* 12 level))}
       :class class
       :onMouseOver (when-not disable-mouse-over? #(>evt [::node-hovered #{node-id}]))
       :onMouseOut #(>evt [::node-hovered #{}])}
-     (when show-eye-toggle?
+     (cond
+       ;; Invalid Outer/Inner definition: a node with 2+ Lix parents. Show a
+       ;; warning in the eye's slot instead of the eye, even for Labels that
+       ;; normally hide the eye (show-eye-toggle? false).
+       multiple-parents
+       [:span {:style {:paddingRight 6 :fontSize "18px" :cursor "help"}
+               :title (str "A node can have many Labels but only one Lix as parent. "
+                           "This node has multiple parents: "
+                           (clojure.string/join ", " (sort multiple-parents)))}
+        "⚠️"]
+       show-eye-toggle?
        (if hidden?
          [svg-eye
           {:onClick #(>evt [::toggle-hidden node-id])
