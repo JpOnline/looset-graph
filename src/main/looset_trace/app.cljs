@@ -758,25 +758,6 @@
       padding-bottom: calc(30vh + 30px);
     }
 
-    /* Resource Cards */
-    .resource-list { display: flex; flex-direction: column; gap: 12px; }
-    .resource-card {
-      position: relative; padding: 12px 16px 12px 24px; border-radius: 8px;
-      background: #f9fafb; border: 1px solid #f3f4f6;
-      display: flex; flex-direction: column; overflow: hidden;
-      text-decoration: none; /* Prevents the default link underline */
-      color: inherit;        /* Prevents the default link blue color */
-      cursor: pointer;       /* Ensures the mouse pointer turns into a hand */
-    }
-    .resource-card:hover { background: #f3f4f6; }
-
-    /* The Depth Gradient Indicator */
-    .depth-indicator {
-      position: absolute; left: 0; top: 0; bottom: 0; width: 6px;
-    }
-    .res-title { font-weight: 600; color: #374151; font-size: 0.95rem; }
-    .res-meta { font-size: 0.8rem; color: #9ca3af; margin-top: 4px; }
-
     .internal-link {
       display: inline-block;
       background: #f3f4f6;
@@ -812,33 +793,6 @@
       animation: highlight-update 1.2s ease-out;
     }
 
-    /* -----------------------------------------
-;; --- Markdown Code Styles
-       ----------------------------------------- */
-    .markdown-inline-code {
-      background-color: #f3f4f6;
-      padding: 2px 6px;
-      border-radius: 4px;
-      color: #ef4444;
-      font-family: monospace;
-      font-size: 0.9em;
-    }
-
-    .markdown-block-code {
-      display: block;
-      overflow-x: auto;
-      white-space: pre;
-      background-color: #f1f5f9;
-      border: 1px solid #e2e8f0;
-      padding: 16px;
-      margin: 12px 0;
-      border-radius: 8px;
-      color: #334155;
-      font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
-      font-size: 0.9rem;
-      line-height: 1.5;
-    }
-    /* -----------------------------------------
   ")
 
 (defn left-buttons []
@@ -1553,6 +1507,7 @@
 
     [:div.app-container {:class (when is-tracing? "state-trace")}
      [trace-styles]
+     [markdown/markdown-styles]
 
      ; (when ^boolean js/goog.DEBUG
      ;   [:div "debug"
