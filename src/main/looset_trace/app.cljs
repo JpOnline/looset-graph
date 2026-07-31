@@ -2,12 +2,12 @@
   (:require
     ["firebase/app" :refer [initializeApp]]
     ["firebase/firestore" :refer [getFirestore collection addDoc]]
-    ["react-markdown" :default ReactMarkdown]
     [clojure.edn :as edn]
     [clojure.set :as set]
     [clojure.string :as str]
     [looset-graph.app :as looset-graph]
     [looset-graph.util :as util :refer [<sub >evt]]
+    [looset-shared.markdown :as markdown]
     [re-frame.alpha :as re-frame]
     [reagent.core :as reagent]))
 
@@ -537,68 +537,12 @@
 ;; ---------------------------------------------------------
 ;; Calculates an HSL color based on depth (0-100).
 ;; 0 = "Light Blue"/white, 100 = "Dark Navy"/black.
-(defn depth->color [depth]
-  (let [top-brightness 100
-        lowest-brightness 0
-        lightness (- top-brightness (* (/ depth 100) (- top-brightness lowest-brightness)))]
-    (str "hsl(215, 80%, " lightness "%)")))
-
-(defn get-gradient-style [start-depth end-depth]
-  (let [color-start (depth->color start-depth)
-        color-end   (depth->color end-depth)]
-    {:background (str "linear-gradient(to bottom, " color-start ", " color-end ")")}))
-
-(defn calculate-depth-gradients [resources]
-  (if (empty? resources)
-    []
-    (let [sorted-resources (sort-by :depth resources)
-          total-count      (count sorted-resources)]
-      (if (= 1 total-count)
-        ;; Fallback if there is only 1 resource
-        (let [d (:depth (first sorted-resources))]
-          [(assoc (first sorted-resources) :start-depth d :end-depth d)])
-
-        ;; Calculate uniform steps for 2 or more resources
-        (let [min-depth (:depth (first sorted-resources))
-              max-depth (:depth (last sorted-resources))
-              step      (/ (- max-depth min-depth) total-count)]
-
-          (map-indexed
-           (fn [idx res]
-             (assoc res
-                    :start-depth (+ min-depth (* idx step))
-                    :end-depth   (+ min-depth (* (inc idx) step))))
-           sorted-resources))))))
-
 (defn fuzzy-match? [query target]
   (str/includes? (str/lower-case target) (str/lower-case query)))
 
 (defn search-questions [query questions-and-nodes]
   (if (str/blank? query) [] (filter #(fuzzy-match? query (:label %)) questions-and-nodes)))
 
-(defn calculate-depth
-  "Defines a first grade based on the :media-type, than sum more points.
-  But in general the order is
-    Game
-    Video
-    Q&A
-    Book
-    Reference
-  "
-  [resource]
-  (cond->
-    (condp some (:media-type resource)
-      #{:game :simulation} 20
-      #{:video}            30
-      #{:Q&A}              60
-      #{:book}             70
-      #{:reference}        80
-      #{:text}             50 ;; default texts depth
-      50) ;; default value
-    (= :advanced (:experience-level resource)) (+ 15)
-    (= :beginner (:experience-level resource)) (- 15)))
-;; To test the calculate-depth fn
-;; (map #(select-keys % [:depth :media-type :experience-level]) (sort-by :depth (map #(assoc % :depth (calculate-depth %)) (vals (:resources-meta (:domain @re-frame.db/app-db))))))
 
 (defn contain-node-as-prerequisite?
   "Checks if the candidate-node has the target-node listed in its prerequisites."
@@ -930,73 +874,6 @@
         {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
         [:path {:fill-rule "evenodd" :d "M5.828 10.172a.5.5 0 0 0-.707 0l-4.096 4.096V11.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H4.5a.5.5 0 0 0 0-1H1.732l4.096-4.096a.5.5 0 0 0 0-.707m4.344-4.344a.5.5 0 0 0 .707 0l4.096-4.096V4.5a.5.5 0 1 0 1 0V.525a.5.5 0 0 0-.5-.5H11.5a.5.5 0 0 0 0 1h2.768l-4.096 4.096a.5.5 0 0 0 0 .707"}]]]]]))
 
-(defn ->content-type [diataxis-type]
-  (let [{:keys [how-to tutorial explanation reference]}
-        (if (set? diataxis-type)
-          (reduce #(into %1 {%2 (/ 1 (count diataxis-type))}) {} diataxis-type)
-          diataxis-type)]
-    (cond
-      (and (>= tutorial 0.4) (>= explanation 0.4)) "Learn it"
-      (and (>= how-to 0.4) (>= reference 0.4)) "Do it"
-      (and (>= tutorial 0.4) (>= how-to 0.4)) "Heands on"
-      (and (>= explanation 0.4) (>= reference 0.4)) "Understand"
-      (>= tutorial 0.5) "Practice"
-      (>= explanation 0.5) "Theory"
-      (>= reference 0.5) "Reference"
-      (>= how-to 0.5) "How-to Guide"
-      :else nil)))
-
-(defn markdown-view [content]
-  (let [custom-components
-        {:a looset-graph/markdown-view-node-link
-         :code (fn [js-props]
-                 (let [class-name (.-className js-props)
-                       inline? (.-inline js-props)
-                       ;; ReactMarkdown passes the text content as an array in children
-                       children (.-children js-props)
-                       raw-text (when (seq children) (first children))
-                       urls (some->> (str/split raw-text #"\n")
-                             (remove str/blank?))
-                       resources (when (seq urls) (<sub [::all-resources-meta]))
-                       raw-resources (map #(into (get resources % {:title % :depth 50}) {:url %}) urls)
-                       resources-with-gradient (->> raw-resources
-                                                 (map #(assoc % :depth (calculate-depth %)))
-                                                 (calculate-depth-gradients))]
-                   (cond
-                     inline?
-                     (reagent/as-element [:code.markdown-inline-code {:class class-name} children])
-
-                     (= class-name "language-curated-resources")
-                     (reagent/as-element
-                      [:div.resource-list
-                        (for [{:keys [url title media-type summary start-depth end-depth diataxis-type]} resources-with-gradient
-                              :let [type (condp some media-type
-                                           #{:game} "🎮 "
-                                           #{:video} "🎬 "
-                                           #{:tutorial} "🪜 "
-                                           #{:Q&A} "💡 "
-                                           #{:book} "📚 "
-                                           #{:reference} "🔍 "
-                                           #{:simulation} "⚙️ "
-
-                                           #{:text} "📄 "
-                                           #{:article} "🗞️ "
-                                           "")]]
-                          ^{:key url}
-                          [:a.resource-card
-                           {:href url :target "_blank" :rel "noopener noreferrer"}
-                           ;; The Visual Depth Gradient
-                           [:div.depth-indicator {:style (get-gradient-style start-depth end-depth)}]
-                           [:div.res-title title]
-                           [:div.res-meta (str type (or (->content-type diataxis-type) summary))]])])
-
-                     :else ;; Fallback: Default Code Block
-                     (reagent/as-element [:code.markdown-block-code {:class class-name} children]))))}]
-
-    ;; Render the ReactMarkdown component
-    [:> ReactMarkdown
-     {:components (clj->js custom-components)
-      :children content}]))
 
 (defn- subset-combinations [coll]
   (let [vec-coll (vec coll)]
@@ -1078,7 +955,7 @@
                            {:label opt-str
                             :on-click #(>evt [::set-node-name selected-or-fallback-node opt-str])})
                          (generate-aka-options selected-or-fallback-node aka))}])]
-      [:span.node-desc [markdown-view markdown-content]]]]))
+      [:span.node-desc [markdown/markdown-view markdown-content]]]]))
 
 (defmethod looset-graph/right-panel-content :trace-right-panel [& _]
   right-panel-view)
@@ -1155,8 +1032,8 @@
            [:div.quiz-content [:div.quiz-inner [:h3.question-title "More questions coming soon.."]]]
            [:div.quiz-content
             [:div.quiz-inner
-             (when-let [title (:title question-data)] [:h3.question-title [markdown-view title]])
-             (when-let [desc (:description question-data)] [:p.question-desc [markdown-view desc]])
+             (when-let [title (:title question-data)] [:h3.question-title [markdown/markdown-view title]])
+             (when-let [desc (:description question-data)] [:p.question-desc [markdown/markdown-view desc]])
 
              [:div.options-list
               (for [{:keys [id text]} sorted-options]
@@ -1176,7 +1053,7 @@
                                      (>evt [::answered-problem id])
                                      (reset! clicked-id nil))
                                    2000))}
-                   [markdown-view text]]))]]])]))))
+                   [markdown/markdown-view text]]))]]])]))))
 
 ;; ---------------------------------------------------------
 ;; ---   KNOWLEDGE QUIZ COMPONENT ---
@@ -1252,7 +1129,7 @@
        [:div.quiz-content
         [:div.quiz-inner {:class (when staged? "has-action-bar")}
          (when-let [title (:title data)] [:h3.question-title title])
-         (when-let [desc (:description data)] [:p.question-desc [markdown-view desc]])
+         (when-let [desc (:description data)] [:p.question-desc [markdown/markdown-view desc]])
 
          [:div.options-list
           (for [{:keys [id text]} (shuffle (:options data))]
@@ -1270,7 +1147,7 @@
                {:class opt-class
                 :on-click #(when-not answered?
                              (>evt [::stage-knowledge-answer question-id id]))}
-               [markdown-view text]]))]]])
+               [markdown/markdown-view text]]))]]])
 
      [:div.action-bar-container {:class (when staged? "visible")}
       [:div.action-feedback-text {:class (if is-correct? "correct" "wrong")}
@@ -1542,20 +1419,6 @@
   (assoc-in app-state [:ui :selected-nodes] #{node-id}))
 (re-frame/reg-event-db ::node-link-clicked node-link-clicked)
 
-(defn assert-resources-meta!
-  [resources-meta]
-  ;; Every key is a string.
-  (when-let [resources-with-problem (seq (remove string? (keys resources-meta)))]
-    (throw (ex-info "resources-meta has a problem. Some key is not a string." {:keys-with-problem resources-with-problem})))
-  ;; No resource key is a string.
-  (when-let [resources-with-problem (seq (remove keyword? (->> resources-meta (vals) (map keys) (flatten))))]
-    (throw (ex-info "resources-meta has a problem. Some resource has a string." {:keys-with-problem resources-with-problem}))))
-
-(defn all-resources-meta [app-state]
-  (let [resources-meta (get-in app-state [:domain :resources-meta] {})]
-    (when ^boolean js/goog.DEBUG (assert-resources-meta! resources-meta))
-    resources-meta))
-(re-frame/reg-sub ::all-resources-meta all-resources-meta)
 ;; ----
 ;; ---------------------------------------------------------
 ;; -- Main ---------------------------------------------------------
