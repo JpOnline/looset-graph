@@ -82,6 +82,37 @@
       (>= how-to 0.5) "How-to Guide"
       :else nil)))
 
+(defn parse-resource-urls
+  "One resource URL per non-blank line of the code block's raw text."
+  [raw-text]
+  (some->> (str/split raw-text #"\n")
+    (remove str/blank?)))
+
+(defn resolve-resources
+  "Look up each url's metadata in resources-meta; fall back to a bare
+  {:title url :depth 50} entry when the url isn't known."
+  [resources-meta urls]
+  (map #(into (get resources-meta % {:title % :depth 50}) {:url %}) urls))
+
+(defn resource-type-icon [media-type]
+  (condp some media-type
+    #{:game} "🎮 "
+    #{:video} "🎬 "
+    #{:tutorial} "🪜 "
+    #{:Q&A} "💡 "
+    #{:book} "📚 "
+    #{:reference} "🔍 "
+    #{:simulation} "⚙️ "
+    #{:text} "📄 "
+    #{:article} "🗞️ "
+    ""))
+
+(defn resource-subtitle
+  "Text under a resource card's title: a type icon, then either the diataxis
+  content-type label or (if that can't be determined) the resource's summary."
+  [{:keys [media-type diataxis-type summary]}]
+  (str (resource-type-icon media-type) (or (->content-type diataxis-type) summary)))
+
 (defn assert-resources-meta!
   [resources-meta]
   ;; Every key is a string.
@@ -127,10 +158,9 @@
                        ;; ReactMarkdown passes the text content as an array in children
                        children (.-children js-props)
                        raw-text (when (seq children) (first children))
-                       urls (some->> (str/split raw-text #"\n")
-                             (remove str/blank?))
-                       resources (when (seq urls) (<sub [::all-resources-meta]))
-                       raw-resources (map #(into (get resources % {:title % :depth 50}) {:url %}) urls)
+                       urls (parse-resource-urls raw-text)
+                       resources-meta (when (seq urls) (<sub [::all-resources-meta]))
+                       raw-resources (resolve-resources resources-meta urls)
                        resources-with-gradient (->> raw-resources
                                                  (map #(assoc % :depth (calculate-depth %)))
                                                  (calculate-depth-gradients))]
@@ -141,26 +171,14 @@
                      (= class-name "language-curated-resources")
                      (reagent/as-element
                       [:div.resource-list
-                        (for [{:keys [url title media-type summary start-depth end-depth diataxis-type]} resources-with-gradient
-                              :let [type (condp some media-type
-                                           #{:game} "🎮 "
-                                           #{:video} "🎬 "
-                                           #{:tutorial} "🪜 "
-                                           #{:Q&A} "💡 "
-                                           #{:book} "📚 "
-                                           #{:reference} "🔍 "
-                                           #{:simulation} "⚙️ "
-
-                                           #{:text} "📄 "
-                                           #{:article} "🗞️ "
-                                           "")]]
+                        (for [{:keys [url title start-depth end-depth] :as resource} resources-with-gradient]
                           ^{:key url}
                           [:a.resource-card
                            {:href url :target "_blank" :rel "noopener noreferrer"}
                            ;; The Visual Depth Gradient
                            [:div.depth-indicator {:style (get-gradient-style start-depth end-depth)}]
                            [:div.res-title title]
-                           [:div.res-meta (str type (or (->content-type diataxis-type) summary))]])])
+                           [:div.res-meta (resource-subtitle resource)]])])
 
                      :else ;; Fallback: Default Code Block
                      (reagent/as-element [:code.markdown-block-code {:class class-name} children]))))}]
@@ -171,7 +189,7 @@
       :children content}]))
 
 ;; CSS for the classes markdown-view emits. Render once per app that uses
-;; markdown-view (trace still carries a copy in its own trace-styles for now).
+;; markdown-view.
 ;; `.internal-link` is intentionally omitted: it already lives in
 ;; looset-graph.app/global-style, which is rendered in both app modes.
 (defn markdown-styles []
