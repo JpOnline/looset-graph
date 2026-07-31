@@ -11,7 +11,9 @@
    "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ&t=2460"
                                  {:title "Introduction to Git Branching: The Kitchen Analogy" :depth 30 :media-type #{:video} :diataxis-type {:tutorial 0.6} :summary "Explains the concept of branching"}
    "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/n15/mode/2up"
-                                 {:title "Ledi Sayadaw's biography" :depth 30 :media-type #{:book} :diataxis-type {:tutorial 0.6} :summary "Breve biografia de Ledi Sayadaw"}})
+                                 {:title "Ledi Sayadaw's biography" :depth 30 :media-type #{:book} :diataxis-type {:tutorial 0.6} :summary "Breve biografia de Ledi Sayadaw"}
+   "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ"
+                                 {:title "Git Branching: whole video" :depth 30 :media-type #{:video} :diataxis-type {:tutorial 0.6} :summary "About Git Branching"}})
 
 (deftest parse-resource-urls-behavior
   (testing "GIVEN a code block with several non-blank lines
@@ -19,6 +21,34 @@
             THEN each line becomes a url, in order"
     (is (= ["https://video.example.com" "https://book.example.com" "https://untyped.example.com"]
            (markdown/parse-resource-urls (str/join "\n" ["https://video.example.com" "https://book.example.com" "https://untyped.example.com"])))))
+
+  ;; Now we have the new beghavior, we can add additional data to the
+  ;; curated-resource and depending on these data, it will change which
+  ;; resource-meta it will resolve to and which url it will use for the ahref.
+  (testing "GIVEN
+            WHEN
+            THEN "
+    (is (= [{:url-to-use "https://video.example.com/?t=2460" :url-to-resolve-resource-meta "https://video.example.com"}
+            {:url-to-use "https://book.example.com" :url-to-resolve-resource-meta "https://book.example.com"}
+            {:url-to-use "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ&t=4000" :url-to-resolve-resource-meta "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ&t=2460"}
+            {:url-to-use "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ&t=4500" :url-to-resolve-resource-meta "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ"}
+            {:url-to-use "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/40/mode/2up" :url-to-resolve-resource-meta "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/n15/mode/2up"}
+
+            {:url-to-use "https://video.example.com/?t=2460" :url-to-resolve-resource-meta "https://video.example.com"}
+            {:url-to-use "https://book.example.com" :url-to-resolve-resource-meta "https://book.example.com"}
+            {:url-to-use "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ&t=4500" :url-to-resolve-resource-meta "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ"}]
+           (markdown/parse-resource-urls (str/join "\n" ["https://video.example.com[:url \"/?t=2460\" :resource \"\"]" ;; The keywords define which component will be used for what.
+                                                         "https://book.example.com[:url \"\" :resource \"\" :subtitle \"Ver página 97\"]" ;; The subtitle is used to overwrite the text subtitle (not the type icon).
+                                                         "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ[:url \"&t=4000\" :resource \"&t=2460\"]"
+                                                         "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ[:url \"&t=4500\" :resource \"\"]"
+                                                         "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/[:url \"40\" :resource \"n15\"]/mode/2up"
+
+                                                         ;; These 3 are equivalent to the cases 1, 2 and 4. The difference is that when the keyword has a empty string, it can be ommited.
+                                                         "https://video.example.com[:url \"/?t=2460\"]"
+                                                         "https://book.example.com[:subtitle \"Ver página 97\"]"
+                                                         "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ[:url \"&t=4500\"]"
+                                                         ])))))
+
 
   (testing "GIVEN blank lines interspersed (leading, trailing, and in the middle)
             WHEN the urls are parsed
@@ -92,9 +122,7 @@
            (markdown/resource-subtitle (resources-meta "https://untyped.example.com"))))))
 
 ;; Composes parse-resource-urls + resolve-resources (+ resource-subtitle), the way
-;; markdown-view actually chains them, instead of testing each in isolation. This is
-;; the case that matters most for the upcoming url-definition change: a url can be
-;; parsed as expected while still not resolving to any known resource.
+;; markdown-view actually chains them, instead of testing each in isolation.
 (deftest curated-resources-pipeline-behavior
   (testing "GIVEN a code block listing several known (and messy, real-world) urls
             WHEN the block is parsed then resolved
@@ -134,3 +162,10 @@
       (is (= [(assoc (resources-meta "https://video.example.com") :url "https://video.example.com")
               {:title "https://not-yet-curated.example.com" :depth 50 :url "https://not-yet-curated.example.com"}]
              (markdown/resolve-resources resources-meta urls))))))
+
+(deftest curated-resources-with-extra-data
+  (testing "GIVEN
+            WHEN
+            THEN "
+    )
+)
