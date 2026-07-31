@@ -90,3 +90,47 @@
             THEN the icon is empty and the subtitle is just the label or summary"
     (is (= "An untyped summary"
            (markdown/resource-subtitle (resources-meta "https://untyped.example.com"))))))
+
+;; Composes parse-resource-urls + resolve-resources (+ resource-subtitle), the way
+;; markdown-view actually chains them, instead of testing each in isolation. This is
+;; the case that matters most for the upcoming url-definition change: a url can be
+;; parsed as expected while still not resolving to any known resource.
+(deftest curated-resources-pipeline-behavior
+  (testing "GIVEN a code block listing several known (and messy, real-world) urls
+            WHEN the block is parsed then resolved
+            THEN every url resolves to its known resource metadata, in order"
+    (let [raw-text (str/join "\n" ["https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ&t=2460"
+                                   "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/n15/mode/2up"])
+          urls (markdown/parse-resource-urls raw-text)]
+      (is (= ["https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ&t=2460"
+              "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/n15/mode/2up"]
+             urls))
+      (is (= [(assoc (resources-meta "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ&t=2460")
+                :url "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ&t=2460")
+              (assoc (resources-meta "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/n15/mode/2up")
+                :url "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/n15/mode/2up")]
+             (markdown/resolve-resources resources-meta urls)))))
+
+  (testing "GIVEN a code block listing a url that isn't curated yet
+            WHEN the block is parsed then resolved
+            THEN the url is still parsed as expected
+              AND it does not resolve to any resource, falling back to a bare stub
+              AND its subtitle is blank, since there is no media-type or summary to show"
+    (let [raw-text "https://not-yet-curated.example.com"
+          urls (markdown/parse-resource-urls raw-text)
+          resolved (markdown/resolve-resources resources-meta urls)]
+      (is (= ["https://not-yet-curated.example.com"] urls))
+      (is (= [{:title "https://not-yet-curated.example.com" :depth 50 :url "https://not-yet-curated.example.com"}]
+             resolved))
+      (is (= "" (markdown/resource-subtitle (first resolved))))))
+
+  (testing "GIVEN a code block mixing a curated url with one that isn't curated yet
+            WHEN the block is parsed then resolved
+            THEN each url resolves independently: the known one gets its metadata,
+              the unknown one falls back to a bare stub, order preserved"
+    (let [raw-text (str/join "\n" ["https://video.example.com" "https://not-yet-curated.example.com"])
+          urls (markdown/parse-resource-urls raw-text)]
+      (is (= ["https://video.example.com" "https://not-yet-curated.example.com"] urls))
+      (is (= [(assoc (resources-meta "https://video.example.com") :url "https://video.example.com")
+              {:title "https://not-yet-curated.example.com" :depth 50 :url "https://not-yet-curated.example.com"}]
+             (markdown/resolve-resources resources-meta urls))))))
