@@ -169,3 +169,48 @@
     [:> ReactMarkdown
      {:components (clj->js custom-components)
       :children content}]))
+
+;; CSS for the classes markdown-view emits. Render once per app that uses
+;; markdown-view (trace still carries a copy in its own trace-styles for now).
+;; `.internal-link` is intentionally omitted: it already lives in
+;; looset-graph.app/global-style, which is rendered in both app modes.
+(defn markdown-styles []
+  [:style "
+    .resource-list { display: flex; flex-direction: column; gap: 12px; }
+    .resource-card {
+      position: relative; padding: 12px 16px 12px 24px; border-radius: 8px;
+      background: #f9fafb; border: 1px solid #f3f4f6;
+      display: flex; flex-direction: column; overflow: hidden;
+      text-decoration: none;
+      color: inherit;
+      cursor: pointer;
+    }
+    .resource-card:hover { background: #f3f4f6; }
+    .depth-indicator {
+      position: absolute; left: 0; top: 0; bottom: 0; width: 6px;
+    }
+    .res-title { font-weight: 600; color: #374151; font-size: 0.95rem; }
+    .res-meta { font-size: 0.8rem; color: #9ca3af; margin-top: 4px; }
+    .markdown-inline-code {
+      background-color: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #ef4444;
+      font-family: monospace;
+      font-size: 0.9em;
+    }
+    .markdown-block-code {
+      display: block;
+      overflow-x: auto;
+      white-space: pre;
+      background-color: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      padding: 16px;
+      margin: 12px 0;
+      border-radius: 8px;
+      color: #334155;
+      font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+  "])

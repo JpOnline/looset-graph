@@ -1,6 +1,5 @@
 (ns looset-graph.app
   (:require
-    ["react-markdown" :default ReactMarkdown]
     [clojure.data]
     [clojure.edn :as edn]
     [clojure.set :as set]
@@ -9,6 +8,7 @@
     [goog.net.XhrIo :as xhr]
     [looset-graph.graph-parser :as graph-parser]
     [looset-graph.util :as util :refer [<sub >evt]]
+    [looset-shared.markdown :as markdown]
     [quadtree-cljc.core :as quad]
     [re-frame.alpha :as re-frame]
     [re-frame.std-interceptors]
@@ -2375,55 +2375,6 @@
        :lix   [:span.ml-1 {:style {:color "#4a484a" :font-size "x-large"}} node-id]
        [:span node-id])])) ;; Fallback
 
-(defn markdown-view-node-link [js-props]
-  (let [href (-> js-props .-node .-properties .-href)
-        children (.-children js-props)
-        node-id (some-> href (subs 5) js/decodeURIComponent)]
-    (if (and href (clojure.string/starts-with? href "node:"))
-      ;; Intercept Link for Internal Navigation
-      (reagent/as-element
-        [:a.internal-link
-         {:href href
-          :on-click (fn [e]
-                      (.preventDefault e)
-                      (>evt [:looset-trace.app/node-link-clicked node-id])
-                      ;; Extract ID (remove 'node:') and log
-                      (js/console.log "Clicked internal node:" (subs href 5)))}
-         children])
-
-      ;; Fallback: Default External Link
-      (reagent/as-element [:a {:href href :target "_blank"} children]))))
-
-(defn markdown-view [content node-name]
-  (let [custom-components
-        {:a markdown-view-node-link
-         :code (fn [js-props]
-                 (let [class-name (.-className js-props)
-                       ;; ReactMarkdown passes the text content as an array in children
-                       children (.-children js-props)]
-                   (if (= class-name "language-curated-resources")
-                     ;; 1. Intercept code blocks
-                     (let [raw-text (first children)
-                           ;; Split by newline and remove empty lines
-                           urls (->> (clojure.string/split raw-text #"\n")
-                                  (remove clojure.string/blank?))]
-                       (reagent/as-element
-                         [:div.meta-box {:style {:border "2px solid #ccc"
-                                                 :padding "10px"
-                                                 :background "#f9f9f9"}}
-                          [:strong "URLs:"]
-                          [:ul
-                           (for [url urls]
-                             ^{:key url} [:li url])]])) ; Here you can sort/reorder your URLs
-
-                     ;; 2. Fallback: Default Code Block
-                     (reagent/as-element [:code {:class class-name} children]))))}]
-
-    ;; Render the ReactMarkdown component
-    [:> ReactMarkdown
-     {:components (clj->js custom-components)
-      :children content}]))
-
 (defn- explanation-block [title-comp content]
   [:div.mb-12
    [:div.mb-3 title-comp]
@@ -2433,9 +2384,7 @@
                :text-wrap-style "balance"
                :width (str "calc(0.9 * "(<sub [::right-panel-size])")")
                :color "#4a484a"}}
-      [markdown-view
-       content
-       "some node"]])])
+      [markdown/markdown-view content]])])
 
 (defn node-display-row [{:keys [node-id with-controls?]}]
   (let [expanded-nodes @(re-frame/sub :flow {:id :f-fold-list-set})]
@@ -2900,6 +2849,7 @@
 (defn main []
   [:<>
    [global-style]
+   [markdown/markdown-styles]
    [ctrl-c-selected-nodes]
    [:div#panel-container
     {:class (case (<sub [::mouse-select-mode])
