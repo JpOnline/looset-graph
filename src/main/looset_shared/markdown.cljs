@@ -4,6 +4,7 @@
   Moved here (verbatim) from looset-trace.app / looset-graph.app."
   (:require
     ["react-markdown" :default ReactMarkdown]
+    [cljs.reader :as reader]
     [clojure.string :as str]
     [looset-graph.util :as util :refer [<sub >evt]]
     [re-frame.alpha :as re-frame]
@@ -82,17 +83,107 @@
       (>= how-to 0.5) "How-to Guide"
       :else nil)))
 
+;; --- URL data on a curated-resource line -------------------------------------
+;; A curated-resource line can carry a bracketed data suffix somewhere in (or
+;; right after) its url, e.g.:
+;;   https://youtu.be/xyz[:url "&t=4000" :resource "&t=2460"]
+;;   https://archive.org/.../page/[:url "40" :resource "n15"]/mode/2up
+;; The bracket content is `kw "val" ...` — read as EDN once wrapped in {}.
+;; Recognized keywords:
+;;   :url       spliced in place of the bracket to build the href actually used
+;;   :resource  spliced in place of the bracket to build the resources-meta key
+;;   :subtitle  overrides the card's subtitle text (never its icon)
+;; An omitted :url / :resource defaults to "". A line with no bracket — or one
+;; whose bracket can't be read as keyword/string pairs — stays a plain url string.
+
+(def known-resource-keywords #{:url :resource :subtitle})
+
+(defn- resource-line-bracket-parts
+  "When `line` has a `[...]` bracket, returns {:before :content :after} (text
+  before it, content between the brackets, text after). nil when there is none."
+  [line]
+  (when-let [[_ before content after] (re-matches #"(.*?)\[([^\[\]]*)\](.*)" line)]
+    {:before before :content content :after after}))
+
+(defn- read-bracket-data
+  "Reads bracket `content` as `{kw \"val\" ...}` EDN. Returns the map only when it
+  reads cleanly into a map with keyword keys; nil otherwise (the bracket isn't
+  our data DSL, so the caller falls back to treating the whole line as plain)."
+  [content]
+  (try
+    (let [parsed (reader/read-string (str "{" content "}"))]
+      (when (and (map? parsed) (every? keyword? (keys parsed)))
+        parsed))
+    (catch :default _ nil)))
+
+(defn classify-resource-line
+  "Classifies one code-block line into a map the parse-resource-line multimethod
+  dispatches on:
+    :plain      — no bracket, or a bracket that isn't our data DSL
+    :structured — a data bracket whose keywords are all recognized
+    :malformed  — a data bracket carrying at least one unrecognized keyword"
+  [line]
+  (if-let [{:keys [before content after]} (resource-line-bracket-parts line)]
+    (if-let [data (read-bracket-data content)]
+      {:kind (if (every? known-resource-keywords (keys data)) :structured :malformed)
+       :before before :after after :data data}
+      {:kind :plain :line line})
+    {:kind :plain :line line}))
+
+(defmulti parse-resource-line
+  "Turns one classified line into a parsed entry: a plain url string, or a
+  {:url-to-use ... :url-to-resolve-resource-meta ... [:subtitle ...]} map."
+  :kind)
+
+(defmethod parse-resource-line :plain [{:keys [line]}] line)
+
+(defn- structured-resource-entry [before after {:keys [url resource subtitle]}]
+  (cond-> {:url-to-use (str before (or url "") after)
+           :url-to-resolve-resource-meta (str before (or resource "") after)}
+    subtitle (assoc :subtitle subtitle)))
+
+(defmethod parse-resource-line :structured [{:keys [before after data]}]
+  (structured-resource-entry before after data))
+
+(defmethod parse-resource-line :malformed [{:keys [before after data]}]
+  (let [unknown-keywords (remove known-resource-keywords (keys data))
+        entry (structured-resource-entry before after (select-keys data known-resource-keywords))]
+    (if ^boolean js/goog.DEBUG
+      ;; Dev: surface the problem in the subtitle rather than silently guessing.
+      (assoc entry :subtitle (str "⚠️ Unknown curated-resource option(s): "
+                                  (str/join ", " unknown-keywords)))
+      ;; Prod: ignore the unrecognized keyword(s), keep the recognized ones.
+      entry)))
+
 (defn parse-resource-urls
-  "One resource URL per non-blank line of the code block's raw text."
+  "One entry per non-blank line of the code block's raw text: a plain url string,
+  or (for a line carrying url data) a structured map — see parse-resource-line."
   [raw-text]
   (some->> (str/split raw-text #"\n")
-    (remove str/blank?)))
+    (remove str/blank?)
+    (map (comp parse-resource-line classify-resource-line))))
+
+(defmulti resolve-resource-entry
+  "Resolves one parse-resource-urls entry against resources-meta. Dispatches on
+  whether the entry is a plain url string or a structured url-data map."
+  (fn [_resources-meta entry] (if (map? entry) :structured :plain)))
+
+(defmethod resolve-resource-entry :plain [resources-meta url]
+  (into (get resources-meta url {:title url :depth 50}) {:url url}))
+
+(defmethod resolve-resource-entry :structured
+  [resources-meta {:keys [url-to-use url-to-resolve-resource-meta subtitle]}]
+  (cond-> (into (get resources-meta url-to-resolve-resource-meta
+                  {:title url-to-resolve-resource-meta :depth 50})
+            {:url url-to-use})
+    subtitle (assoc :subtitle subtitle)))
 
 (defn resolve-resources
-  "Look up each url's metadata in resources-meta; fall back to a bare
-  {:title url :depth 50} entry when the url isn't known."
-  [resources-meta urls]
-  (map #(into (get resources-meta % {:title % :depth 50}) {:url %}) urls))
+  "Resolves each parsed entry (plain url or url-data map, see parse-resource-urls)
+  against resources-meta, falling back to a bare {:title ... :depth 50} entry
+  when the resolving url isn't curated."
+  [resources-meta entries]
+  (map #(resolve-resource-entry resources-meta %) entries))
 
 (defn resource-type-icon [media-type]
   (condp some media-type
@@ -108,10 +199,12 @@
     ""))
 
 (defn resource-subtitle
-  "Text under a resource card's title: a type icon, then either the diataxis
-  content-type label or (if that can't be determined) the resource's summary."
-  [{:keys [media-type diataxis-type summary]}]
-  (str (resource-type-icon media-type) (or (->content-type diataxis-type) summary)))
+  "Text under a resource card's title: the type icon, then an explicit :subtitle
+  override, else the diataxis content-type label, else the resource's summary.
+  A :subtitle override only ever replaces this text — the icon always comes from
+  :media-type."
+  [{:keys [media-type diataxis-type summary subtitle]}]
+  (str (resource-type-icon media-type) (or subtitle (->content-type diataxis-type) summary)))
 
 (defn assert-resources-meta!
   [resources-meta]

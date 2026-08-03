@@ -22,20 +22,21 @@
     (is (= ["https://video.example.com" "https://book.example.com" "https://untyped.example.com"]
            (markdown/parse-resource-urls (str/join "\n" ["https://video.example.com" "https://book.example.com" "https://untyped.example.com"])))))
 
-  ;; Now we have the new beghavior, we can add additional data to the
-  ;; curated-resource and depending on these data, it will change which
-  ;; resource-meta it will resolve to and which url it will use for the ahref.
-  (testing "GIVEN
-            WHEN
-            THEN "
+  (testing "GIVEN lines carrying a `url[:kw \"val\" ...]` data bracket, some with all
+              keywords given and some with keywords omitted (defaulting to \"\")
+            WHEN the urls are parsed
+            THEN each becomes a {:url-to-use ... :url-to-resolve-resource-meta ...}
+              map, splicing :url and :resource in place of the bracket
+              AND a given :subtitle is carried through unchanged
+              AND omitting a keyword is equivalent to giving it \"\""
     (is (= [{:url-to-use "https://video.example.com/?t=2460" :url-to-resolve-resource-meta "https://video.example.com"}
-            {:url-to-use "https://book.example.com" :url-to-resolve-resource-meta "https://book.example.com"}
+            {:url-to-use "https://book.example.com" :url-to-resolve-resource-meta "https://book.example.com" :subtitle "Ver página 97"}
             {:url-to-use "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ&t=4000" :url-to-resolve-resource-meta "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ&t=2460"}
             {:url-to-use "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ&t=4500" :url-to-resolve-resource-meta "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ"}
             {:url-to-use "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/40/mode/2up" :url-to-resolve-resource-meta "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/n15/mode/2up"}
 
             {:url-to-use "https://video.example.com/?t=2460" :url-to-resolve-resource-meta "https://video.example.com"}
-            {:url-to-use "https://book.example.com" :url-to-resolve-resource-meta "https://book.example.com"}
+            {:url-to-use "https://book.example.com" :url-to-resolve-resource-meta "https://book.example.com" :subtitle "Ver página 97"}
             {:url-to-use "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ&t=4500" :url-to-resolve-resource-meta "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ"}]
            (markdown/parse-resource-urls (str/join "\n" ["https://video.example.com[:url \"/?t=2460\" :resource \"\"]" ;; The keywords define which component will be used for what.
                                                          "https://book.example.com[:url \"\" :resource \"\" :subtitle \"Ver página 97\"]" ;; The subtitle is used to overwrite the text subtitle (not the type icon).
@@ -163,9 +164,78 @@
               {:title "https://not-yet-curated.example.com" :depth 50 :url "https://not-yet-curated.example.com"}]
              (markdown/resolve-resources resources-meta urls))))))
 
+;; The pipeline (parse -> resolve -> subtitle) for lines carrying url data.
 (deftest curated-resources-with-extra-data
-  (testing "GIVEN
-            WHEN
-            THEN "
-    )
-)
+  (testing "GIVEN a data bracket giving :url, :resource and :subtitle
+            WHEN the line is parsed then resolved then its subtitle built
+            THEN the href comes from :url-to-use, resources-meta is looked up via
+              :url-to-resolve-resource-meta, and the subtitle keeps the resolved
+              resource's icon but shows the :subtitle text"
+    (let [line "https://video.example.com[:url \"/?t=2460\" :resource \"\" :subtitle \"Recap\"]"
+          [entry] (markdown/parse-resource-urls line)
+          [resolved] (markdown/resolve-resources resources-meta [entry])]
+      (is (= {:url-to-use "https://video.example.com/?t=2460"
+              :url-to-resolve-resource-meta "https://video.example.com"
+              :subtitle "Recap"}
+             entry))
+      (is (= "https://video.example.com/?t=2460" (:url resolved)) "href is :url-to-use")
+      (is (= "Video Resource" (:title resolved)) "resolved via :url-to-resolve-resource-meta")
+      (is (= "🎬 Recap" (markdown/resource-subtitle resolved)) "icon kept, text overridden")))
+
+  (testing "GIVEN a data bracket whose :resource url isn't in resources-meta
+            WHEN the line is parsed then resolved
+            THEN it falls back to a bare stub keyed by :url-to-resolve-resource-meta
+              AND the href still comes from :url-to-use"
+    (let [line "https://not-yet-curated.example.com[:url \"?t=10\"]"
+          [entry] (markdown/parse-resource-urls line)
+          [resolved] (markdown/resolve-resources resources-meta [entry])]
+      (is (= {:url-to-use "https://not-yet-curated.example.com?t=10"
+              :url-to-resolve-resource-meta "https://not-yet-curated.example.com"}
+             entry))
+      (is (= {:title "https://not-yet-curated.example.com"
+              :depth 50
+              :url "https://not-yet-curated.example.com?t=10"}
+             resolved))))
+
+  (testing "GIVEN a data bracket with an unrecognized keyword, in dev (js/goog.DEBUG true)
+            WHEN the line is parsed then resolved
+            THEN the recognized keywords still apply
+              AND the subtitle describes the problem, keeping the resolved icon"
+    (let [restore js/goog.DEBUG]
+      (try
+        (set! js/goog.DEBUG true)
+        (let [line "https://video.example.com[:url \"/?t=2460\" :typo \"oops\"]"
+              [entry] (markdown/parse-resource-urls line)
+              [resolved] (markdown/resolve-resources resources-meta [entry])]
+          (is (= "https://video.example.com/?t=2460" (:url-to-use entry)))
+          (is (= "https://video.example.com" (:url-to-resolve-resource-meta entry)))
+          (is (str/includes? (:subtitle entry) ":typo") "names the unrecognized keyword")
+          (is (str/starts-with? (markdown/resource-subtitle resolved) "🎬 ") "icon preserved")
+          (is (str/includes? (markdown/resource-subtitle resolved) ":typo")))
+        (finally (set! js/goog.DEBUG restore)))))
+
+  (testing "GIVEN the same bracket with an unrecognized keyword, in production (js/goog.DEBUG false)
+            WHEN the line is parsed
+            THEN the unrecognized keyword is ignored and it resolves from the
+              recognized ones, with no problem description in the subtitle"
+    (let [restore js/goog.DEBUG]
+      (try
+        (set! js/goog.DEBUG false)
+        (let [line "https://video.example.com[:url \"/?t=2460\" :typo \"oops\"]"
+              [entry] (markdown/parse-resource-urls line)]
+          (is (= {:url-to-use "https://video.example.com/?t=2460"
+                  :url-to-resolve-resource-meta "https://video.example.com"}
+                 entry)))
+        (finally (set! js/goog.DEBUG restore)))))
+
+  (testing "GIVEN a bracket whose content can't be read as keyword/string pairs
+            WHEN the line is parsed
+            THEN the whole line, brackets included, is treated as a plain url"
+    (is (= ["https://video.example.com[just some random text]"]
+           (markdown/parse-resource-urls "https://video.example.com[just some random text]"))))
+
+  (testing "GIVEN a bracket containing invalid EDN (an unterminated string)
+            WHEN the line is parsed
+            THEN the whole line, brackets included, is treated as a plain url"
+    (is (= ["https://video.example.com[:url \"unterminated]"]
+           (markdown/parse-resource-urls "https://video.example.com[:url \"unterminated]")))))
