@@ -4,7 +4,7 @@
   Moved here (verbatim) from looset-trace.app / looset-graph.app."
   (:require
     ["react-markdown" :default ReactMarkdown]
-    [cljs.reader :as reader]
+    [clojure.edn :as edn]
     [clojure.string :as str]
     [looset-graph.util :as util :refer [<sub >evt]]
     [re-frame.alpha :as re-frame]
@@ -111,7 +111,7 @@
   our data DSL, so the caller falls back to treating the whole line as plain)."
   [content]
   (try
-    (let [parsed (reader/read-string (str "{" content "}"))]
+    (let [parsed (edn/read-string (str "{" content "}"))]
       (when (and (map? parsed) (every? keyword? (keys parsed)))
         parsed))
     (catch :default _ nil)))

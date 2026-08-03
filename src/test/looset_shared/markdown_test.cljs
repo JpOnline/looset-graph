@@ -238,4 +238,55 @@
             WHEN the line is parsed
             THEN the whole line, brackets included, is treated as a plain url"
     (is (= ["https://video.example.com[:url \"unterminated]"]
-           (markdown/parse-resource-urls "https://video.example.com[:url \"unterminated]")))))
+           (markdown/parse-resource-urls "https://video.example.com[:url \"unterminated]"))))
+
+  (testing "GIVEN a url line with only a :url suffix annotation
+            WHEN parsed then resolved
+            THEN the resource href uses the suffixed url
+             AND the metadata is looked up via the base url"
+    (let [urls     (markdown/parse-resource-urls "https://video.example.com[:url \"/?t=2460\"]")
+          resolved (markdown/resolve-resources resources-meta urls)]
+      (is (= [(assoc (resources-meta "https://video.example.com")
+                 :url "https://video.example.com/?t=2460")]
+             resolved))))
+
+  (testing "GIVEN a url line with only a :resource suffix annotation
+            WHEN parsed then resolved
+            THEN the metadata is looked up via the base url + resource suffix
+             AND the href uses the base url unchanged"
+    (let [urls     (markdown/parse-resource-urls "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ[:resource \"&t=2460\"]")
+          resolved (markdown/resolve-resources resources-meta urls)]
+      (is (= [(assoc (resources-meta "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ&t=2460")
+                 :url "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ")]
+             resolved))))
+
+  (testing "GIVEN a url line with both :url and :resource annotations
+            WHEN parsed then resolved
+            THEN each url is reconstructed independently"
+    (let [urls     (markdown/parse-resource-urls "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ[:url \"&t=4000\" :resource \"&t=2460\"]")
+          resolved (markdown/resolve-resources resources-meta urls)]
+      (is (= [(assoc (resources-meta "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ&t=2460")
+                 :url "https://youtu.be/mAFoROnOfHs?si=yA6uNW8PczMu58AQ&t=4000")]
+             resolved))))
+
+  (testing "GIVEN a url line with a :subtitle override
+            WHEN parsed then resolved
+            THEN resource-subtitle returns the type icon followed by the override text
+             AND the diataxis/summary fields are ignored for the text portion"
+    (let [urls     (markdown/parse-resource-urls "https://book.example.com[:subtitle \"Ver página 97\"]")
+          resolved (markdown/resolve-resources resources-meta urls)]
+      (is (= [(assoc (resources-meta "https://book.example.com")
+                 :url "https://book.example.com"
+                 :subtitle "Ver página 97")]
+             resolved))
+      (is (= "📚 Ver página 97"
+             (markdown/resource-subtitle (first resolved))))))
+
+  (testing "GIVEN a plain url line with no annotation
+            WHEN parsed then resolved
+            THEN the pipeline behaves identically to pre-annotation behavior"
+    (let [urls     (markdown/parse-resource-urls "https://video.example.com")
+          resolved (markdown/resolve-resources resources-meta urls)]
+      (is (= [(assoc (resources-meta "https://video.example.com")
+                 :url "https://video.example.com")]
+             resolved)))))
