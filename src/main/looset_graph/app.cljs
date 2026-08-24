@@ -1677,7 +1677,8 @@
   (js/alert "X")
 
   ;; To connect to specific shadow-cljs runtime.
-  ; CljEval (shadow.cljs.devtools.api/nrepl-select :frontend {:runtime-id 8})
+  ; Usar `cljs.core.tap_GT_("abc")` no console pra ver qual o runtime id.
+  ; CljEval (shadow.cljs.devtools.api/nrepl-select :frontend {:runtime-id 5})
 
   (.moveNode @network "")
 
