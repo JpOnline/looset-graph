@@ -2956,7 +2956,7 @@
                  :right-active? true
                  :left-panel-size "20vw"
                  :right-panel-size "427px" #_"25vw"}
-        :editing-graph-text false
+        :editing-graph-text true
         :super-user-options? false
         :fold {}}})
 
