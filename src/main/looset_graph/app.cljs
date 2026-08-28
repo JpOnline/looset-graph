@@ -2339,17 +2339,36 @@
         [:path {:fill-rule "evenodd" :d "M5.828 10.172a.5.5 0 0 0-.707 0l-4.096 4.096V11.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H4.5a.5.5 0 0 0 0-1H1.732l4.096-4.096a.5.5 0 0 0 0-.707m4.344-4.344a.5.5 0 0 0 .707 0l4.096-4.096V4.5a.5.5 0 1 0 1 0V.525a.5.5 0 0 0-.5-.5H11.5a.5.5 0 0 0 0 1h2.768l-4.096 4.096a.5.5 0 0 0 0 .707"}]]]
       [:div.view-button-container
        [:button.button-2.view-left-button
-        {:title "dispersion (click, hold and drag)"
-         :onMouseDown #(js/alert "x")}
+        {:title "previous view"
+         :class (condp > (<sub [::current-view])
+                  10 "one-digit"
+                  100 "two-digits"
+                  1000 "three-digits"
+                  "more-digits")
+         :onClick (fn [] (>evt [::util/update-in [:ui :current-view] #(max 1 (dec %))]))}
         [:svg
-         {:width icons-size :height icons-size :fill "currentColor" :viewBox "3.7 3.7 8.4 8.4" #_(str (/ (<sub [::number-input 3]) 10)" "(/ (<sub [::number-input 3]) 10)" "(/ (<sub [::number-input 2]) 10)" "(/ (<sub [::number-input 2]) 10))}
-         [:path {:fill-rule "evenodd" :d "M6.646 6.24v.07H5.375v-.064c0-1.213.879-2.402 2.637-2.402 1.582 0 2.613.949 2.613 2.215 0 1.002-.6 1.667-1.287 2.43l-.096.107-1.974 2.22v.077h3.498V12H5.422v-.832l2.97-3.293c.434-.475.903-1.008.903-1.705 0-.744-.557-1.236-1.313-1.236-.843 0-1.336.615-1.336 1.306"}]]]
+         {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
+         [:text
+          {:x "1" :y "16"}
+          (<sub [::current-view])]]]
        [:button.button-2.view-right-button
-        {:title "dispersion (click, hold and drag)"
-         :onMouseDown #(js/alert "x")}
+        {:title "next view"
+         :class (condp > (<sub [::current-view])
+                  10 "one-digit"
+                  100 "two-digits"
+                  1000 "three-digits"
+                  "more-digits")
+         :onClick #(>evt [::util/update-in [:ui :current-view] inc])}
         [:svg
-         {:width icons-size :height icons-size :fill "currentColor" :viewBox "3.7 3.7 8.4 8.4" #_(str (/ (<sub [::number-input 3]) 10)" "(/ (<sub [::number-input 3]) 10)" "(/ (<sub [::number-input 2]) 10)" "(/ (<sub [::number-input 2]) 10))}
-         [:path {:fill-rule "evenodd" :d "M6.646 6.24v.07H5.375v-.064c0-1.213.879-2.402 2.637-2.402 1.582 0 2.613.949 2.613 2.215 0 1.002-.6 1.667-1.287 2.43l-.096.107-1.974 2.22v.077h3.498V12H5.422v-.832l2.97-3.293c.434-.475.903-1.008.903-1.705 0-.744-.557-1.236-1.313-1.236-.843 0-1.336.615-1.336 1.306"}]]]]]]))
+         {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16" #_(str (/ (<sub [::number-input 3]) 10)" "(/ (<sub [::number-input 3]) 10)" "(/ (<sub [::number-input 2]) 10)" "(/ (<sub [::number-input 2]) 10))}
+         [:text
+          {:x "1" :y "16"}
+          (<sub [::current-view])]]]]]]))
+
+(defn current-view
+  [app-state]
+  (get-in app-state [:ui :current-view] 1))
+(re-frame/reg-sub ::current-view current-view)
 
 ;; --- Explanation Panel ---
 
@@ -2524,7 +2543,7 @@
 (def code-font-family "dejavu sans mono, monospace")
 (def code-font-size "small")
 (def code-margin "0")
-(def code-padding "0 10px")
+(def code-padding "0 0 0 3px")
 
 (re-frame/reg-event-fx
   ::set-graph-props-text
@@ -2535,19 +2554,30 @@
 
 (defn edit-raw-graph-text []
   [:<>
-   [:textarea
-    {:style {:flex-grow "1"
-             :margin code-margin
+   [:span
+    {:style {:margin code-margin
              :padding code-padding
-             :min-height "20vw"
              :font-family code-font-family
-             :font-size code-font-size}
-     :onChange #(>evt [::set-graph-text (-> % .-target .-value)])
-     :value @(re-frame/sub :flow {:id :graph-text}) #_(<sub [::graph-text])}]
-   [:textarea
-    {:style {:height "5vw"}
-     :onChange #(>evt [::set-graph-props-text (-> % .-target .-value)])
-     :value @(re-frame/sub :flow {:id :props-area-str})}]])
+             :font-size code-font-size}}
+    [:text "graph-text"]
+    [:textarea
+     {:style {:min-height "30vw"
+              :width "stretch"
+              :margin-bottom "8px"}
+      :onChange #(>evt [::set-graph-text (-> % .-target .-value)])
+      :value @(re-frame/sub :flow {:id :graph-text}) #_(<sub [::graph-text])}]
+    [:text "node-props"]
+    [:textarea
+     {:style {:height "10vw"
+              :width "stretch"
+              :margin-bottom "8px"}
+      :onChange #(>evt [::set-graph-props-text (-> % .-target .-value)])
+      :value @(re-frame/sub :flow {:id :props-area-str})}]
+    [:text "view-props"]
+    [:textarea
+     {:style {:height "10vw"
+              :width "stretch"}
+      #_#_:value @(re-frame/sub :flow {:id :diff-from-last-view})}]]])
 
 (defn debug-quick-val-set []
   [:<>
@@ -2568,7 +2598,7 @@
     [:span "Range3 "(<sub [::number-input 3])]
     [:input {:type "range"
              :min 0
-             :max 500
+             :max 100
              :value (<sub [::number-input 3])
              :onChange #(>evt [::set-number-input (-> % .-target .-value) 3])}]]
    [:<> [:span "Number"] [:input {:type "number"
@@ -2690,6 +2720,30 @@
    .view-button-container {
       diplay: flex;
       flex-direction: row;
+   }
+
+   .one-digit > svg > text {
+      font-size: 21px;
+      font-weight: 600;
+      transform: scale(1.2, 1);
+   }
+
+   .two-digits > svg > text {
+      font-size: 21px;
+      font-weight: 600;
+      transform: scale(0.65, 1);
+   }
+
+   .three-digits > svg > text {
+      font-size: 21px;
+      font-weight: 600;
+      transform: scale(0.45, 1);
+   }
+
+   .more-digits > svg > text {
+      font-size: 7px;
+      font-weight: 600;
+      transform: scale(0.7, 1) translate(-1.2px, -5px);
    }
 
    .view-left-button {
@@ -2858,7 +2912,7 @@
       {:on-click #(>evt [::close-right-panel])}]
 
      ;; --- Panel Content ---
-     [debug-quick-val-set]
+     ; [debug-quick-val-set]
      [:div#right-panel-content
       {:style {:flex-grow "1"
                :overflow "auto"
@@ -2986,6 +3040,7 @@
                  :right-active? true
                  :left-panel-size "20vw"
                  :right-panel-size "427px" #_"25vw"}
+        :current-view 1
         :editing-graph-text true
         :super-user-options? false
         :fold {}}})

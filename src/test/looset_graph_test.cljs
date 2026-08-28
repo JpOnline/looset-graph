@@ -1491,3 +1491,268 @@
       (let [graph-errors (re-frame/subscribe [::app/graph-errors])]
         (re-frame/dispatch [::app/set-app-state "node3:\n  node4\n=>labelA:\n  node4"])
         (is (= [] @graph-errors))))))
+
+(deftest graph-text-views
+  (let [input-graph-text "=>label1:
+                             node1
+                             node2
+                             node5
+
+                           node6:
+                             node7
+
+                           =>label5:
+                             =>label6
+
+                           =>label2:
+                             node5
+
+                           node8:
+                             node9
+
+                           node7:
+                             node8
+                             =>label7
+
+                           =>label6:
+                             =>label5
+
+                           =>label7:
+                             node1
+
+                           =>label3:
+                             node1
+                             node2
+                             =>label4
+
+                           node3:
+                             node4
+                             node5
+
+                           node9:
+                             node10
+
+                           =>label1 -> node6
+                           nodeA -> nodeB
+                           node4 -> node1
+                           node1 -> node2
+
+                           =>label1 {:position {\"x\" -47, \"y\" 100}}
+                           nodeB {:position {\"x\" -164, \"y\" -100}}
+                           node6 {:position {\"x\" -139, \"y\" 100}}
+                           =>label5 {:position {\"x\" 9, \"y\" 0}}
+                           =>label2 {:position {\"x\" 81, \"y\" -100}}
+                           node7 {:position {\"x\" 47, \"y\" -200}}
+                           nodeA {:position {\"x\" -156, \"y\" 0}}
+                           =>label4 {:position {\"x\" -24, \"y\" -100}}
+                           =>label6 {:position {\"x\" 45, \"y\" -100}}
+                           =>label7 {:position {\"x\" 131, \"y\" 0}}
+                           =>label3 {:position {\"x\" 39, \"y\" 0}}
+                           node3 {:position {\"x\" 164, \"y\" 100}}
+                           node9 {:position {\"x\" 1, \"y\" -100}}"
+        view-2-result  "=>label1:
+                             node1
+                             node2
+                             node5
+
+                           node6:
+                             node7
+
+                           =>label5:
+                             =>label6
+
+                           =>label2:
+                             node5
+
+                           node8:
+                             node9
+
+                           node7:
+                             node8
+                             =>label7
+
+                           =>label6:
+                             =>label5
+
+                           =>label7:
+                             node1
+
+                           =>label3:
+                             node1
+                             node2
+                             =>label4
+
+                           node3:
+                             node4
+                             node5
+
+                           node9:
+                             node10
+
+                           =>label1 -> node6
+                           nodeA -> nodeB
+                           node4 -> node1
+                           node1 -> node2
+
+                           =>label1 {:position {\"x\" -47, \"y\" 100}}
+                           nodeB {:position {\"x\" -164, \"y\" -100} :name \"Nó B\"}
+                           node6 {:position {\"x\" -139, \"y\" 100}}
+                           =>label5 {:position {\"x\" 9, \"y\" 0}}
+                           =>label2 {:position {\"x\" 81, \"y\" -100}}
+                           node7 {:position {\"x\" 47, \"y\" -200}}
+                           nodeA {:position {\"x\" -156, \"y\" 0}}
+                           =>label4 {:position {\"x\" -24, \"y\" -100}}
+                           =>label6 {:position {\"x\" 45, \"y\" -100}}
+                           =>label7 {:position {\"x\" 131, \"y\" 0}}
+                           =>label3 {:position {\"x\" 39, \"y\" 0}}
+                           node3 {:position {\"x\" 164, \"y\" 100}}
+                           node9 {:position {\"x\" 1, \"y\" -100}}"
+        view-3-result  "=>label1:
+                             node1
+                             node2
+                             node5
+
+                           node6:
+                             node7
+
+                           =>label5:
+                             =>label6
+
+                           =>label2:
+                             node5
+
+                           node8:
+                             node9
+
+                           node7:
+                             node8
+                             =>label7
+
+                           =>label6:
+                             =>label5
+
+                           =>label7:
+                             node1
+
+                           =>label3:
+                             node1
+                             node2
+                             =>label4
+
+                           node3:
+                             node4
+                             node5
+
+                           node9:
+                             node10
+
+                           =>label1 -> node6
+                           nodeA -> nodeB
+                           node4 -> node1
+                           node1 -> node2
+
+                           =>label1 {:position {\"x\" -47, \"y\" 100}}
+                           nodeB {:position {\"x\" -164, \"y\" -100} :name \"Nó B\"}
+                           node6 {:position {\"x\" -139, \"y\" 100}}
+                           =>label5 {:position {\"x\" 9, \"y\" 0}}
+                           =>label2 {:position {\"x\" 81, \"y\" -100}}
+                           node7 {:position {\"x\" 47, \"y\" -200}}
+                           nodeA {:position {\"x\" 111, \"y\" 222}}
+                           =>label4 {:position {\"x\" -24, \"y\" -100}}
+                           =>label6 {:position {\"x\" 45, \"y\" -100}}
+                           =>label7 {:position {\"x\" 131, \"y\" 0}}
+                           =>label3 {:position {\"x\" 39, \"y\" 0}}
+                           node3 {:position {\"x\" 164, \"y\" 100}}
+                           node9 {:position {\"x\" 1, \"y\" -100}}"
+        view-4-result  "=>label1:
+                             node1
+                             node2
+                             node5
+
+                           node6:
+                             node7
+
+                           =>label5:
+                             =>label6
+
+                           =>label2:
+                             node5
+
+                           node8:
+                             node9
+
+                           node7:
+                             node8
+                             =>label7
+
+                           =>label6:
+                             =>label5
+
+                           =>label7:
+                             node1
+
+                           =>label3:
+                             node1
+                             node2
+                             =>label4
+
+                           node3:
+                             node4
+                             node5
+
+                           node9:
+                             node10
+
+                           =>label1 -> node6
+                           nodeA -> nodeB
+                           node4 -> node1
+                           node1 -> node2
+
+                           =>label1 {:position {\"x\" -47, \"y\" 100}}
+                           nodeB {:name \"Nó B\"}
+                           node6 {:position {\"x\" -139, \"y\" 100}}
+                           =>label5 {:position {\"x\" 9, \"y\" 0}}
+                           =>label2 {:position {\"x\" 81, \"y\" -100}}
+                           node7 {:position {\"x\" 47, \"y\" -200}}
+                           nodeA {:position {\"x\" 111, \"y\" 222}}
+                           =>label4 {:position {\"x\" -24, \"y\" -100}}
+                           =>label6 {:position {\"x\" 45, \"y\" -100}}
+                           =>label7 {:position {\"x\" 131, \"y\" 0}}
+                           =>label3 {:position {\"x\" 39, \"y\" 0}}
+                           node3 {:position {\"x\" 164, \"y\" 100}}
+                           node9 {:position {\"x\" 1, \"y\" -100}}"]
+    (testing "GIVEN node-props exist for nodeB
+              WHEN view-2 is defined with nodeB having another :name
+              THEN only the node-prop :name is changed for view-2"
+      (re-frame.test/run-test-sync
+        (let [graph-text-views "view-2
+                                nodeB {:name \"Nó B\"}"]
+          (= view-2-result (second (graph-text--merge->views input-graph-text graph-text-views)))
+          (= input-graph-text (first (graph-text--merge->views input-graph-text graph-text-views))))))
+    (testing "GIVEN node-props exist for nodeA
+                AND view-2 is already defined
+              WHEN view-3 is defined with nodeA having different positions
+              THEN nodeA's position get overwritten"
+      (re-frame.test/run-test-sync
+        (let [graph-text-views "view-2
+                                nodeB {:name \"Nó B\"}
+
+                                view-3
+                                nodeA {:position {\"x\" 111, \"y\" 222}}"]
+          (= view-3-result (nth (graph-text--merge->views input-graph-text graph-text-views) 2))
+          (= view-2-result (second (graph-text--merge->views input-graph-text graph-text-views)))
+          (= input-graph-text (first (graph-text--merge->views input-graph-text graph-text-views))))))
+    (testing "GIVEN node-props exist for nodeB
+                AND view-2 and view-3 are already defined
+              WHEN view-4 is defined with nodeB having nil as position property
+              THEN nodeB's position get dissoced"
+      (re-frame.test/run-test-sync
+        (let [graph-text-views "view-2
+                                nodeB {:name \"Nó B\"}
+
+                                view-3
+                                nodeA {:position {\"x\" 111, \"y\" 222}}
+
+                                view-4
+                                nodeB {:position nil}"]
+          (= view-4-result (nth (graph-text--merge->views input-graph-text graph-text-views) 3)))))))
