@@ -3003,6 +3003,30 @@
             [base-text]
             views)))
 
+(defn apply-active-view
+  "Rebuilds the graph state from the view at `idx` (0 = base text) of
+   `merged-views`, clamping `idx` to the existing views."
+  [app-state merged-views idx]
+  (let [safe-idx (max 0 (min idx (dec (count merged-views))))
+        active-text (nth merged-views safe-idx)
+        g-ast (graph-parser/graph-ast active-text)
+        nm* (-> g-ast (#(into {:graph-ast %})) (nodes-map*))
+        n-hierarchy (nodes-hierarchy nm*)
+        fold-ui (get-in app-state [:ui :fold] {})
+        new-fold-ui (if (seq fold-ui)
+                      fold-ui
+                      (all-instances-of-node-with-same-open-state
+                        nm*
+                        n-hierarchy))]
+    {:fx [[:dispatch-later {:ms 20 :dispatch [::set-nodes-positions]}]]
+     :db (-> app-state
+           (assoc-in [:ui :fold] new-fold-ui)
+           (assoc-in [:domain :graph-text] active-text)
+           (assoc-in [:domain :merged-views] merged-views)
+           (assoc-in [:ui :current-view] (inc safe-idx))
+           (assoc-in [:ui :validation :valid-graph-ast] g-ast)
+           (assoc-in [:ui :validation :valid-graph?] true))}))
+
 (defn set-graph-text
   [{app-state :db} [_event v]]
   (try
@@ -3013,28 +3037,13 @@
                        inline-views-text
                        (get-in app-state [:domain :graph-text-views]))
           base-text inline-base-text
-          merged-views (graph-text--merge->views base-text views-text)
-          current-view-idx (dec (get-in app-state [:ui :current-view] 1))
-          safe-idx (max 0 (min current-view-idx (dec (count merged-views))))
-          active-text (nth merged-views safe-idx)
-          g-ast (graph-parser/graph-ast active-text)
-          nm* (-> g-ast (#(into {:graph-ast %})) (nodes-map*))
-          n-hierarchy (nodes-hierarchy nm*)
-          fold-ui (get-in app-state [:ui :fold] {})
-          new-fold-ui (if (seq fold-ui)
-                        fold-ui
-                        (all-instances-of-node-with-same-open-state
-                          nm*
-                          n-hierarchy))]
-      {:fx [[:dispatch-later {:ms 20 :dispatch [::set-nodes-positions]}]]
-       :db (-> app-state
-             (assoc-in [:ui :fold] new-fold-ui)
-             (assoc-in [:domain :graph-text] v)
-             (assoc-in [:domain :merged-views] merged-views)
-             (assoc-in [:ui :current-view] (inc safe-idx))
-             (assoc-in [:ui :validation :valid-graph-ast] g-ast)
-             (assoc-in [:ui :validation :valid-graph?] true)
-             (#(do (js/console.log "Jp" %) %)))})
+          merged-views (graph-text--merge->views base-text views-text)]
+      (-> app-state
+        ;; The base text is kept aside because [:domain :graph-text] holds the
+        ;; text of the view being shown (it is re-generated from the nodes-map
+        ;; by the :graph-text flow), so it cannot be used to re-derive the views.
+        (assoc-in [:domain :base-graph-text] base-text)
+        (apply-active-view merged-views (dec (get-in app-state [:ui :current-view] 1)))))
     (catch :default _
       {:fx [[:dispatch-later {:ms 20 :dispatch [::set-nodes-positions]}]]
        :db (-> app-state
@@ -3046,16 +3055,24 @@
 ;; the merged views from the current graph-text.
 (defn set-graph-text-views
   [{app-state :db} [_event views-text]]
-  (let [app-state (assoc-in app-state [:domain :graph-text-views] (or views-text ""))]
-    (set-graph-text {:db app-state} [_event (get-in app-state [:domain :graph-text] "")])))
+  (let [app-state (assoc-in app-state [:domain :graph-text-views] (or views-text ""))
+        base-text (or (get-in app-state [:domain :base-graph-text])
+                      (get-in app-state [:domain :graph-text] ""))]
+    (set-graph-text {:db app-state} [_event base-text])))
 (re-frame/reg-event-fx ::set-graph-text-views set-graph-text-views)
 
+;; Views are cumulative, so going back to a previous view cannot be done by
+;; applying overrides to what is being shown: the already merged views are
+;; re-used instead.
 (re-frame/reg-event-fx
   ::change-view
   (fn [{:keys [db]} [_ f]]
-    (let [new-view (f (get-in db [:ui :current-view] 1))]
-      {:db (assoc-in db [:ui :current-view] new-view)
-       :dispatch [::set-graph-text (get-in db [:domain :graph-text])]})))
+    (let [merged-views (get-in db [:domain :merged-views])
+          new-view (f (get-in db [:ui :current-view] 1))]
+      (if (seq merged-views)
+        (apply-active-view db merged-views (dec new-view))
+        {:db (assoc-in db [:ui :current-view] new-view)
+         :dispatch [::set-graph-text (get-in db [:domain :graph-text])]}))))
 
 ;; ---
 

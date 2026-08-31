@@ -1757,6 +1757,25 @@
                                 nodeB {:position nil}"]
           (is (= view-4-result (nth (app/graph-text--merge->views input-graph-text graph-text-views) 3))))))))
 
+(deftest graph-text-views-navigation
+  (testing "GIVEN view-2 and view-3 are defined
+            WHEN the views are advanced and then returned
+            THEN each view shows its own node-props"
+    (re-frame.test/run-test-sync
+      (let [nodes-map (re-frame/subscribe [::app/nodes-map])
+            name-of (fn [node-id] (get-in @nodes-map [node-id :name]))]
+        (re-frame/dispatch [::app/set-graph-text-views "view-2\nnodeB {:name \"B2\"}\n\nview-3\nnodeB {:name \"B3\"}"])
+        (re-frame/dispatch [::app/set-app-state "nodeA -> nodeB\n\nnodeB {:name \"B1\"}"])
+        (is (= "B1" (name-of "nodeB")))
+        (re-frame/dispatch [::app/change-view inc])
+        (is (= "B2" (name-of "nodeB")))
+        (re-frame/dispatch [::app/change-view inc])
+        (is (= "B3" (name-of "nodeB")))
+        (re-frame/dispatch [::app/change-view #(max 1 (dec %))])
+        (is (= "B2" (name-of "nodeB")))
+        (re-frame/dispatch [::app/change-view #(max 1 (dec %))])
+        (is (= "B1" (name-of "nodeB")))))))
+
 (deftest graph-text-views-quoted-ids
   (testing "GIVEN node-props exist for a quoted Label id
             WHEN a view overrides it
