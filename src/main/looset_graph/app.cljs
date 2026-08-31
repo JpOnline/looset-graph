@@ -1108,34 +1108,6 @@
     ;; (js/console.log keypress)))
 (re-frame/reg-event-db ::keyup keyup)
 
-
-(defn set-graph-text
-  [{app-state :db} [_event v]]
-  (try
-    (let [g-ast (graph-parser/graph-ast v)
-          nm* (-> g-ast (#(into {:graph-ast %})) (nodes-map*))
-          n-hierarchy (nodes-hierarchy nm*)
-          fold-ui (get-in app-state [:ui :fold] {})
-          new-fold-ui (if (seq fold-ui)
-                        fold-ui
-                        (all-instances-of-node-with-same-open-state ;; If we are loading the page, we don't have information about which nodes are opened, so we use what is loaded in nodes-map from graph-text.
-                          nm*
-                          n-hierarchy))]
-      ;; (tap> {:new-fold-ui new-fold-ui})
-      {:fx [[:dispatch-later {:ms 20 :dispatch [::set-nodes-positions]}]]
-       :db (-> app-state
-             (assoc-in [:ui :fold] new-fold-ui)
-             (assoc-in [:domain :graph-text] v)
-             (assoc-in [:ui :validation :valid-graph-ast] g-ast)
-             (assoc-in [:ui :validation :valid-graph?] true)
-             (#(do (js/console.log "Jp" %) %)))})
-    (catch :default _
-      {:fx [[:dispatch-later {:ms 20 :dispatch [::set-nodes-positions]}]]
-       :db (-> app-state
-             (assoc-in [:domain :graph-text] v)
-             (assoc-in [:ui :validation :valid-graph?] false))})))
-(re-frame/reg-event-fx ::set-graph-text #_[event-to-analytics] set-graph-text)
-
 ;; --- Selection & Manipulation ------------------------------------------------
 
 (defn toggle-open-close
@@ -2345,7 +2317,7 @@
                   100 "two-digits"
                   1000 "three-digits"
                   "more-digits")
-         :onClick (fn [] (>evt [::util/update-in [:ui :current-view] #(max 1 (dec %))]))}
+         :onClick (fn [] (>evt [::change-view #(max 1 (dec %))]))}
         [:svg
          {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
          [:text
@@ -2358,7 +2330,7 @@
                   100 "two-digits"
                   1000 "three-digits"
                   "more-digits")
-         :onClick #(>evt [::util/update-in [:ui :current-view] inc])}
+         :onClick #(>evt [::change-view inc])}
         [:svg
          {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16" #_(str (/ (<sub [::number-input 3]) 10)" "(/ (<sub [::number-input 3]) 10)" "(/ (<sub [::number-input 2]) 10)" "(/ (<sub [::number-input 2]) 10))}
          [:text
@@ -2928,6 +2900,128 @@
         {:if-error [:h2 "Error"]}
         [(right-panel-content (<sub [::right-panel-version]))]]]]]))
 
+;; --- Graph Text Views --------------------------------------------------------
+;; A view is a way to change Node properties (:position, :hidden, :closed,
+;; :name, ...) by stating only the differences from the previous version,
+;; instead of repeating the whole graph-text.
+;;
+;; The graph-text is split in two parts: everything before the first line
+;; starting with `view-` is the base text (version 1), and from there on each
+;; `view-<name>` header starts a section of overrides, separated by blank
+;; lines:
+;;
+;;   nodeA {:position {"x" -156, "y" 0}}   ;; base / view 1
+;;   nodeB {:position {"x" -164, "y" -100}}
+;;
+;;   view-2
+;;   nodeB {:name "No B"}
+;;
+;;   view-3
+;;   nodeA {:position {"x" 111, "y" 222}}
+;;
+;; Views are cumulative: view N is the result of merging its overrides into the
+;; text produced by view N-1, so view-3 above still carries the :name given to
+;; nodeB in view-2. Merging happens per node-prop map, so declaring one property
+;; keeps the other properties untouched, and declaring a property as nil removes
+;; it (a node whose props become empty has its props line dropped).
+;;
+;; `graph-text--merge->views` returns the vector of texts, one per version, with
+;; the base text at index 0. See the `graph-text-views` test for examples.
+
+(defn split-base-and-views [text]
+  (let [lines (clojure.string/split-lines text)
+        [base-lines view-lines] (split-with #(not (re-find #"^\s*view-" %)) lines)]
+    [(clojure.string/join "\n" base-lines)
+     (clojure.string/join "\n" view-lines)]))
+
+(defn parse-views [views-text]
+  (if (clojure.string/blank? views-text)
+    []
+    (let [sections (clojure.string/split views-text #"\n\s*\n")
+          parse-section (fn [section]
+                          (let [lines (remove clojure.string/blank? (clojure.string/split-lines section))
+                                view-name (clojure.string/trim (first lines))
+                                overrides (reduce (fn [acc line]
+                                                    (if-let [[_ node-id edn-str] (re-matches #"^\s*((?:=>)?[a-zA-Z0-9_-]+)\s+(\{.*\})\s*$" line)]
+                                                      (assoc acc node-id (edn/read-string edn-str))
+                                                      acc))
+                                                  {}
+                                                  (rest lines))]
+                            {:view-name view-name
+                             :overrides overrides}))]
+      (map parse-section (remove clojure.string/blank? sections)))))
+
+(defn remove-nils [m]
+  (into {} (remove (comp nil? val) m)))
+
+(defn apply-view-overrides [graph-text overrides]
+  (if (empty? overrides)
+    graph-text
+    (let [lines (clojure.string/split-lines graph-text)
+          process-line (fn [line]
+                         (if-let [[_ prefix node-id space edn-str] (re-matches #"^(\s*)((?:=>)?[a-zA-Z0-9_-]+)(\s+)(\{.*\})$" line)]
+                           (if-let [override (get overrides node-id)]
+                             (let [current-props (edn/read-string edn-str)
+                                   merged (remove-nils (merge current-props override))]
+                               (if (empty? merged)
+                                 nil
+                                 (str prefix node-id space (pr-str merged))))
+                             line)
+                           line))]
+      (->> lines
+           (keep process-line)
+           (clojure.string/join "\n")))))
+
+(defn graph-text--merge->views [base-text views-text]
+  (let [views (parse-views views-text)]
+    (reduce (fn [acc view]
+              (let [prev (last acc)
+                    next-text (apply-view-overrides prev (:overrides view))]
+                (conj acc next-text)))
+            [base-text]
+            views)))
+
+(defn set-graph-text
+  [{app-state :db} [_event v]]
+  (try
+    (let [[base-text views-text] (split-base-and-views v)
+          merged-views (graph-text--merge->views base-text views-text)
+          current-view-idx (dec (get-in app-state [:ui :current-view] 1))
+          safe-idx (max 0 (min current-view-idx (dec (count merged-views))))
+          active-text (nth merged-views safe-idx)
+          g-ast (graph-parser/graph-ast active-text)
+          nm* (-> g-ast (#(into {:graph-ast %})) (nodes-map*))
+          n-hierarchy (nodes-hierarchy nm*)
+          fold-ui (get-in app-state [:ui :fold] {})
+          new-fold-ui (if (seq fold-ui)
+                        fold-ui
+                        (all-instances-of-node-with-same-open-state
+                          nm*
+                          n-hierarchy))]
+      {:fx [[:dispatch-later {:ms 20 :dispatch [::set-nodes-positions]}]]
+       :db (-> app-state
+             (assoc-in [:ui :fold] new-fold-ui)
+             (assoc-in [:domain :graph-text] v)
+             (assoc-in [:domain :merged-views] merged-views)
+             (assoc-in [:ui :current-view] (inc safe-idx))
+             (assoc-in [:ui :validation :valid-graph-ast] g-ast)
+             (assoc-in [:ui :validation :valid-graph?] true)
+             (#(do (js/console.log "Jp" %) %)))})
+    (catch :default _
+      {:fx [[:dispatch-later {:ms 20 :dispatch [::set-nodes-positions]}]]
+       :db (-> app-state
+             (assoc-in [:domain :graph-text] v)
+             (assoc-in [:ui :validation :valid-graph?] false))})))
+(re-frame/reg-event-fx ::set-graph-text #_[event-to-analytics] set-graph-text)
+
+(re-frame/reg-event-fx
+  ::change-view
+  (fn [{:keys [db]} [_ f]]
+    (let [new-view (f (get-in db [:ui :current-view] 1))]
+      {:db (assoc-in db [:ui :current-view] new-view)
+       :dispatch [::set-graph-text (get-in db [:domain :graph-text])]})))
+
+;; ---
 
 ;; --- Main Entry --------------------------------------------------------------
 

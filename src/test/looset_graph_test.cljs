@@ -1595,7 +1595,7 @@
                            node1 -> node2
 
                            =>label1 {:position {\"x\" -47, \"y\" 100}}
-                           nodeB {:position {\"x\" -164, \"y\" -100} :name \"Nó B\"}
+                           nodeB {:position {\"x\" -164, \"y\" -100}, :name \"Nó B\"}
                            node6 {:position {\"x\" -139, \"y\" 100}}
                            =>label5 {:position {\"x\" 9, \"y\" 0}}
                            =>label2 {:position {\"x\" 81, \"y\" -100}}
@@ -1652,7 +1652,7 @@
                            node1 -> node2
 
                            =>label1 {:position {\"x\" -47, \"y\" 100}}
-                           nodeB {:position {\"x\" -164, \"y\" -100} :name \"Nó B\"}
+                           nodeB {:position {\"x\" -164, \"y\" -100}, :name \"Nó B\"}
                            node6 {:position {\"x\" -139, \"y\" 100}}
                            =>label5 {:position {\"x\" 9, \"y\" 0}}
                            =>label2 {:position {\"x\" 81, \"y\" -100}}
@@ -1727,8 +1727,8 @@
       (re-frame.test/run-test-sync
         (let [graph-text-views "view-2
                                 nodeB {:name \"Nó B\"}"]
-          (= view-2-result (second (graph-text--merge->views input-graph-text graph-text-views)))
-          (= input-graph-text (first (graph-text--merge->views input-graph-text graph-text-views))))))
+          (is (= view-2-result (second (app/graph-text--merge->views input-graph-text graph-text-views))))
+          (is (= input-graph-text (first (app/graph-text--merge->views input-graph-text graph-text-views)))))))
     (testing "GIVEN node-props exist for nodeA
                 AND view-2 is already defined
               WHEN view-3 is defined with nodeA having different positions
@@ -1739,9 +1739,9 @@
 
                                 view-3
                                 nodeA {:position {\"x\" 111, \"y\" 222}}"]
-          (= view-3-result (nth (graph-text--merge->views input-graph-text graph-text-views) 2))
-          (= view-2-result (second (graph-text--merge->views input-graph-text graph-text-views)))
-          (= input-graph-text (first (graph-text--merge->views input-graph-text graph-text-views))))))
+          (is (= view-3-result (nth (app/graph-text--merge->views input-graph-text graph-text-views) 2)))
+          (is (= view-2-result (second (app/graph-text--merge->views input-graph-text graph-text-views))))
+          (is (= input-graph-text (first (app/graph-text--merge->views input-graph-text graph-text-views)))))))
     (testing "GIVEN node-props exist for nodeB
                 AND view-2 and view-3 are already defined
               WHEN view-4 is defined with nodeB having nil as position property
@@ -1755,4 +1755,4 @@
 
                                 view-4
                                 nodeB {:position nil}"]
-          (= view-4-result (nth (graph-text--merge->views input-graph-text graph-text-views) 3)))))))
+          (is (= view-4-result (nth (app/graph-text--merge->views input-graph-text graph-text-views) 3))))))))
