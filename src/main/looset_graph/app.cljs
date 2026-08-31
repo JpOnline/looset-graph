@@ -2905,19 +2905,20 @@
 ;; :name, ...) by stating only the differences from the previous version,
 ;; instead of repeating the whole graph-text.
 ;;
-;; The graph-text is split in two parts: everything before the first line
-;; starting with `view-` is the base text (version 1), and from there on each
-;; `view-<name>` header starts a section of overrides, separated by blank
-;; lines:
-;;
-;;   nodeA {:position {"x" -156, "y" 0}}   ;; base / view 1
-;;   nodeB {:position {"x" -164, "y" -100}}
+;; The base text (version 1) is the graph-text itself. The views live in a
+;; `graph-text-views` file placed alongside the `graph-text` file and loaded by
+;; `core/load-graph-text-views!`. In it, each `view-<name>` header starts a
+;; section of overrides, separated by blank lines:
 ;;
 ;;   view-2
 ;;   nodeB {:name "No B"}
 ;;
 ;;   view-3
 ;;   nodeA {:position {"x" 111, "y" 222}}
+;;
+;; The same sections can also be written inline at the end of the graph-text
+;; (everything from the first `view-` line on), which is what
+;; `split-base-and-views` extracts; the file takes precedence when present.
 ;;
 ;; Views are cumulative: view N is the result of merging its overrides into the
 ;; text produced by view N-1, so view-3 above still carries the :name given to
@@ -2934,6 +2935,17 @@
     [(clojure.string/join "\n" base-lines)
      (clojure.string/join "\n" view-lines)]))
 
+;; A node id is either a plain ID or a quoted one (which may contain spaces and
+;; any character but a quote), optionally prefixed by `=>` when it is a Label.
+;; See loosetGraphLexer.g4.
+(def node-id-pattern "(?:=>)?(?:\"[^\"]*\"|[a-zA-Z][a-zA-Z0-9*+!_/-]*)")
+
+(def view-override-line-re
+  (re-pattern (str "^\\s*(" node-id-pattern ")\\s+(\\{.*\\})\\s*$")))
+
+(def node-props-line-re
+  (re-pattern (str "^(\\s*)(" node-id-pattern ")(\\s+)(\\{.*\\})\\s*$")))
+
 (defn parse-views [views-text]
   (if (clojure.string/blank? views-text)
     []
@@ -2942,7 +2954,7 @@
                           (let [lines (remove clojure.string/blank? (clojure.string/split-lines section))
                                 view-name (clojure.string/trim (first lines))
                                 overrides (reduce (fn [acc line]
-                                                    (if-let [[_ node-id edn-str] (re-matches #"^\s*((?:=>)?[a-zA-Z0-9_-]+)\s+(\{.*\})\s*$" line)]
+                                                    (if-let [[_ node-id edn-str] (re-matches view-override-line-re line)]
                                                       (assoc acc node-id (edn/read-string edn-str))
                                                       acc))
                                                   {}
@@ -2958,19 +2970,29 @@
   (if (empty? overrides)
     graph-text
     (let [lines (clojure.string/split-lines graph-text)
+          overridden (atom #{})
           process-line (fn [line]
-                         (if-let [[_ prefix node-id space edn-str] (re-matches #"^(\s*)((?:=>)?[a-zA-Z0-9_-]+)(\s+)(\{.*\})$" line)]
+                         (if-let [[_ prefix node-id space edn-str] (re-matches node-props-line-re line)]
                            (if-let [override (get overrides node-id)]
                              (let [current-props (edn/read-string edn-str)
                                    merged (remove-nils (merge current-props override))]
+                               (swap! overridden conj node-id)
                                (if (empty? merged)
                                  nil
                                  (str prefix node-id space (pr-str merged))))
                              line)
-                           line))]
-      (->> lines
-           (keep process-line)
-           (clojure.string/join "\n")))))
+                           line))
+          new-lines (doall (keep process-line lines))
+          ;; Nodes with no props line yet get one appended, following the
+          ;; indentation already used by the other props lines.
+          indentation (or (some #(second (re-matches node-props-line-re %)) lines) "")
+          added-lines (->> overrides
+                        (remove (fn [[node-id _]] (contains? @overridden node-id)))
+                        (keep (fn [[node-id props]]
+                                (let [props (remove-nils props)]
+                                  (when (seq props)
+                                    (str indentation node-id " " (pr-str props)))))))]
+      (clojure.string/join "\n" (concat new-lines added-lines)))))
 
 (defn graph-text--merge->views [base-text views-text]
   (let [views (parse-views views-text)]
@@ -2984,7 +3006,13 @@
 (defn set-graph-text
   [{app-state :db} [_event v]]
   (try
-    (let [[base-text views-text] (split-base-and-views v)
+    (let [[inline-base-text inline-views-text] (split-base-and-views v)
+          ;; Views normally come from the `graph-text-views` file, but views
+          ;; written inline in the graph-text are still honoured.
+          views-text (if (clojure.string/blank? (get-in app-state [:domain :graph-text-views]))
+                       inline-views-text
+                       (get-in app-state [:domain :graph-text-views]))
+          base-text inline-base-text
           merged-views (graph-text--merge->views base-text views-text)
           current-view-idx (dec (get-in app-state [:ui :current-view] 1))
           safe-idx (max 0 (min current-view-idx (dec (count merged-views))))
@@ -3013,6 +3041,14 @@
              (assoc-in [:domain :graph-text] v)
              (assoc-in [:ui :validation :valid-graph?] false))})))
 (re-frame/reg-event-fx ::set-graph-text #_[event-to-analytics] set-graph-text)
+
+;; Sets the views text loaded from the `graph-text-views` file and re-derives
+;; the merged views from the current graph-text.
+(defn set-graph-text-views
+  [{app-state :db} [_event views-text]]
+  (let [app-state (assoc-in app-state [:domain :graph-text-views] (or views-text ""))]
+    (set-graph-text {:db app-state} [_event (get-in app-state [:domain :graph-text] "")])))
+(re-frame/reg-event-fx ::set-graph-text-views set-graph-text-views)
 
 (re-frame/reg-event-fx
   ::change-view
@@ -3128,6 +3164,7 @@
   {:app-mode :graph ;; TODO: this is only temporary for dev time.
    :trace-ui {:problem-node :no-problem} ;; TODO: this is only temporary for dev time.
    :domain {:graph-text "=>label1:\n  node1\n  node2\n  node5\n\n=>label2:\n  node5\n\nnode3:\n  node4\n  node5\n\nnode1 -> node2\nnode4 -> node1\nnodeA -> nodeB"
+            :graph-text-views ""
             :nodes-map {}}
    :ui {:panels {:resizing-panels nil
                  :left-open? true
@@ -3228,8 +3265,11 @@
 (re-frame/reg-event-fx
   ::set-app-state
   [event-to-analytics]
-  (fn [_ [event graph-text]]
-    (set-graph-text {:db initial-state} [event graph-text])))
+  (fn [{:keys [db]} [event graph-text]]
+    ;; The views text is loaded from its own file, so it must survive a state reset.
+    (let [views-text (get-in db [:domain :graph-text-views] "")]
+      (set-graph-text {:db (assoc-in initial-state [:domain :graph-text-views] views-text)}
+                      [event graph-text]))))
 
 (defn load-graph-text ;; TODO: Used only for dev.
   ([] (load-graph-text "graph-text"))

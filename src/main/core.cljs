@@ -39,6 +39,22 @@
                 ;; Catch network or 404 errors
                 (js/console.error "Network or fetch error loading resources:" err)))))
 
+;; The views (view-2, view-3, ...) live in a `graph-text-views` file placed
+;; alongside the `graph-text` file. It is optional: when it is missing the graph
+;; simply has a single view.
+(defn load-graph-text-views! []
+  (-> (js/fetch "graph-text-views")
+      (.then (fn [response]
+               (if (.-ok response)
+                 (.text response)
+                 (throw (js/Error. (str "HTTP Error: " (.-status response)))))))
+      (.then (fn [text]
+               (>evt [::looset-graph/set-graph-text-views text])
+               (js/console.log "Successfully loaded graph-text-views")))
+      (.catch (fn [err]
+                ;; Catch network or 404 errors
+                (js/console.warn "Could not load graph-text-views:" err)))))
+
 (defn init []
   (looset-graph/init-state)
   (looset-graph/init-mousemove)
@@ -49,4 +65,5 @@
   ;; (looset-graph/init-style-observer))
   (looset-graph/init-url-state-timer)
   (re-frame/dispatch-sync [::looset-graph/fetch-markdown-explanation-content])
-  (load-resources-meta!))
+  (load-resources-meta!)
+  (load-graph-text-views!))

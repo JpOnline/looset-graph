@@ -1756,3 +1756,26 @@
                                 view-4
                                 nodeB {:position nil}"]
           (is (= view-4-result (nth (app/graph-text--merge->views input-graph-text graph-text-views) 3))))))))
+
+(deftest graph-text-views-quoted-ids
+  (testing "GIVEN node-props exist for a quoted Label id
+            WHEN a view overrides it
+            THEN the props of that Label are changed"
+    (let [input-graph-text "=>\"Nirodha-Sacca\":
+  \"Nibbāna\"
+
+=>\"Nirodha-Sacca\" {:name \"x\", :position {\"x\" -52, \"y\" 340}}"
+          graph-text-views "view-2
+=>\"Nirodha-Sacca\" {:name \"Paz e amor\"}"]
+      (is (= "=>\"Nirodha-Sacca\":
+  \"Nibbāna\"
+
+=>\"Nirodha-Sacca\" {:name \"Paz e amor\", :position {\"x\" -52, \"y\" 340}}"
+             (second (app/graph-text--merge->views input-graph-text graph-text-views))))))
+  (testing "GIVEN a node with no props line
+            WHEN a view declares props for it
+            THEN a props line is appended for that node"
+    (let [input-graph-text "nodeA -> nodeB\n\nnodeA {:position {\"x\" 1, \"y\" 2}}"
+          graph-text-views "view-2\nnodeB {:hidden? true}"]
+      (is (= "nodeA -> nodeB\n\nnodeA {:position {\"x\" 1, \"y\" 2}}\nnodeB {:hidden? true}"
+             (second (app/graph-text--merge->views input-graph-text graph-text-views)))))))
