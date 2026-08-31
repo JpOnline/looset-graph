@@ -2549,7 +2549,8 @@
     [:textarea
      {:style {:height "10vw"
               :width "stretch"}
-      #_#_:value @(re-frame/sub :flow {:id :diff-from-last-view})}]]])
+      :readOnly true
+      :value (or @(re-frame/sub :flow {:id :diff-from-last-view}) "")}]]])
 
 (defn debug-quick-val-set []
   [:<>
@@ -2946,6 +2947,20 @@
 (def node-props-line-re
   (re-pattern (str "^(\\s*)(" node-id-pattern ")(\\s+)(\\{.*\\})\\s*$")))
 
+(defn normalize-node-id
+  "The lexer accepts both a quoted and an unquoted id for the same node, so the
+   quotes are dropped when matching a node id."
+  [node-id]
+  (clojure.string/replace node-id "\"" ""))
+
+(defn node-id->quoted
+  "A node id in its quoted form, which is always valid in a graph-text."
+  [node-id]
+  (let [id (normalize-node-id node-id)]
+    (if (clojure.string/starts-with? id "=>")
+      (str "=>\"" (subs id 2) "\"")
+      (str "\"" id "\""))))
+
 (defn parse-views [views-text]
   (if (clojure.string/blank? views-text)
     []
@@ -2955,7 +2970,7 @@
                                 view-name (clojure.string/trim (first lines))
                                 overrides (reduce (fn [acc line]
                                                     (if-let [[_ node-id edn-str] (re-matches view-override-line-re line)]
-                                                      (assoc acc node-id (edn/read-string edn-str))
+                                                      (assoc acc (normalize-node-id node-id) (edn/read-string edn-str))
                                                       acc))
                                                   {}
                                                   (rest lines))]
@@ -2973,10 +2988,10 @@
           overridden (atom #{})
           process-line (fn [line]
                          (if-let [[_ prefix node-id space edn-str] (re-matches node-props-line-re line)]
-                           (if-let [override (get overrides node-id)]
+                           (if-let [override (get overrides (normalize-node-id node-id))]
                              (let [current-props (edn/read-string edn-str)
                                    merged (remove-nils (merge current-props override))]
-                               (swap! overridden conj node-id)
+                               (swap! overridden conj (normalize-node-id node-id))
                                (if (empty? merged)
                                  nil
                                  (str prefix node-id space (pr-str merged))))
@@ -2991,7 +3006,7 @@
                         (keep (fn [[node-id props]]
                                 (let [props (remove-nils props)]
                                   (when (seq props)
-                                    (str indentation node-id " " (pr-str props)))))))]
+                                    (str indentation (node-id->quoted node-id) " " (pr-str props)))))))]
       (clojure.string/join "\n" (concat new-lines added-lines)))))
 
 (defn graph-text--merge->views [base-text views-text]
@@ -3003,12 +3018,73 @@
             [base-text]
             views)))
 
+;; --- Diff of the current graph against the previous view ---------------------
+;; While in the draft view (or after changing nodes in any view) the difference
+;; between what is being shown and the previous view is what would have to be
+;; written in the `graph-text-views` file to keep those changes as a new view.
+
+(defn props-text->map
+  "{node-id props} of the node-props lines of a graph-text."
+  [text]
+  (->> (clojure.string/split-lines (or text ""))
+    (keep #(when-let [[_ _ node-id _ edn-str] (re-matches node-props-line-re %)]
+             [(normalize-node-id node-id) (edn/read-string edn-str)]))
+    (into {})))
+
+(defn props-text->node-ids
+  "Node ids of the node-props lines of a graph-text, in the order they appear."
+  [text]
+  (->> (clojure.string/split-lines (or text ""))
+    (keep #(some-> (nth (re-matches node-props-line-re %) 2 nil) normalize-node-id))))
+
+(defn props-diff
+  "The props of `curr` that differ from `prev`, the ones that are gone as nil.
+   I.e. what a view has to declare to go from `prev` to `curr`."
+  [prev curr]
+  (merge
+    (into {} (remove (fn [[k v]] (= v (get prev k))) curr))
+    (into {} (for [k (keys prev) :when (not (contains? curr k))] [k nil]))))
+
+(defn view-diff-text
+  "A `graph-text-views` section, named `view-name`, that turns the node-props of
+   `prev-text` into the ones of `curr-props-text`. Blank when they are equal."
+  [view-name prev-text curr-props-text]
+  (let [prev (props-text->map prev-text)
+        curr (props-text->map curr-props-text)
+        node-ids (concat (props-text->node-ids curr-props-text)
+                         (remove (set (props-text->node-ids curr-props-text)) (keys prev)))
+        lines (for [node-id node-ids
+                    :let [diff (props-diff (get prev node-id {}) (get curr node-id {}))]
+                    :when (seq diff)]
+                (str (node-id->quoted node-id) " " (pr-str diff)))]
+    (if (seq lines)
+      (clojure.string/join "\n" (cons view-name lines))
+      "")))
+
+(re-frame/reg-flow
+  {:id :diff-from-last-view
+   :inputs {:props-area-str (re-frame/flow<- :props-area-str)
+            :merged-views [:domain :merged-views]
+            :current-view [:ui :current-view]}
+   :output (fn [{:keys [props-area-str merged-views current-view]}]
+             (let [current-view (or current-view 1)
+                   prev-idx (- current-view 2)]
+               (if (and (>= prev-idx 0) (seq merged-views))
+                 (view-diff-text (str "view-" current-view)
+                                 (nth merged-views (min prev-idx (dec (count merged-views))))
+                                 props-area-str)
+                 "")))
+   :path [:flow-paths :diff-from-last-view]})
+
 (defn apply-active-view
   "Rebuilds the graph state from the view at `idx` (0 = base text) of
-   `merged-views`, clamping `idx` to the existing views."
+   `merged-views`. `idx` is clamped to the existing views plus the draft view
+   (one past the last one), which shows the last view and whose changes are
+   presented as a diff, ready to be written in the `graph-text-views` file."
   [app-state merged-views idx]
-  (let [safe-idx (max 0 (min idx (dec (count merged-views))))
-        active-text (nth merged-views safe-idx)
+  (let [draft-idx (count merged-views)
+        safe-idx (max 0 (min idx draft-idx))
+        active-text (nth merged-views (min safe-idx (dec draft-idx)))
         g-ast (graph-parser/graph-ast active-text)
         nm* (-> g-ast (#(into {:graph-ast %})) (nodes-map*))
         n-hierarchy (nodes-hierarchy nm*)
@@ -3069,10 +3145,18 @@
   (fn [{:keys [db]} [_ f]]
     (let [merged-views (get-in db [:domain :merged-views])
           new-view (f (get-in db [:ui :current-view] 1))]
-      (if (seq merged-views)
-        (apply-active-view db merged-views (dec new-view))
+      (cond
+        (empty? merged-views)
         {:db (assoc-in db [:ui :current-view] new-view)
-         :dispatch [::set-graph-text (get-in db [:domain :graph-text])]}))))
+         :dispatch [::set-graph-text (get-in db [:domain :graph-text])]}
+
+        ;; The draft view starts from what is being shown, so the graph is not
+        ;; rebuilt (which would throw away the changes made to it).
+        (> new-view (count merged-views))
+        {:db (assoc-in db [:ui :current-view] (inc (count merged-views)))}
+
+        :else
+        (apply-active-view db merged-views (dec new-view))))))
 
 ;; ---
 

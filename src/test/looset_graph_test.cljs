@@ -1776,6 +1776,37 @@
         (re-frame/dispatch [::app/change-view #(max 1 (dec %))])
         (is (= "B1" (name-of "nodeB")))))))
 
+(deftest view-diff
+  (testing "GIVEN the current node-props differ from the previous view
+            WHEN the diff is generated
+            THEN it is a view section with only what changed"
+    (let [prev-text "nodeA -> nodeB\n\nnodeA {:position {\"x\" 1, \"y\" 2}}\nnodeB {:name \"B\", :hidden? true}"
+          curr-props "\"nodeA\" {:position {\"x\" 9, \"y\" 2}}\n\"nodeB\" {:name \"B\"}\n\"nodeC\" {:hidden? true}"]
+      (is (= "view-4\n\"nodeA\" {:position {\"x\" 9, \"y\" 2}}\n\"nodeB\" {:hidden? nil}\n\"nodeC\" {:hidden? true}"
+             (app/view-diff-text "view-4" prev-text curr-props)))))
+  (testing "GIVEN the node-props are the same as the previous view
+            WHEN the diff is generated
+            THEN it is blank"
+    (let [text "nodeA -> nodeB\n\nnodeA {:position {\"x\" 1, \"y\" 2}}"]
+      (is (= "" (app/view-diff-text "view-2" text "\"nodeA\" {:position {\"x\" 1, \"y\" 2}}")))))
+  (testing "GIVEN view-2 is the last view
+            WHEN the view is advanced past it
+            THEN the draft view-3 is shown with the graph of view-2"
+    (re-frame.test/run-test-sync
+      (let [nodes-map (re-frame/subscribe [::app/nodes-map])
+            current-view (re-frame/subscribe [::app/current-view])]
+        (re-frame/dispatch [::app/set-graph-text-views "view-2\nnodeB {:name \"B2\"}"])
+        (re-frame/dispatch [::app/set-app-state "nodeA -> nodeB\n\nnodeB {:name \"B1\"}"])
+        (re-frame/dispatch [::app/change-view inc])
+        (re-frame/dispatch [::app/change-view inc])
+        (is (= 3 @current-view))
+        (is (= "B2" (get-in @nodes-map ["nodeB" :name])))
+        ;; And it does not go past the draft view
+        (re-frame/dispatch [::app/change-view inc])
+        (is (= 3 @current-view))
+        ;; Nothing changed in the draft view yet, so there is nothing to write
+        (is (= "" (get-in @re-frame.db/app-db [:flow-paths :diff-from-last-view])))))))
+
 (deftest graph-text-views-quoted-ids
   (testing "GIVEN node-props exist for a quoted Label id
             WHEN a view overrides it
@@ -1796,5 +1827,5 @@
             THEN a props line is appended for that node"
     (let [input-graph-text "nodeA -> nodeB\n\nnodeA {:position {\"x\" 1, \"y\" 2}}"
           graph-text-views "view-2\nnodeB {:hidden? true}"]
-      (is (= "nodeA -> nodeB\n\nnodeA {:position {\"x\" 1, \"y\" 2}}\nnodeB {:hidden? true}"
+      (is (= "nodeA -> nodeB\n\nnodeA {:position {\"x\" 1, \"y\" 2}}\n\"nodeB\" {:hidden? true}"
              (second (app/graph-text--merge->views input-graph-text graph-text-views)))))))
