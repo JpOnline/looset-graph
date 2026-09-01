@@ -1903,3 +1903,52 @@
       (re-frame/dispatch [::app/change-view inc])
       (is (= {:position {:x 1 :y 2} :scale 1}
              (get-in @re-frame.db/app-db [:ui :vis-view]))))))
+
+(deftest fit-view-on-selected-nodes
+  (testing "GIVEN a single node is selected
+            WHEN the view is fitted to it
+            THEN it is centralized with the maximum zoom"
+    (is (= {:view-position {:x 0 :y 0} :scale app/max-fit-scale}
+           (app/fit-view {:boxes [{:left -10 :right 10 :top -5 :bottom 5}]
+                          :canvas {:width 1000 :height 800}
+                          :left-panel 0
+                          :right-panel 0}))))
+  (testing "GIVEN more than one node is selected
+            WHEN the view is fitted to them
+            THEN the scale shows all of them, with a padding, centered in their
+              bounding box"
+    (is (= {:view-position {:x 100 :y 50} :scale 0.5}
+           (app/fit-view {:boxes [{:left -820 :right -100 :top -50 :bottom 50}
+                                  {:left 300 :right 1020 :top 50 :bottom 150}]
+                          :canvas {:width 1000 :height 800}
+                          :left-panel 0
+                          :right-panel 0}))))
+  (testing "GIVEN the right panel is being shown
+            WHEN the view is fitted to the selected nodes
+            THEN the space it takes is not used, and the nodes are moved aside"
+    (is (= {:view-position {:x 420 :y 0} :scale 0.5}
+           (app/fit-view {:boxes [{:left -500 :right 500 :top -100 :bottom 100}]
+                          :canvas {:width 1000 :height 800}
+                          :left-panel 0
+                          :right-panel 420}))))
+  (testing "GIVEN the left panel is being shown
+            WHEN the view is fitted to the selected nodes
+            THEN the space it takes is not used, and the nodes are moved aside"
+    (is (= {:view-position {:x -200 :y 0} :scale 0.5}
+           (app/fit-view {:boxes [{:left -720 :right 720 :top -100 :bottom 100}]
+                          :canvas {:width 1000 :height 800}
+                          :left-panel 200
+                          :right-panel 0}))))
+  (testing "GIVEN no node is selected
+            WHEN the view is fitted
+            THEN there is nothing to fit"
+    (is (nil? (app/fit-view {:boxes []
+                             :canvas {:width 1000 :height 800}
+                             :left-panel 0
+                             :right-panel 0}))))
+  (testing "GIVEN a panel size in vw or px
+            WHEN it is converted to pixels
+            THEN it is relative to the window width, or the px value"
+    (is (= 200 (app/panel-size->px "20vw" 1000)))
+    (is (= 427 (app/panel-size->px "427px" 1000)))
+    (is (= 0 (app/panel-size->px nil 1000)))))
