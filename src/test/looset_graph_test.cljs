@@ -1863,3 +1863,43 @@
           (is (= app/inherited-edge-color (get-in inherited [:font :color])))
           (is (= "rel2" (:label direct)))
           (is (= ::default (get-in direct [:font :color] ::default))))))))
+
+(deftest view-camera-position
+  (testing "GIVEN a view declares a :camera-position
+            WHEN the views are parsed
+            THEN it is an option of that view, apart from the node overrides"
+    (let [views-text "view-2\n:camera-position {:view-position {:x 86 :y -32} :scale 2.2}\nnodeB {:name \"B2\"}"
+          [view-2] (app/parse-views views-text)]
+      (is (= {"nodeB" {:name "B2"}} (:overrides view-2)))
+      (is (= {:camera-position {:view-position {:x 86 :y -32} :scale 2.2}}
+             (:options view-2)))))
+  (testing "GIVEN view-2 declares a :camera-position
+            WHEN the view is shown
+            THEN the vis-view is moved to it"
+    (re-frame.test/run-test-sync
+      (re-frame/dispatch [::app/set-graph-text-views "view-2\n:camera-position {:view-position {:x 86 :y -32} :scale 2.2}\nnodeB {:name \"B2\"}"])
+      (re-frame/dispatch [::app/set-app-state "nodeA -> nodeB\n\nnodeB {:name \"B1\"}"])
+      (re-frame/dispatch [::app/change-view inc])
+      (is (= {:position {:x 86 :y -32} :scale 2.2}
+             (get-in @re-frame.db/app-db [:ui :vis-view])))))
+  (testing "GIVEN view-2 declares a :camera-position
+              AND view-3 does not
+            WHEN view-3 is shown
+            THEN the camera of view-2 is kept, as the views are cumulative"
+    (re-frame.test/run-test-sync
+      (re-frame/dispatch [::app/set-graph-text-views "view-2\n:camera-position {:view-position {:x 86 :y -32} :scale 2.2}\n\nview-3\nnodeB {:name \"B3\"}"])
+      (re-frame/dispatch [::app/set-app-state "nodeA -> nodeB\n\nnodeB {:name \"B1\"}"])
+      (re-frame/dispatch [::app/change-view inc])
+      (re-frame/dispatch [::app/change-view inc])
+      (is (= {:position {:x 86 :y -32} :scale 2.2}
+             (get-in @re-frame.db/app-db [:ui :vis-view])))))
+  (testing "GIVEN no view declares a :camera-position
+            WHEN a view is shown
+            THEN the current vis-view is left alone"
+    (re-frame.test/run-test-sync
+      (re-frame/dispatch [::app/set-graph-text-views "view-2\nnodeB {:name \"B2\"}"])
+      (re-frame/dispatch [::app/set-app-state "nodeA -> nodeB\n\nnodeB {:name \"B1\"}"])
+      (re-frame/dispatch [::app/set-vis-view {:view-position {:x 1 :y 2} :scale 1}])
+      (re-frame/dispatch [::app/change-view inc])
+      (is (= {:position {:x 1 :y 2} :scale 1}
+             (get-in @re-frame.db/app-db [:ui :vis-view]))))))
