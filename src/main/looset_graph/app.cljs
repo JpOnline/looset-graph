@@ -397,22 +397,22 @@
               (for [[edge-string target-ids] (:edges-to node-data)
                     to-id target-ids
                     :let [target-node (get nodes-map to-id)
-                          visible-to (resolve-node to-id)]
+                          visible-to (resolve-node to-id)
+                          is-direct? (and (= from-id visible-from)
+                                          (= to-id   visible-to))]
                     :when (and (not (:hidden? target-node)) ;; Prevent inherited edge if target is explicitly hidden.
                                visible-to ;; Check if target ancestor is visible.
                                (not= visible-from visible-to))] ;; Prevent self-loops.
-                (let [is-direct (and (= from-id visible-from)
-                                     (= to-id   visible-to))]
-                  (cond-> {:from visible-from
-                           :to visible-to
-                           :arrows {:to {:enabled true :type "arrow"}}
-                           :color {:highlight "#33a0ff"}
-                           :label (when-not (= :nameless edge-string) edge-string)
-                           ;; Helper for the `remove-duplications-to-original`
-                           :is-direct is-direct}
-                    (not is-direct)
-                    (-> (assoc-in [:color :color] inherited-edge-color)
-                      (assoc :font {:color inherited-edge-color}))))))))
+                (cond-> {:from visible-from
+                         :to visible-to
+                         :arrows {:to {:enabled true :type "arrow"}}
+                         :color {:highlight "#33a0ff"}
+                         :label (when-not (= :nameless edge-string) edge-string)
+                         ;; Helper for the `remove-duplications-to-original`
+                         :is-direct is-direct?}
+                  (not is-direct?)
+                  (-> (assoc-in [:color :color] inherited-edge-color)
+                    (assoc :font {:color inherited-edge-color})))))))
 
         ;; Reduce to original edges when there's a duplication. Original here
         ;; means the relationship was actually defined from both source node
@@ -3212,17 +3212,16 @@
                         nm*
                         n-hierarchy))]
     {:fx [[:dispatch-later {:ms 20 :dispatch [::set-nodes-positions]}]]
-     :db (cond-> app-state
-           true (-> (assoc-in [:ui :fold] new-fold-ui)
-                  (assoc-in [:domain :graph-text] active-text)
-                  (assoc-in [:domain :merged-views] merged-views)
-                  (assoc-in [:ui :current-view] (inc safe-idx))
-                  (assoc-in [:ui :validation :valid-graph-ast] g-ast)
-                  (assoc-in [:ui :validation :valid-graph?] true))
+     :db (-> app-state
+           (assoc-in [:ui :fold] new-fold-ui)
+           (assoc-in [:domain :graph-text] active-text)
+           (assoc-in [:domain :merged-views] merged-views)
+           (assoc-in [:ui :current-view] (inc safe-idx))
+           (assoc-in [:ui :validation :valid-graph-ast] g-ast)
+           (assoc-in [:ui :validation :valid-graph?] true)
            ;; Views without a :camera-position leave the camera where it is.
-           camera-position
-           (assoc-in [:ui :vis-view] {:position (:view-position camera-position)
-                                      :scale (:scale camera-position)}))}))
+           (cond-> camera-position (assoc-in [:ui :vis-view] {:position (:view-position camera-position)
+                                                              :scale (:scale camera-position)})))}))
 
 (defn views->options
   "The options of each view, index 0 being the base text, which has none. Like
