@@ -493,6 +493,51 @@
    :output f-vis-data
    :path [:ui :f-vis-data]})
 
+;; --- Fitting the view to the selected nodes ----------------------------------
+
+(def fit-view-padding
+  "Pixels kept between the nodes being fitted and the border of the canvas."
+  40)
+(def max-fit-scale 2)
+(def min-fit-scale 0.1)
+
+(defn panel-size->px
+  "A panel size, as it is written in the styles (\"20vw\", \"427px\"), in pixels."
+  [size window-width]
+  (if (nil? size)
+    0
+    (let [value (js/parseFloat size)]
+      (cond
+        (js/isNaN value) 0
+        (clojure.string/ends-with? size "vw") (/ (* window-width value) 100)
+        :else value))))
+
+(defn fit-view
+  "The vis-view position and scale that show `boxes` (the bounding boxes of the
+   selected nodes, in graph coordinates) in the space of the `canvas` that is
+   left by the panels being shown. Nil when there is nothing to fit.
+
+   The nodes are centered in that space, which means moving them aside from the
+   center of the canvas by half of the difference between the panels."
+  [{:keys [boxes canvas left-panel right-panel]}]
+  (when (seq boxes)
+    (let [left (apply min (map :left boxes))
+          right (apply max (map :right boxes))
+          top (apply min (map :top boxes))
+          bottom (apply max (map :bottom boxes))
+          available-width (- (:width canvas) left-panel right-panel (* 2 fit-view-padding))
+          available-height (- (:height canvas) (* 2 fit-view-padding))
+          ;; A single node has a small bounding box, so it is the maximum scale
+          ;; that gives it a proper zoom.
+          scale (-> (min (/ available-width (max (- right left) 1))
+                         (/ available-height (max (- bottom top) 1)))
+                  (min max-fit-scale)
+                  (max min-fit-scale))]
+      {:view-position {:x (+ (/ (+ left right) 2)
+                             (/ (/ (- right-panel left-panel) 2) scale))
+                       :y (/ (+ top bottom) 2)}
+       :scale scale})))
+
 (defn left-panel-size
   [app-state]
   (get-in app-state [:ui :panels :left-panel-size] "20vw"))
@@ -1282,6 +1327,42 @@
       (assoc-in [:ui :vis-options :layout :hierarchical :enabled] false))
     app-state))
 (re-frame/reg-event-db ::organize-hierarchy-positions-step-2 organize-hierarchy-positions-step-2)
+
+(defn fit-selected-nodes-in-view
+  [{app-state :db}]
+  (let [visible-nodes (get-in app-state [:ui :f-visible-nodes] #{})
+        selected-nodes (filter visible-nodes (get-in app-state [:ui :f-selected-nodes] #{}))
+        container (.getElementById js/document "looset-graph")
+        window-width (.-innerWidth js/window)]
+    (if (or (nil? @network) (empty? selected-nodes))
+      {:db app-state}
+      (let [rect (some-> container (.getBoundingClientRect))
+            ;; The left panel is a sibling of the canvas, so the canvas is
+            ;; already smaller when it is open, while the right panel is an
+            ;; overlay on top of the canvas, so its space has to be discounted.
+            canvas (if (and rect (pos? (.-width rect)))
+                     {:width (.-width rect) :height (.-height rect)}
+                     {:width window-width :height (.-innerHeight js/window)})
+            left-panel (if (and rect (pos? (.-width rect)))
+                         0
+                         (if (left-panel-open? app-state)
+                           (panel-size->px (left-panel-size app-state) window-width)
+                           0))
+            right-panel (if (right-panel-shows-content? [(right-panel-active? app-state)
+                                                         (raw-selected-nodes app-state)])
+                          (panel-size->px (right-panel-size app-state) window-width)
+                          0)
+            boxes (map #(let [box (.getBoundingBox @network %)]
+                          {:left (.-left box) :right (.-right box)
+                           :top (.-top box) :bottom (.-bottom box)})
+                       selected-nodes)]
+        (if-let [{:keys [view-position scale]} (fit-view {:boxes boxes
+                                                          :canvas canvas
+                                                          :left-panel left-panel
+                                                          :right-panel right-panel})]
+          {:db (assoc-in app-state [:ui :vis-view] {:position view-position :scale scale})}
+          {:db app-state})))))
+(re-frame/reg-event-fx ::fit-selected-nodes-in-view #_[event-to-analytics] fit-selected-nodes-in-view)
 
 (defn hide-all-or-selected
   [app-state]
@@ -2255,6 +2336,12 @@
        [:svg
         {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
         [:path {:fill-rule "evenodd" :d "M5 1v8H1V1zM1 0a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V1a1 1 0 0 0-1-1zm13 2v5H9V2zM9 1a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM5 13v2H3v-2zm-2-1a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1zm12-1v2H9v-2zm-6-1a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1z"}]]]
+      [:button.button-2
+       {:title "fit selected nodes in the view"
+        :onClick #(>evt [::fit-selected-nodes-in-view])}
+       [:svg
+        {:width icons-size :height icons-size :fill "currentColor" :viewBox "0 0 16 16"}
+        [:path {:fill-rule "evenodd" :d "M5.5 0a.5.5 0 0 1 .5.5v4A1.5 1.5 0 0 1 4.5 6h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5m5 0a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 10 4.5v-4a.5.5 0 0 1 .5-.5M0 10.5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 6 11.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5m10 1a1.5 1.5 0 0 1 1.5-1.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0z"}]]]
       (if (<sub [::show-unhide-button?])
         [:button.button-2
          {:title "show selected"
