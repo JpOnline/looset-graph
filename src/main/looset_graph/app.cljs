@@ -1794,7 +1794,7 @@
                         (when (not= prev-vis-data vis-data)
                           (.setData @network (clj->js vis-data)))
                         (when view
-                          (.moveTo @network #js {:position (:position view)
+                          (.moveTo @network #js {:position (clj->js (:position view))
                                                  :scale (:scale view)}))
                         (.selectNodes @network selected-nodes)))
         mount-comp (fn [component]
@@ -2930,6 +2930,12 @@
 ;; (everything from the first `view-` line on), which is what
 ;; `split-base-and-views` extracts; the file takes precedence when present.
 ;;
+;; A view can also declare options for itself, written as the props of a node
+;; whose id is a keyword. For now the only one is the camera:
+;;
+;;   view-2
+;;   :camera-position {:view-position {:x 86 :y -32} :scale 2.2}
+;;
 ;; Views are cumulative: view N is the result of merging its overrides into the
 ;; text produced by view N-1, so view-3 above still carries the :name given to
 ;; nodeB in view-2. Merging happens per node-prop map, so declaring one property
@@ -2955,6 +2961,11 @@
 
 (def node-props-line-re
   (re-pattern (str "^(\\s*)(" node-id-pattern ")(\\s+)(\\{.*\\})\\s*$")))
+
+;; A view can also declare options for itself, e.g.
+;; `:camera-position {:view-position {:x 86 :y -32} :scale 2.2}`, written as the
+;; props of a node whose id is a keyword.
+(def view-option-line-re #"^\s*:([a-zA-Z][a-zA-Z0-9*+!?_/-]*)\s+(\{.*\})\s*$")
 
 (defn normalize-node-id
   "The lexer accepts both a quoted and an unquoted id for the same node, so the
@@ -2982,9 +2993,16 @@
                                                       (assoc acc (normalize-node-id node-id) (edn/read-string edn-str))
                                                       acc))
                                                   {}
-                                                  (rest lines))]
+                                                  (rest lines))
+                                options (reduce (fn [acc line]
+                                                  (if-let [[_ option edn-str] (re-matches view-option-line-re line)]
+                                                    (assoc acc (keyword option) (edn/read-string edn-str))
+                                                    acc))
+                                                {}
+                                                (rest lines))]
                             {:view-name view-name
-                             :overrides overrides}))]
+                             :overrides overrides
+                             :options options}))]
       (map parse-section (remove clojure.string/blank? sections)))))
 
 (defn remove-nils [m]
@@ -3094,6 +3112,9 @@
   (let [draft-idx (count merged-views)
         safe-idx (max 0 (min idx draft-idx))
         active-text (nth merged-views (min safe-idx (dec draft-idx)))
+        camera-position (-> (get-in app-state [:domain :views-options] [])
+                          (nth (min safe-idx (dec draft-idx)) nil)
+                          :camera-position)
         g-ast (graph-parser/graph-ast active-text)
         nm* (-> g-ast (#(into {:graph-ast %})) (nodes-map*))
         n-hierarchy (nodes-hierarchy nm*)
@@ -3104,13 +3125,27 @@
                         nm*
                         n-hierarchy))]
     {:fx [[:dispatch-later {:ms 20 :dispatch [::set-nodes-positions]}]]
-     :db (-> app-state
-           (assoc-in [:ui :fold] new-fold-ui)
-           (assoc-in [:domain :graph-text] active-text)
-           (assoc-in [:domain :merged-views] merged-views)
-           (assoc-in [:ui :current-view] (inc safe-idx))
-           (assoc-in [:ui :validation :valid-graph-ast] g-ast)
-           (assoc-in [:ui :validation :valid-graph?] true))}))
+     :db (cond-> app-state
+           true (-> (assoc-in [:ui :fold] new-fold-ui)
+                  (assoc-in [:domain :graph-text] active-text)
+                  (assoc-in [:domain :merged-views] merged-views)
+                  (assoc-in [:ui :current-view] (inc safe-idx))
+                  (assoc-in [:ui :validation :valid-graph-ast] g-ast)
+                  (assoc-in [:ui :validation :valid-graph?] true))
+           ;; Views without a :camera-position leave the camera where it is.
+           camera-position
+           (assoc-in [:ui :vis-view] {:position (:view-position camera-position)
+                                      :scale (:scale camera-position)}))}))
+
+(defn views->options
+  "The options of each view, index 0 being the base text, which has none. Like
+   the node overrides, they are cumulative: a view keeps the options of the
+   previous one until it declares its own."
+  [views-text]
+  (reduce (fn [acc view]
+            (conj acc (merge (last acc) (:options view))))
+          [{}]
+          (parse-views views-text)))
 
 (defn set-graph-text
   [{app-state :db} [_event v]]
@@ -3128,6 +3163,7 @@
         ;; text of the view being shown (it is re-generated from the nodes-map
         ;; by the :graph-text flow), so it cannot be used to re-derive the views.
         (assoc-in [:domain :base-graph-text] base-text)
+        (assoc-in [:domain :views-options] (views->options views-text))
         (apply-active-view merged-views (dec (get-in app-state [:ui :current-view] 1)))))
     (catch :default _
       {:fx [[:dispatch-later {:ms 20 :dispatch [::set-nodes-positions]}]]
