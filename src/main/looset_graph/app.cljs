@@ -368,6 +368,11 @@
 
 ;; --- Edge Calculation --------------------------------------------------------
 
+(def inherited-edge-color
+  "Edges that are not defined in the graph-text, but derived from a collapse
+   (an Inner of the node has that edge), are shown in this color."
+  "#e6b400")
+
 (defn f-edges
   "Calculates the visual edges based on the visible nodes and the underlying graph structure.
 
@@ -396,14 +401,18 @@
                     :when (and (not (:hidden? target-node)) ;; Prevent inherited edge if target is explicitly hidden.
                                visible-to ;; Check if target ancestor is visible.
                                (not= visible-from visible-to))] ;; Prevent self-loops.
-                {:from visible-from
-                 :to visible-to
-                 :arrows {:to {:enabled true :type "arrow"}}
-                 :color {:highlight "#33a0ff"}
-                 :label (when-not (= :nameless edge-string) edge-string)
-                 ;; Helper for the `remove-duplications-to-original`
-                 :is-direct (and (= from-id visible-from)
-                                 (= to-id   visible-to))}))))
+                (let [is-direct (and (= from-id visible-from)
+                                     (= to-id   visible-to))]
+                  (cond-> {:from visible-from
+                           :to visible-to
+                           :arrows {:to {:enabled true :type "arrow"}}
+                           :color {:highlight "#33a0ff"}
+                           :label (when-not (= :nameless edge-string) edge-string)
+                           ;; Helper for the `remove-duplications-to-original`
+                           :is-direct is-direct}
+                    (not is-direct)
+                    (-> (assoc-in [:color :color] inherited-edge-color)
+                      (assoc :font {:color inherited-edge-color}))))))))
 
         ;; Reduce to original edges when there's a duplication. Original here
         ;; means the relationship was actually defined from both source node
