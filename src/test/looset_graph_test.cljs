@@ -1829,3 +1829,37 @@
           graph-text-views "view-2\nnodeB {:hidden? true}"]
       (is (= "nodeA -> nodeB\n\nnodeA {:position {\"x\" 1, \"y\" 2}}\n\"nodeB\" {:hidden? true}"
              (second (app/graph-text--merge->views input-graph-text graph-text-views)))))))
+
+(deftest inherited-edges-have-a-different-color
+  (testing "GIVEN node1 is inside the collapsed label1
+              AND node1 -> node2 is defined
+            WHEN the edges are calculated
+            THEN the label1 -> node2 edge, derived from the collapse, is colored
+              AND the directly defined node2 -> node3 edge keeps the default color"
+    (re-frame.test/run-test-sync
+      (let [input-graph-text "=>label1:\n  node1\n\nnode1 -> node2\nnode2 -> node3"]
+        (re-frame/dispatch [::app/set-app-state input-graph-text])
+        (let [edges (->> (get-in @re-frame.db/app-db [:flow-paths :f-edges])
+                      (map (juxt (juxt :from :to) identity))
+                      (into {}))
+              inherited (get edges ["label1" "node2"])
+              direct (get edges ["node2" "node3"])]
+          (is (some? (get-in inherited [:color :color])))
+          (is (= app/inherited-edge-color (get-in inherited [:color :color])))
+          (is (= ::default (get-in direct [:color :color] ::default)))))))
+  (testing "GIVEN an edge with an edge-string is inherited
+            WHEN the edges are calculated
+            THEN the edge-string is colored as the edge"
+    (re-frame.test/run-test-sync
+      (let [input-graph-text "=>label1:\n  node1\n\nnode1 -\"rel\"-> node2\nnode2 -\"rel2\"-> node3"]
+        (re-frame/dispatch [::app/set-app-state input-graph-text])
+        (let [edges (->> (get-in @re-frame.db/app-db [:flow-paths :f-edges])
+                      (map (juxt (juxt :from :to) identity))
+                      (into {}))
+              inherited (get edges ["label1" "node2"])
+              direct (get edges ["node2" "node3"])]
+          (is (= "rel" (:label inherited)))
+          (is (some? (get-in inherited [:font :color])))
+          (is (= app/inherited-edge-color (get-in inherited [:font :color])))
+          (is (= "rel2" (:label direct)))
+          (is (= ::default (get-in direct [:font :color] ::default))))))))
