@@ -1805,7 +1805,8 @@
         (re-frame/dispatch [::app/change-view inc])
         (is (= 3 @current-view))
         ;; Nothing changed in the draft view yet, so there is nothing to write
-        (is (= "" (get-in @re-frame.db/app-db [:flow-paths :diff-from-last-view])))))))
+        (re-frame/dispatch [::app/toggle-record-diffs-in])
+        (is (= "" (get-in @re-frame.db/app-db [:flow-paths :view-props-str])))))))
 
 (deftest graph-text-views-quoted-ids
   (testing "GIVEN node-props exist for a quoted Label id
@@ -1952,3 +1953,87 @@
     (is (= 200 (app/panel-size->px "20vw" 1000)))
     (is (= 427 (app/panel-size->px "427px" 1000)))
     (is (= 0 (app/panel-size->px nil 1000)))))
+
+(deftest views-are-applied-to-the-current-graph
+  (testing "GIVEN a node was hidden while in view-1
+            WHEN view-2 is shown
+            THEN the node is still hidden, as the views are applied to the graph
+              being shown, and view-2 changes what it declares"
+    (re-frame.test/run-test-sync
+      (let [nodes-map (re-frame/subscribe [::app/nodes-map])]
+        (re-frame/dispatch [::app/set-graph-text-views "view-2\nnodeB {:name \"B2\"}"])
+        (re-frame/dispatch [::app/set-app-state "nodeA -> nodeB\n\nnodeB {:name \"B1\"}"])
+        (re-frame/dispatch [::app/mouse-select-mode true])
+        (re-frame/dispatch [::app/nodes-list-item-clicked ["nodeA"]])
+        (re-frame/dispatch [::app/hide-all-or-selected])
+        (is (= true (get-in @nodes-map ["nodeA" :hidden?])))
+        (re-frame/dispatch [::app/change-view inc])
+        (is (= "B2" (get-in @nodes-map ["nodeB" :name])))
+        (is (= true (get-in @nodes-map ["nodeA" :hidden?]))))))
+  (testing "GIVEN the diffs are being recorded in the view-props
+            WHEN a node is hidden and another view is shown
+            THEN the change is not carried to the graph-text"
+    (re-frame.test/run-test-sync
+      (let [nodes-map (re-frame/subscribe [::app/nodes-map])]
+        (re-frame/dispatch [::app/set-graph-text-views "view-2\nnodeB {:name \"B2\"}"])
+        (re-frame/dispatch [::app/set-app-state "nodeA -> nodeB\n\nnodeB {:name \"B1\"}"])
+        (re-frame/dispatch [::app/toggle-record-diffs-in])
+        (re-frame/dispatch [::app/mouse-select-mode true])
+        (re-frame/dispatch [::app/nodes-list-item-clicked ["nodeA"]])
+        (re-frame/dispatch [::app/hide-all-or-selected])
+        (is (= true (get-in @nodes-map ["nodeA" :hidden?])))
+        (re-frame/dispatch [::app/change-view inc])
+        (is (= "B2" (get-in @nodes-map ["nodeB" :name])))
+        (is (not= true (get-in @nodes-map ["nodeA" :hidden?])))))))
+
+(deftest view-props-text-area
+  (testing "GIVEN the diffs are being recorded in the graph-text, the default
+            WHEN a view defined in the graph-text-views file is shown
+            THEN the view-props show that view as it is defined in the file
+              AND the changes made to the graph do not change them"
+    (re-frame.test/run-test-sync
+      (let [view-props #(get-in @re-frame.db/app-db [:flow-paths :view-props-str])]
+        (re-frame/dispatch [::app/set-graph-text-views "view-2\nnodeB {:name \"B2\"}\n\nview-3\nnodeB {:name \"B3\"}"])
+        (re-frame/dispatch [::app/set-app-state "nodeA -> nodeB\n\nnodeB {:name \"B1\"}"])
+        ;; The base view has no section in the file
+        (is (= "" (view-props)))
+        (re-frame/dispatch [::app/change-view inc])
+        (is (= "view-2\nnodeB {:name \"B2\"}" (view-props)))
+        (re-frame/dispatch [::app/mouse-select-mode true])
+        (re-frame/dispatch [::app/nodes-list-item-clicked ["nodeA"]])
+        (re-frame/dispatch [::app/hide-all-or-selected])
+        (is (= "view-2\nnodeB {:name \"B2\"}" (view-props)))
+        (re-frame/dispatch [::app/change-view inc])
+        (is (= "view-3\nnodeB {:name \"B3\"}" (view-props)))
+        ;; The draft view is not defined in the file
+        (re-frame/dispatch [::app/change-view inc])
+        (is (= "" (view-props))))))
+  (testing "GIVEN the diffs are being recorded in the view-props
+            WHEN a node is hidden
+            THEN the view-props show the diff from the previous view, in the
+              defined views and in the draft one"
+    (re-frame.test/run-test-sync
+      (let [view-props #(get-in @re-frame.db/app-db [:flow-paths :view-props-str])]
+        (re-frame/dispatch [::app/set-graph-text-views "view-2\nnodeB {:name \"B2\"}"])
+        (re-frame/dispatch [::app/set-app-state "nodeA -> nodeB\n\nnodeB {:name \"B1\"}"])
+        (re-frame/dispatch [::app/toggle-record-diffs-in])
+        ;; The base view has no previous view to be compared to
+        (is (= "" (view-props)))
+        (re-frame/dispatch [::app/change-view inc])
+        (is (= "view-2\n\"nodeB\" {:name \"B2\"}" (view-props)))
+        (re-frame/dispatch [::app/mouse-select-mode true])
+        (re-frame/dispatch [::app/nodes-list-item-clicked ["nodeA"]])
+        (re-frame/dispatch [::app/hide-all-or-selected])
+        (is (= "view-2\n\"nodeA\" {:hidden? true}\n\"nodeB\" {:name \"B2\"}" (view-props)))
+        (re-frame/dispatch [::app/change-view inc])
+        (is (= "view-3\n\"nodeA\" {:hidden? true}" (view-props))))))
+  (testing "GIVEN the toggle is clicked
+            WHEN it is read
+            THEN it goes back and forth between the graph-text and the view-props"
+    (re-frame.test/run-test-sync
+      (let [recording-in (re-frame/subscribe [::app/record-diffs-in])]
+        (is (= :graph-text @recording-in))
+        (re-frame/dispatch [::app/toggle-record-diffs-in])
+        (is (= :view-props @recording-in))
+        (re-frame/dispatch [::app/toggle-record-diffs-in])
+        (is (= :graph-text @recording-in))))))

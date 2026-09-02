@@ -2620,33 +2620,57 @@
           full-text (str folds relationships "\n" new-props-text)]
       {:dispatch [::set-graph-text full-text]})))
 
+(defn record-diffs-in-toggle
+  "Switches where the changes made to the graph are recorded. It has no name of
+   its own: the bold text-area title says where they are being recorded and the
+   title of the toggle says where a click would record them."
+  []
+  (let [in-view-props? (= :view-props (<sub [::record-diffs-in]))]
+    [:button
+     {:title (if in-view-props? "record diffs in graph-text" "record diffs in view-props")
+      :onClick #(>evt [::toggle-record-diffs-in])
+      :style {:border "none"
+              :background "none"
+              :padding "0 6px"
+              :cursor "pointer"
+              :vertical-align "middle"}}
+     [:svg
+      {:width "22" :height "12" :viewBox "0 0 22 12"}
+      [:rect {:x "0.5" :y "0.5" :width "21" :height "11" :rx "5.5"
+              :fill (if in-view-props? "#33a0ff" "#dddddd")
+              :stroke "gray"}]
+      [:circle {:cx (if in-view-props? "16" "6") :cy "6" :r "3.5" :fill "white"}]]]))
+
 (defn edit-raw-graph-text []
-  [:<>
-   [:span
-    {:style {:margin code-margin
-             :padding code-padding
-             :font-family code-font-family
-             :font-size code-font-size}}
-    [:text "graph-text"]
-    [:textarea
-     {:style {:min-height "30vw"
-              :width "stretch"
-              :margin-bottom "8px"}
-      :onChange #(>evt [::set-graph-text (-> % .-target .-value)])
-      :value @(re-frame/sub :flow {:id :graph-text}) #_(<sub [::graph-text])}]
-    [:text "node-props"]
-    [:textarea
-     {:style {:height "10vw"
-              :width "stretch"
-              :margin-bottom "8px"}
-      :onChange #(>evt [::set-graph-props-text (-> % .-target .-value)])
-      :value @(re-frame/sub :flow {:id :props-area-str})}]
-    [:text "view-props"]
-    [:textarea
-     {:style {:height "10vw"
-              :width "stretch"}
-      :readOnly true
-      :value (or @(re-frame/sub :flow {:id :diff-from-last-view}) "")}]]])
+  (let [in-view-props? (= :view-props (<sub [::record-diffs-in]))
+        recording-style (fn [recording?] {:font-weight (if recording? "bold" "normal")})]
+    [:<>
+     [:span
+      {:style {:margin code-margin
+               :padding code-padding
+               :font-family code-font-family
+               :font-size code-font-size}}
+      [:text {:style (recording-style (not in-view-props?))} "graph-text"]
+      [:textarea
+       {:style {:min-height "30vw"
+                :width "stretch"
+                :margin-bottom "8px"}
+        :onChange #(>evt [::set-graph-text (-> % .-target .-value)])
+        :value @(re-frame/sub :flow {:id :graph-text}) #_(<sub [::graph-text])}]
+      [:text "node-props"]
+      [:textarea
+       {:style {:height "10vw"
+                :width "stretch"
+                :margin-bottom "8px"}
+        :onChange #(>evt [::set-graph-props-text (-> % .-target .-value)])
+        :value @(re-frame/sub :flow {:id :props-area-str})}]
+      [:text {:style (recording-style in-view-props?)} "view-props"]
+      [record-diffs-in-toggle]
+      [:textarea
+       {:style {:height "10vw"
+                :width "stretch"}
+        :readOnly true
+        :value (or @(re-frame/sub :flow {:id :view-props-str}) "")}]]]))
 
 (defn debug-quick-val-set []
   [:<>
@@ -3002,9 +3026,12 @@
 ;; :name, ...) by stating only the differences from the previous version,
 ;; instead of repeating the whole graph-text.
 ;;
-;; The base text (version 1) is the graph-text itself. The views live in a
-;; `graph-text-views` file placed alongside the `graph-text` file and loaded by
-;; `core/load-graph-text-views!`. In it, each `view-<name>` header starts a
+;; The base text (version 1) is the graph-text being shown, not the one that was
+;; loaded from the `graph-text` file: moving, hiding or opening Nodes changes the
+;; graph-text, and it is that change that the views are applied to.
+;;
+;; The views live in a `graph-text-views` file placed alongside the `graph-text`
+;; file and loaded by `core/load-graph-text-views!`. In it, each `view-<name>` header starts a
 ;; section of overrides, separated by blank lines:
 ;;
 ;;   view-2
@@ -3030,7 +3057,9 @@
 ;; it (a node whose props become empty has its props line dropped).
 ;;
 ;; `graph-text--merge->views` returns the vector of texts, one per version, with
-;; the base text at index 0. See the `graph-text-views` test for examples.
+;; the base text at index 0, and `re-derive-views` re-writes them from the graph
+;; being shown when the view changes. See the `graph-text-views` test for
+;; examples.
 
 (defn split-base-and-views [text]
   (let [lines (clojure.string/split-lines text)
@@ -3132,10 +3161,27 @@
             [base-text]
             views)))
 
-;; --- Diff of the current graph against the previous view ---------------------
-;; While in the draft view (or after changing nodes in any view) the difference
-;; between what is being shown and the previous view is what would have to be
-;; written in the `graph-text-views` file to keep those changes as a new view.
+(defn re-derive-views
+  "Replaces the text of the view at `idx` with `graph-text` — the graph being
+   shown, which already carries the changes the user made to it — and re-derives
+   the views after it, so those changes are carried to them.
+
+   The draft view (`idx` past the last view) is not a view yet, so nothing is
+   re-derived from it: its changes are only shown as a diff."
+  [merged-views views-text idx graph-text]
+  (if (or (empty? merged-views) (>= idx (count merged-views)))
+    merged-views
+    (reduce (fn [acc view]
+              (conj acc (apply-view-overrides (last acc) (:overrides view))))
+            (conj (vec (take idx merged-views)) graph-text)
+            (drop idx (parse-views views-text)))))
+
+;; --- Diff of the current graph against the last view -------------------------
+;; Only the draft view has a diff to show: in a view that is defined in the
+;; `graph-text-views` file the changes the user makes are carried to the
+;; graph-text itself (see `re-derive-views`), while in the draft view they are
+;; not, so the difference between what is being shown and the last view is what
+;; would have to be written in the file to keep them as a new view.
 
 (defn props-text->map
   "{node-id props} of the node-props lines of a graph-text."
@@ -3175,20 +3221,54 @@
       (clojure.string/join "\n" (cons view-name lines))
       "")))
 
+(defn view-section-text
+  "The section of the view at `idx` (0 = base text, which has none) as it is
+   written in the `graph-text-views` file."
+  [views-text idx]
+  (if (pos? idx)
+    (-> (->> (clojure.string/split (or views-text "") #"\n\s*\n")
+          (remove clojure.string/blank?)
+          vec)
+      (nth (dec idx) "")
+      (clojure.string/trim))
+    ""))
+
+;; Where the changes the user makes to the graph are recorded, which is what the
+;; view-props text-area shows:
+;; :graph-text  - they are carried to the graph-text (and to the views after
+;;                this one), so the view-props show the view as it is defined in
+;;                the `graph-text-views` file.
+;; :view-props  - they are left out of the graph-text, so the view-props show
+;;                the diff from the previous view, ready to be written in the
+;;                `graph-text-views` file.
+(defn record-diffs-in
+  [app-state]
+  (get-in app-state [:ui :record-diffs-in] :graph-text))
+(re-frame/reg-sub ::record-diffs-in record-diffs-in)
+
+(re-frame/reg-event-db
+  ::toggle-record-diffs-in
+  (fn [app-state]
+    (update-in app-state [:ui :record-diffs-in]
+               #(if (= :view-props %) :graph-text :view-props))))
+
 (re-frame/reg-flow
-  {:id :diff-from-last-view
+  {:id :view-props-str
    :inputs {:props-area-str (re-frame/flow<- :props-area-str)
             :merged-views [:domain :merged-views]
-            :current-view [:ui :current-view]}
-   :output (fn [{:keys [props-area-str merged-views current-view]}]
-             (let [current-view (or current-view 1)
-                   prev-idx (- current-view 2)]
-               (if (and (>= prev-idx 0) (seq merged-views))
-                 (view-diff-text (str "view-" current-view)
-                                 (nth merged-views (min prev-idx (dec (count merged-views))))
-                                 props-area-str)
-                 "")))
-   :path [:flow-paths :diff-from-last-view]})
+            :views-text [:domain :graph-text-views]
+            :current-view [:ui :current-view]
+            :record-diffs-in [:ui :record-diffs-in]}
+   :output (fn [{:keys [props-area-str merged-views views-text current-view record-diffs-in]}]
+             (let [idx (dec (or current-view 1))]
+               (if (= :view-props record-diffs-in)
+                 (if (and (seq merged-views) (pos? idx))
+                   (view-diff-text (str "view-" (inc idx))
+                                   (nth merged-views (min (dec idx) (dec (count merged-views))))
+                                   props-area-str)
+                   "")
+                 (view-section-text views-text idx))))
+   :path [:flow-paths :view-props-str]})
 
 (defn apply-active-view
   "Rebuilds the graph state from the view at `idx` (0 = base text) of
@@ -3246,8 +3326,8 @@
           merged-views (graph-text--merge->views base-text views-text)]
       (-> app-state
         ;; The base text is kept aside because [:domain :graph-text] holds the
-        ;; text of the view being shown (it is re-generated from the nodes-map
-        ;; by the :graph-text flow), so it cannot be used to re-derive the views.
+        ;; text of the view being shown, which is only the base text while the
+        ;; base view is the one being shown.
         (assoc-in [:domain :base-graph-text] base-text)
         (assoc-in [:domain :views-options] (views->options views-text))
         (apply-active-view merged-views (dec (get-in app-state [:ui :current-view] 1)))))
@@ -3258,19 +3338,29 @@
              (assoc-in [:ui :validation :valid-graph?] false))})))
 (re-frame/reg-event-fx ::set-graph-text #_[event-to-analytics] set-graph-text)
 
+(defn current-base-text
+  "The text the views are applied to: the graph being shown when it is the base
+   view — the changes the user made to it are already in it — or the last base
+   text otherwise."
+  [app-state]
+  (if (= 1 (get-in app-state [:ui :current-view] 1))
+    (get-in app-state [:domain :graph-text] "")
+    (or (get-in app-state [:domain :base-graph-text])
+        (get-in app-state [:domain :graph-text] ""))))
+
 ;; Sets the views text loaded from the `graph-text-views` file and re-derives
 ;; the merged views from the current graph-text.
 (defn set-graph-text-views
   [{app-state :db} [_event views-text]]
-  (let [app-state (assoc-in app-state [:domain :graph-text-views] (or views-text ""))
-        base-text (or (get-in app-state [:domain :base-graph-text])
-                      (get-in app-state [:domain :graph-text] ""))]
-    (set-graph-text {:db app-state} [_event base-text])))
+  (let [app-state (assoc-in app-state [:domain :graph-text-views] (or views-text ""))]
+    (set-graph-text {:db app-state} [_event (current-base-text app-state)])))
 (re-frame/reg-event-fx ::set-graph-text-views set-graph-text-views)
 
 ;; Views are cumulative, so going back to a previous view cannot be done by
 ;; applying overrides to what is being shown: the already merged views are
-;; re-used instead.
+;; re-used instead. Before that, the graph being shown is written back into the
+;; view it belongs to, so the changes the user made to it are not lost and are
+;; carried to the views after it.
 (re-frame/reg-event-fx
   ::change-view
   (fn [{:keys [db]} [_ f]]
@@ -3282,12 +3372,23 @@
          :dispatch [::set-graph-text (get-in db [:domain :graph-text])]}
 
         ;; The draft view starts from what is being shown, so the graph is not
-        ;; rebuilt (which would throw away the changes made to it).
+        ;; rebuilt (which would throw away the changes made to it) and nothing
+        ;; is written back — its changes are shown as a diff instead.
         (> new-view (count merged-views))
         {:db (assoc-in db [:ui :current-view] (inc (count merged-views)))}
 
         :else
-        (apply-active-view db merged-views (dec new-view))))))
+        ;; Recording the diffs in the view-props means leaving them out of the
+        ;; graph-text, so nothing is written back to the view being left.
+        (let [merged-views (if (= :view-props (record-diffs-in db))
+                             merged-views
+                             (re-derive-views merged-views
+                                              (get-in db [:domain :graph-text-views] "")
+                                              (dec (get-in db [:ui :current-view] 1))
+                                              (get-in db [:domain :graph-text] "")))]
+          (-> db
+            (assoc-in [:domain :base-graph-text] (first merged-views))
+            (apply-active-view merged-views (dec new-view))))))))
 
 ;; ---
 
