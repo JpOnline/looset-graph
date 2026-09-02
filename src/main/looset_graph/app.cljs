@@ -371,7 +371,7 @@
 (def inherited-edge-color
   "Edges that are not defined in the graph-text, but derived from a collapse
    (an Inner of the node has that edge), are shown in this color."
-  "#e6b400")
+  "#00000034")
 
 (defn f-edges
   "Calculates the visual edges based on the visible nodes and the underlying graph structure.
