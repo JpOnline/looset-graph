@@ -1,0 +1,1021 @@
+{
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/n15/mode/2up"
+ {:title "Ledi Sayadaw's biography"
+  :summary "Breve biografia de Ledi Sayadaw, cobrindo seu nascimento, ordenação, estudos acadêmicos, correção de erros em comentários tradicionais, escrita de seus manuais (Dīpanīs), estabelecimento de centros de meditação e a linhagem de transmissão que passa por Saya Po Thet (Saya Thetgyi), Sayagyi U Ba Khin e S. N. Goenka."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.0
+                  :explanation 0.2
+                  :reference 0.8}
+  :media-type #{:text :book}
+  :concepts-matched ["Ledi Sayadaw"
+                     "Saya Thetgyi"
+                     "Sayagyi U Ba Khin"
+                     "S. N. Goenka"]
+  :concepts-new []
+  :interface-type :gui
+  :estimated-minutes 15
+  :didactic-score 5
+  :experience-level :beginner
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Ven. Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :chapter-title "A Short Biography of Venerable Ledi Sayadaw"
+              :chapter-number "0"
+              :page-range "iii-viii"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/169/mode/2up"
+ {:title "The Four Sammappadhãnas"
+  :summary "Capítulo III do Bodhipakkhiya Dīpanī que explica em detalhes os quatro esforços supremos (sammappadhāna), diferenciando estados mentais saudáveis e não-saudáveis, e como esses esforços destroem as três camadas da visão incorreta (diṭṭhi)."
+  :diataxis-type {:how-to 0.2
+                  :tutorial 0.2
+                  :explanation 0.5
+                  :reference 0.1}
+  :media-type #{:text :book}
+  :concepts-matched ["4 Sammappadhānas"
+                     "Uppannānaṃ akusalānaṃ dhammānaṃ pahānāya vāyāmo"
+                     "Anuppannānaṃ akusalānaṃ dhammānaṃ anuppādāya vāyāmo"
+                     "Anuppannānaṃ kusalānaṃ dhammānaṃ uppādāya vāyāmo"
+                     "Uppannānaṃ kusalānaṃ dhammānaṃ bhiyyobhāvāya vāyāmo"
+                     "3 camadas da diṭṭhi"
+                     "Vītikkama"
+                     "Pariyuṭṭhāna"
+                     "Anusaya"]
+  :concepts-new []
+  :interface-type :gui
+  :estimated-minutes 35
+  :didactic-score 5
+  :experience-level :intermediate
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Ven. Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :chapter-title "The Bodhipakkhiya Dīpanī - Chapter III: The Four Sammappadhānas"
+              :chapter-number "6.3"
+              :page-range "169-178"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/86/mode/2up"
+ {:title "Inhabitants of Ariyabh3mi (the Plane of Noble and Sanctified Beings)"
+  :summary "Seção do Sammādiṭṭhi Dīpanī que detalha as características dos habitantes do plano dos Nobres (Ariyas), os quatro estágios de iluminação (Sotāpanna, Sakadāgāmi, Anāgāmi, Arahant) e os cinco tipos de visão correta (sammā-diṭṭhi)."
+  :diataxis-type {:how-to 0.1
+                  :tutorial 0.1
+                  :explanation 0.6
+                  :reference 0.2}
+  :media-type #{:text :book}
+  :concepts-matched ["Sotāpanna"
+                     "Sakadāgāmi"
+                     "Anāgāmi"
+                     "Arahant"]
+  :concepts-new []
+  :interface-type :gui
+  :estimated-minutes 20
+  :didactic-score 5
+  :experience-level :intermediate
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Ven. Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :chapter-title "The Sammādiṭṭhi Dīpanī - Part Three: Inhabitants of Ariyabhūmi"
+              :chapter-number "3.3"
+              :page-range "86-92"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/231/mode/2up"
+ {:title "How to Establish the Morality-Group of the Eightfold Path"
+  :summary "Seção do Maggaṅga Dīpanī dedicada a explicar como praticar e estabelecer o grupo de moralidade (Sīlakkhandha) do Nobre Caminho Óctuplo, focado no comportamento e ética cotidiana."
+  :diataxis-type {:how-to 0.4
+                  :tutorial 0.2
+                  :explanation 0.3
+                  :reference 0.1}
+  :media-type #{:text :book}
+  :concepts-matched ["Sīla"
+                     "Sīla-visuddhi"
+                     "3 camadas da diṭṭhi"
+                     "Vītikkama"]
+  :concepts-new []
+  :interface-type :gui
+  :estimated-minutes 15
+  :didactic-score 5
+  :experience-level :beginner
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Ven. Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :chapter-title "The Maggaṅga Dīpanī - How to Establish the Morality-Group of the Eightfold Path"
+              :chapter-number "7.1"
+              :page-range "231-232"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/233/mode/2up"
+ {:title "How to Establish the Concentration-Group of the Noble Eightfold Path"
+  :summary "Seção do Maggaṅga Dīpanī que explica o estabelecimento do grupo de concentração (Samādhikkhandha) através da prática de Anāpāna (atenção à respiração) para superar a agitação mental."
+  :diataxis-type {:how-to 0.5
+                  :tutorial 0.2
+                  :explanation 0.2
+                  :reference 0.1}
+  :media-type #{:text :book}
+  :concepts-matched ["Samādhi"
+                     "Pariyuṭṭhāna"]
+  :concepts-new []
+  :interface-type :gui
+  :estimated-minutes 10
+  :didactic-score 5
+  :experience-level :beginner
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Ven. Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :chapter-title "The Maggaṅga Dīpanī - How to Establish the Concentration-Group of the Noble Eightfold Path"
+              :chapter-number "7.2"
+              :page-range "233-234"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/234/mode/2up"
+ {:title "How to Establish the Wisdom-Group of the Eightfold Path"
+  :summary "Seção do Maggaṅga Dīpanī que orienta sobre o estabelecimento do grupo de sabedoria (Paññākkhandha) por meio da contemplação dos quatro grandes elementos e dos conceitos de impermanência (anicca), sofrimento (dukkha) e não-self (anatta)."
+  :diataxis-type {:how-to 0.3
+                  :tutorial 0.2
+                  :explanation 0.4
+                  :reference 0.1}
+  :media-type #{:text :book}
+  :estimated-minutes 20
+  :didactic-score 1
+  :experience-level :advanced
+  :visual-score 1
+  :production-quality 1
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Ven. Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :chapter-title "The Maggaṅga Dīpanī - How to Establish the Wisdom-Group of the Eightfold Path"
+              :chapter-number "7.3"
+              :page-range "234-238"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/153/mode/2up"
+ {:title "The Bodhipakkhiya Dīpanī"
+  :summary "Exposição detalhada dos 37 fatores auxiliares da iluminação (Bodhipakkhiya Dhamma) escritos por Ledi Sayadaw, incluindo os quatro estabelecimentos da atenção (satipaṭṭhāna), quatro esforços supremos, quatro bases de sucesso mental, cinco faculdades, cinco poderes, sete fatores de iluminação e oito membros do Nobre Caminho."
+  :diataxis-type {:how-to 0.3
+                  :tutorial 0.3
+                  :explanation 0.4
+                  :reference 0.0}
+  :media-type #{:text :book}
+  :estimated-minutes 180
+  :didactic-score 1
+  :experience-level :advanced
+  :visual-score 1
+  :production-quality 1
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Ven. Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :chapter-title "The Bodhipakkhiya Dīpanī"
+              :chapter-number "6"
+              :page-range "153-208"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/133/mode/2up#the-five-khandhas"
+ {:title "The Five Khandhas (Groups of Existence)"
+  :summary "An analytical overview defining the five aggregates—materiality, feeling, perception, mental formations, and consciousness—that together comprise any sentient experience from an impersonal perspective."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.0
+                  :explanation 0.3
+                  :reference 0.7}
+  :media-type #{:text :book}
+  :estimated-minutes 5
+  :straight-to-the-point :straight
+  :didactic-score 1
+  :experience-level :beginner
+  :visual-score 1
+  :production-quality 1
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Mahāthera Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :isbn "978-81-7414-202-9"
+              :chapter-title "The Manual of the Four Noble Truths (Catusacca Dīpanī)"
+              :chapter-number "4.1"
+              :page-range "133"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/133/mode/2up#the-twelve-ayatanas"
+ {:title "The Twelve Āyatanas (Bases)"
+  :summary "An enumeration and breakdown of the six internal sense organs and their corresponding six external sense objects, highlighting how they serve as bases for the arising of consciousness."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.0
+                  :explanation 0.2
+                  :reference 0.8}
+  :media-type #{:text :book}
+  :estimated-minutes 5
+  :straight-to-the-point :straight
+  :didactic-score 1
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 1
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Mahāthera Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :isbn "978-81-7414-202-9"
+              :chapter-title "The Manual of the Four Noble Truths (Catusacca Dīpanī)"
+              :chapter-number "4.2"
+              :page-range "133"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/133/mode/2up#eighteen-elements"
+ {:title "Eighteen Psycho-physical Elements (Dhātus)"
+  :summary "An exposition explaining the eighteen elements of sensory experience (organs, objects, and consciousnesses) to emphasize that they operate autonomously according to natural laws, free of an absolute self."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.0
+                  :explanation 0.3
+                  :reference 0.7}
+  :media-type #{:text :book}
+  :estimated-minutes 5
+  :straight-to-the-point :straight
+  :didactic-score 1
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 1
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Mahāthera Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :isbn "978-81-7414-202-9"
+              :chapter-title "The Manual of the Four Noble Truths (Catusacca Dīpanī)"
+              :chapter-number "4.3"
+              :page-range "133"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/134/mode/2up#dependent-origination"
+ {:title "Three Psycho-physical Elements and Dependent Origination"
+  :summary "An analysis showing the interaction between sense bases, objects, and consciousness, and how their meeting points initiate the chains of contact, feeling, craving, and the cycle of dependent origination."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.2
+                  :explanation 0.6
+                  :reference 0.2}
+  :media-type #{:text :book}
+  :estimated-minutes 8
+  :straight-to-the-point :medium
+  :didactic-score 2
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 1
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Mahāthera Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :isbn "978-81-7414-202-9"
+              :chapter-title "The Manual of the Four Noble Truths (Catusacca Dīpanī)"
+              :chapter-number "4.4"
+              :page-range "134-136"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/136/mode/2up#sixteen-characteristics"
+ {:title "The Meaning of Sixteen Characteristics of Truths"
+  :summary "A deep technical discussion outlining the sixteen specialized functional characteristics belonging to the Four Noble Truths, detailing the four critical aspects of each truth to structure insight contemplation."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.1
+                  :explanation 0.6
+                  :reference 0.3}
+  :media-type #{:text :book}
+  :estimated-minutes 15
+  :straight-to-the-point :medium
+  :didactic-score 2
+  :experience-level :advanced
+  :visual-score 1
+  :production-quality 1
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Mahāthera Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :isbn "978-81-7414-202-9"
+              :chapter-title "The Manual of the Four Noble Truths (Catusacca Dīpanī)"
+              :chapter-number "4.5"
+              :page-range "136"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/136/mode/2up#the-interpretation-of-dukkha-sacca"
+ {:title "The Interpretation of Dukkha-Sacca (Noble Truth of Suffering)"
+  :summary "An analytical definition explaining how the five aggregates of clinging constitute the fundamental reality of suffering, showing that all forms of conditioned existence are inherently unsatisfactory."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.0
+                  :explanation 0.4
+                  :reference 0.6}
+  :media-type #{:text :book}
+  :estimated-minutes 4
+  :straight-to-the-point :straight
+  :didactic-score 2
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 1
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Mahāthera Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :isbn "978-81-7414-202-9"
+              :chapter-title "The Manual of the Four Noble Truths (Catusacca Dīpanī)"
+              :chapter-number "4.6"
+              :page-range "136-137"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/137/mode/2up#the-interpretation-of-samudaya-sacca"
+ {:title "The Interpretation of Samudaya-Sacca (Noble Truth of The Origin of Sufferings)"
+  :summary "An exposition focusing on craving (taṇhā) as the primary driving force behind continuous rebirth, attachment, and the cyclical accumulation of suffering across lifetimes."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.0
+                  :explanation 0.5
+                  :reference 0.5}
+  :media-type #{:text :book}
+  :estimated-minutes 4
+  :straight-to-the-point :straight
+  :didactic-score 2
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 1
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Mahāthera Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :isbn "978-81-7414-202-9"
+              :chapter-title "The Manual of the Four Noble Truths (Catusacca Dīpanī)"
+              :chapter-number "4.7"
+              :page-range "137"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/137/mode/2up#the-interpretation-of-nirodha-sacca"
+ {:title "The Interpretation of Nirodha-Sacca (Noble Truth of The Cessation of Suffering)"
+  :summary "A precise doctrinal definition of Nibbāna as the total unmaking, cessation, abandonment, and absolute fading away of craving, offering liberation from samsaric existence."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.0
+                  :explanation 0.4
+                  :reference 0.6}
+  :media-type #{:text :book}
+  :estimated-minutes 4
+  :straight-to-the-point :straight
+  :didactic-score 2
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 1
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Mahāthera Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :isbn "978-81-7414-202-9"
+              :chapter-title "The Manual of the Four Noble Truths (Catusacca Dīpanī)"
+              :chapter-number "4.8"
+              :page-range "137"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/137/mode/2up#the-interpretation-of-magga-sacca"
+ {:title "The Interpretation of Magga-Sacca (Noble Truth of The Path Leading to the Cessation of Suffering)"
+  :summary "An introductory overview outlining the Noble Eightfold Path as the sole practical mental framework and path of practice that directs a practitioner toward the realization of Nibbāna."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.2
+                  :explanation 0.3
+                  :reference 0.5}
+  :media-type #{:text :book}
+  :estimated-minutes 5
+  :straight-to-the-point :straight
+  :didactic-score 2
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 1
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Mahāthera Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :isbn "978-81-7414-202-9"
+              :chapter-title "The Manual of the Four Noble Truths (Catusacca Dīpanī)"
+              :chapter-number "4.9"
+              :page-range "137"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/137/mode/2up#the-exposition-of-four-characteristics-of-the-truth-of-suffering"
+ {:title "The Exposition of Four Characteristics of The Truth of Suffering"
+  :summary "An analytical framework presenting the four inherent traits of suffering—oppression (pīḷana), causal combination (saṅkhata), heat or burning (santāpa), and change (vipariṇāma)—which provide structure to deep insight contemplation."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.1
+                  :explanation 0.6
+                  :reference 0.3}
+  :media-type #{:text :book}
+  :estimated-minutes 6
+  :straight-to-the-point :medium
+  :didactic-score 4
+  :experience-level :advanced
+  :visual-score 1
+  :production-quality 1
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Mahāthera Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :isbn "978-81-7414-202-9"
+              :chapter-title "The Manual of the Four Noble Truths (Catusacca Dīpanī)"
+              :chapter-number "4.10"
+              :page-range "137"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/137/mode/2up#burden-of-dukkha-in-the-brahma-world"
+ {:title "I. The Burden of Dukkha in the Brahma World"
+  :summary "An examination of how sublime, highly refined lifetimes in the celestial Brahma planes remain inherently bound to suffering due to their conditioned nature and susceptibility to eventual decline."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.1
+                  :explanation 0.7
+                  :reference 0.2}
+  :media-type #{:text :book}
+  :estimated-minutes 10
+  :straight-to-the-point :medium
+  :didactic-score 2
+  :experience-level :advanced
+  :visual-score 1
+  :production-quality 1
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Mahāthera Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :isbn "978-81-7414-202-9"
+              :chapter-title "The Manual of the Four Noble Truths (Catusacca Dīpanī)"
+              :chapter-number "4.10.1"
+              :page-range "137-138"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/138/mode/2up#burden-of-dukkha-in-the-deva-world"
+ {:title "II. Burden of Dukkha in the Deva World"
+  :summary "An analysis highlighting the underlying suffering found within sensual Deva realms, where intense pleasure masks the transient expiration of karmic merit and the danger of falling into woeful states."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.1
+                  :explanation 0.7
+                  :reference 0.2}
+  :media-type #{:text :book}
+  :estimated-minutes 10
+  :straight-to-the-point :medium
+  :didactic-score 3
+  :experience-level :advanced
+  :visual-score 1
+  :production-quality 1
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Mahāthera Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :isbn "978-81-7414-202-9"
+              :chapter-title "The Manual of the Four Noble Truths (Catusacca Dīpanī)"
+              :chapter-number "4.10.2"
+              :page-range "138-139"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/139/mode/2up#the-burden-of-dukkha-in-the-human-world"
+ {:title "III. The Burden of Dukkha in the Human World"
+  :summary "A clear breakdown of visible human suffering, focusing on the heavy, ceaseless burdens involved in securing a livelihood, maintaining physical health, and facing inevitable aging, sickness, and death."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.2
+                  :explanation 0.6
+                  :reference 0.2}
+  :media-type #{:text :book}
+  :estimated-minutes 12
+  :straight-to-the-point :medium
+  :didactic-score 4
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 1
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Mahāthera Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :isbn "978-81-7414-202-9"
+              :chapter-title "The Manual of the Four Noble Truths (Catusacca Dīpanī)"
+              :chapter-number "4.10.3"
+              :page-range "139-140"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/140/mode/2up#the-burden-of-dukkha-in-the-lower-planes"
+ {:title "IV. The Burden of Dukkha in the Lower Planes"
+  :summary "A sobering description of the intense, unrelenting misery dominating the four woeful states of existence (hells, animal realm, ghost realm, and demon realm) where escape is extremely difficult."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.1
+                  :explanation 0.7
+                  :reference 0.2}
+  :media-type #{:text :book}
+  :estimated-minutes 15
+  :straight-to-the-point :medium
+  :didactic-score 4
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 1
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Mahāthera Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :isbn "978-81-7414-202-9"
+              :chapter-title "The Manual of the Four Noble Truths (Catusacca Dīpanī)"
+              :chapter-number "4.10.4"
+              :page-range "140-141"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/141/mode/2up#a-multitude-of-dukkha-for-cultivators"
+ {:title "A Multitude of Dukkha for Cultivators"
+  :summary "An illustrative exposition demonstrating how the five aggregates of a cultivator are heavily burdened by the conditioned, burning, and changing nature of existence through the practical tribulations of agricultural labor."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.1
+                  :explanation 0.6
+                  :reference 0.3}
+  :media-type #{:text :book}
+  :estimated-minutes 5
+  :straight-to-the-point :medium
+  :didactic-score 4
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 1
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Mahāthera Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :isbn "978-81-7414-202-9"
+              :chapter-title "The Manual of the Four Noble Truths (Catusacca Dīpanī)"
+              :chapter-number "4.11"
+              :page-range "141"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/142/mode/2up#sense-object-and-suffering"
+ {:title "Sense Object and Suffering"
+  :summary "An exposition explaining how sensory contact yields fleeting pleasures that mask the continuous burdens of conditioned existence (saṅkhata), burning (santāpa), and change (vipariṇāma), while showing how unwholesome kamma clings directly to personality belief (sakkāya-diṭṭhi)."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.1
+                  :explanation 0.6
+                  :reference 0.3}
+  :media-type #{:text :book}
+  :estimated-minutes 10
+  :straight-to-the-point :medium
+  :didactic-score 4
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 1
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Mahāthera Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :isbn "978-81-7414-202-9"
+              :chapter-title "The Manual of the Four Noble Truths (Catusacca Dīpanī)"
+              :chapter-number "4.12"
+              :page-range "142-143"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/143/mode/2up#how-beings-have-to-wander-in-the-round-of-rebirths"
+ {:title "How Beings Have to Wander in the Round of Rebirths"
+  :summary "An analytical breakdown of the mechanisms of saṃsāra, demonstrating how wholesome and unwholesome deeds performed by worldlings fail to provide lasting liberation because they remain tethered to the underlying root of personality belief (sakkāya-diṭṭhi)."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.1
+                  :explanation 0.7
+                  :reference 0.2}
+  :media-type #{:text :book}
+  :estimated-minutes 12
+  :straight-to-the-point :medium
+  :didactic-score 4
+  :experience-level :advanced
+  :visual-score 1
+  :production-quality 1
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Mahāthera Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :isbn "978-81-7414-202-9"
+              :chapter-title "The Manual of the Four Noble Truths (Catusacca Dīpanī)"
+              :chapter-number "4.13"
+              :page-range "143-144"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/144/mode/2up#crowded-in-avici-hell"
+ {:title "Crowded in Avici Hell"
+  :summary "An analytical exposition explaining how the lowest purgatory, Avīci Hell, becomes densely populated with worldlings due to the pervasive influence of personality belief (sakkāya-diṭṭhi), which drives beings to commit grave unwholesome actions."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.1
+                  :explanation 0.7
+                  :reference 0.2}
+  :media-type #{:text :book}
+  :estimated-minutes 6
+  :straight-to-the-point :medium
+  :didactic-score 4
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 1
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Mahāthera Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :isbn "978-81-7414-202-9"
+              :chapter-title "The Manual of the Four Noble Truths (Catusacca Dīpanī)"
+              :chapter-number "4.14"
+              :page-range "144"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/145/mode/2up#the-exposition-of-the-four-characteristics-of-samudaya-sacca"
+ {:title "The Exposition of the Four Characteristics of Samudaya-Sacca"
+  :summary "An analytical breakdown of the four distinctive traits of the Noble Truth of the Origin of Suffering (craving): production of stress, root cause, continuous binding, and severe obstruction."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.1
+                  :explanation 0.6
+                  :reference 0.3}
+  :media-type #{:text :book}
+  :estimated-minutes 12
+  :straight-to-the-point :medium
+  :didactic-score 4
+  :experience-level :advanced
+  :visual-score 1
+  :production-quality 1
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Mahāthera Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :isbn "978-81-7414-202-9"
+              :chapter-title "The Manual of the Four Noble Truths (Catusacca Dīpanī)"
+              :chapter-number "4.15"
+              :page-range "145-147"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/147/mode/2up#the-exposition-of-the-four-characteristics-of-magga-sacca"
+ {:title "The Exposition of the Four Characteristics of Magga-Sacca"
+  :summary "An operational breakdown of the four qualities inherent to the Noble Eightfold Path: its power of deliverance, role as an absolute cause for realization, function of providing clear insight, and mental supremacy."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.1
+                  :explanation 0.6
+                  :reference 0.3}
+  :media-type #{:text :book}
+  :estimated-minutes 12
+  :straight-to-the-point :medium
+  :didactic-score 4
+  :experience-level :advanced
+  :visual-score 1
+  :production-quality 1
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Mahāthera Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :isbn "978-81-7414-202-9"
+              :chapter-title "The Manual of the Four Noble Truths (Catusacca Dīpanī)"
+              :chapter-number "4.16"
+              :page-range "147-153"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/151/mode/2up#conclusion-of-the-catusacca-dipani"
+ {:title "Conclusion of the Catusacca Dīpanī"
+  :summary "A final summary and strong warning highlighting the critical necessity of escaping the endless cycles of the lower worlds by developing thorough comprehension of the Four Noble Truths here and now."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.2
+                  :explanation 0.6
+                  :reference 0.2}
+  :media-type #{:text :book}
+  :estimated-minutes 8
+  :straight-to-the-point :medium
+  :didactic-score 4
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 1
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Mahāthera Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :isbn "978-81-7414-202-9"
+              :chapter-title "The Manual of the Four Noble Truths (Catusacca Dīpanī)"
+              :chapter-number "4.14"
+              :page-range "151"}}
+
+ "https://store.pariyatti.org/products/4600"
+ {:title "Meditação Vipassana: a Arte de Viver"
+  :summary "Introdução Completa ao Ensinamento de S. N. Goenka - Exposição integral e progressiva da técnica de Vipassana como ensinada por S. N. Goenka, organizada como a jornada de um curso de dez dias: do diagnóstico do sofrimento (Catusacca)
+ao treino tríplice de sīla, samādhi e paññā, culminando na observação das sensações corporais (vedanā) com equanimidade como ferramenta de erradicação dos saṅkhāras. Cada capítulo alterna prosa
+ explicativa, uma história tradicional e uma sessão de perguntas-e-respostas retirada de cursos reais."
+  :diataxis-type {:how-to 0.1
+                  :tutorial 0.35
+                  :explanation 0.5
+                  :reference 0.05}
+  :media-type #{:text :book}
+  :concepts-matched ["S. N. Goenka"
+                     "Sayagyi U Ba Khin"
+                     "Ledi Sayadaw"
+                     "Sīla"
+                     "Samādhi"
+                     "Paññā"
+                     "Catusacca"
+                     "Dukkha-Sacca"
+                     "Samudaya-Sacca"
+                     "Nirodha-Sacca"
+                     "Magga-Sacca"
+                     "Nibbāna"
+                     "Taṇhā"
+                     "Tipos de Taṇhā"
+                     "5 Khandhas"
+                     "vedanā"
+                     "tipos de vedanā"
+                     "sukha"
+                     "dukkha"
+                     "indiferença"
+                     "saṅkhāra"
+                     "saññā"
+                     "viññāṇa"
+                     "rūpa"
+                     "Paṭiccasamuppāda"
+                     "kamma"
+                     "cetanā"
+                     "anattā"
+                     "Sammā-vācā"
+                     "Sammā-kammanta"
+                     "Sammā-ājīva"
+                     "Sammā-vāyāma"
+                     "Sammā-sati"
+                     "Sammā-samādhi"
+                     "Sammā-diṭṭhi"
+                     "Sammā-saṅkappa"
+                     "Kāyaduccarita"
+                     "Vacīduccarita"
+                     "adhiṭṭhāna"
+                     "dāna"]
+  :concepts-new ["anicca"
+                 "Ānāpāna-sati"
+                 "5 Preceitos (Pañca-sīla)"
+                 "3 tipos de paññā (suta / cintā / bhāvanā-mayā)"
+                 "Mettā-bhāvanā"
+                 "Bhāvanā"
+                 "Equanimidade (upekkhā) na prática"]
+  :interface-type :gui
+  :estimated-minutes 300
+  :straight-to-the-point :straight
+  :didactic-score 5
+  :experience-level :beginner
+  :visual-score 1
+  :production-quality 3
+  :book-meta {:book-title "Meditação Vipassana: a arte de viver segundo S.N. Goenka"
+              :author "William Hart (sob a orientação e com a aprovação de S. N. Goenka)"
+              :publisher "Vipassana Research Publications / Pariyatti Publishing"
+              :publication-year 1987
+              :edition "Edição em português (tradução das Associações Vipassana de Portugal e do Brasil); original: The Art of Living, 1987"
+              :isbn "978-1-928706-38-0"
+              :chapter-title nil
+              :chapter-number nil
+              :page-range "1-201"}}
+
+ "https://store.pariyatti.org/products/6453"
+ {:title "Para o Benefício de Muitos"
+  :summary "Discursos e Q&A sobre Serviço ao Dhamma (1983-2000) - Compilação cronológica de discursos e sessões de perguntas-e-respostas de S. N. Goenka dirigidos a servidores, organizadores e professores assistentes, cujo tema central é o que sig
+nifica oferecer serviço ao Dhamma: o serviço deve nascer da prática diária, brotar de mettā, ser desinteressado, e constitui o maior dāna (dhammadāna). Boa parte do volume trata de política ope
+racional dos centros — pureza da técnica, aceitação de donativos, conduta entre servidores, cursos para crianças."
+  :diataxis-type {:how-to 0.35
+                  :tutorial 0.05
+                  :explanation 0.5
+                  :reference 0.1}
+  :media-type #{:text :book}
+  :concepts-matched ["S. N. Goenka"
+                     "Sayagyi U Ba Khin"
+                     "Saya Thetgyi"
+                     "Ledi Sayadaw"
+                     "10 pāramīs"
+                     "dāna"
+                     "adhiṭṭhāna"
+                     "Sīla"
+                     "Samādhi"
+                     "Paññā"
+                     "Virati"
+                     "Sammā-vācā"
+                     "Sammā-ājīva"
+                     "vedanā"
+                     "saṅkhāra"
+                     "kamma"
+                     "cetanā"
+                     "Taṇhā"
+                     "Nibbāna"
+                     "anattā"
+                     "Sotāpanna"
+                     "4 Satipaṭṭhānas"
+                     "Karuṇā"
+                     "Muditā"
+                     "Adosa"]
+  :concepts-new ["Dhammadāna (serviço ao Dhamma)"
+                 "Mettā-bhāvanā"
+                 "anicca"
+                 "khanti (tolerância)"
+                 "nekkhamma (renúncia)"
+                 "sacca (veracidade)"
+                 "upekkhā (equanimidade)"
+                 "viriya (esforço)"
+                 "Pureza da técnica / não-sectarismo"]
+  :estimated-minutes 450
+  :straight-to-the-point :verbose
+  :didactic-score 3
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 2
+  :book-meta {:book-title "Para o Benefício de Muitos - Discursos e Respostas a Questões de Alunos de Vipassana 1983-2000"
+              :author "S. N. Goenka"
+              :publisher "Vipassana Portugal (edição original: Vipassana Research Institute, Dhamma Giri, Igatpuri)"
+              :publication-year 2009
+              :edition "Edição Vipassana Portugal, janeiro de 2009; original: For the Benefit of Many"
+              :isbn "978-989-95987-1-3"
+              :chapter-title nil
+              :chapter-number nil
+              :page-range "1-290"}}
+
+ "https://www.bps.lk/olib/bp/bp304s_Bfodhi_Comprehensive_Manual_of_Abhidhamma.pdf#page=189"
+ {:title "Compendium of Requisites of Enlightenment (bodhipakkhiyasaṅgaha)"
+  :summary "Seção do capítulo VII do Abhidhammattha Saṅgaha que enumera os 37 requisitos da iluminação em sete grupos e, em seguida, faz a operação analítica que distingue esta fonte: reduz os 37 fatores a apenas 14 entidades (um citta e treze cetasikas) e conta quantas vezes cada uma reaparece sob nomes diferentes — energia 9 vezes, atenção 8, sabedoria 5, concentração 4, fé 2, as demais uma só. É a base textual para tratar indriya, bala, bojjhaṅga e maggaṅga como estágios do mesmo fator mental, e não como listas paralelas."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.0
+                  :explanation 0.35
+                  :reference 0.65}
+  :media-type #{:text :book}
+  :concepts-matched ["37 bodhipakkhiya dhammas"
+                     "4 Satipaṭṭhānas"
+                     "Kāyānupassanā satipaṭṭhāna"
+                     "Vedanānupassanā satipaṭṭhāna"
+                     "Cittānupassanā satipaṭṭhāna"
+                     "Dhammānupassanā satipaṭṭhāna"
+                     "4 Sammappadhānas"
+                     "4 Iddhipādas"
+                     "Chandiddhipāda"
+                     "Vīriyiddhipāda"
+                     "Cittiddhipāda"
+                     "Vīmaṃsiddhipāda"
+                     "5 Indriyas"
+                     "Saddhindriya"
+                     "Vīriyindriya"
+                     "Satindriya"
+                     "Samādhindriya"
+                     "Paññindriya"
+                     "5 Balas"
+                     "Saddhā-bala"
+                     "Vīriya-bala"
+                     "Sati-bala"
+                     "Samādhi-bala"
+                     "Paññā-bala"
+                     "7 Bojjhaṅgas"
+                     "Sati-sambojjhaṅga"
+                     "Dhammavicaya-sambojjhaṅga"
+                     "Vīriya-sambojjhaṅga"
+                     "Pīti-sambojjhaṅga"
+                     "Passaddhi-sambojjhaṅga"
+                     "Samādhi-sambojjhaṅga"
+                     "Upekkhā-sambojjhaṅga"
+                     "Magga-Sacca"
+                     "Sammā-diṭṭhi"
+                     "Sammā-saṅkappa"
+                     "Sammā-vācā"
+                     "Sammā-kammanta"
+                     "Sammā-ājīva"
+                     "Sammā-vāyāma"
+                     "Sammā-sati"
+                     "Sammā-samādhi"
+                     "vīriya"
+                     "Sati"
+                     "Amoha"
+                     "ekaggatā"
+                     "Saddhā"
+                     "vitakka"
+                     "pīti"
+                     "chanda"
+                     "viññāṇa"
+                     "Tatramajjhattatā"
+                     "Kāyapassaddhi"
+                     "Cittapassaddhi"
+                     "Virati"
+                     "7 visuddhis"]
+  :concepts-new ["14 entidades dos 37 requisitos"
+                 "chabbisuddhi (6 purificações mundanas)"]
+  :estimated-minutes 25
+  :straight-to-the-point :straight
+  :didactic-score 1
+  :experience-level :advanced
+  :visual-score 1
+  :production-quality 2
+  :book-meta {:book-title "A Comprehensive Manual of Abhidhamma: The Abhidhammattha Saṅgaha of Ācariya Anuruddha"
+              :author "Ācariya Anuruddha; Bhikkhu Bodhi (ed. geral e revisão da tradução); Mahāthera Nārada (edição e tradução original do pāli); U Rewata Dhamma e Bhikkhu Bodhi (guia explanatório); U Sīlānanda (tabelas)"
+              :publisher "Buddhist Publication Society, Kandy, Sri Lanka"
+              :publication-year 2007
+              :edition "3rd Edition (1st ed. 1993; 2nd ed. 1999)"
+              :isbn "978-955-24-0103-9"
+              :chapter-title "VII. Samuccayasaṅgaha (Compendium of Categories) - Compendium of Requisites of Enlightenment (bodhipakkhiyasaṅgaha)"
+              :chapter-number "7.24-7.33"
+              :page-range "278-285"}}
+
+ "https://www.bps.lk/olib/bp/bp304s_Bfodhi_Comprehensive_Manual_of_Abhidhamma.pdf"
+ {:title "A Comprehensive Manual of Abhidhamma (Abhidhammattha Saṅgaha)"
+  :summary "Edição de estudo do Abhidhammattha Saṅgaha, o compêndio do séc. XI-XII de Ācariya Anuruddha que serve há séculos como porta de entrada padrão ao Abhidhamma Theravāda. Traz três camadas sobrepostas: o texto pāli original, uma tradução literal, e um guia explanatório parágrafo a parágrafo que desdobra a concisão extrema do original. Os nove capítulos cobrem consciência (citta), fatores mentais (cetasika), categorias diversas, o processo cognitivo, o processo-livre e os planos de existência, matéria (rūpa), compêndio de categorias (onde estão os 37 requisitos da iluminação), condicionalidade (paṭṭhāna e paṭiccasamuppāda) e objetos de meditação. Serve ao projeto como fonte de referência estrutural: define cada cetasika por característica, função, manifestação e causa próxima, e é o que permite tratar as listas doutrinárias como recortes de um mesmo conjunto de fatores mentais."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.0
+                  :explanation 0.45
+                  :reference 0.55}
+  :media-type #{:text :book}
+  :estimated-minutes 900
+  :straight-to-the-point :straight
+  :didactic-score 2
+  :experience-level :advanced
+  :visual-score 2
+  :production-quality 2
+  :book-meta {:book-title "A Comprehensive Manual of Abhidhamma: The Abhidhammattha Saṅgaha of Ācariya Anuruddha"
+              :author "Ācariya Anuruddha; Bhikkhu Bodhi (ed. geral e revisão da tradução); Mahāthera Nārada (edição e tradução original do pāli); U Rewata Dhamma e Bhikkhu Bodhi (guia explanatório); U Sīlānanda (tabelas)"
+              :publisher "Buddhist Publication Society, Kandy, Sri Lanka"
+              :publication-year 2007
+              :edition "3rd Edition (1st ed. 1993; 2nd ed. 1999)"
+              :isbn "978-955-24-0103-9"
+              :chapter-title nil
+              :chapter-number nil
+              :page-range "1-426"}}
+
+ "https://archive.org/details/34.-the-manual-of-dhamma-by-ven-ledi-sayadaw-dana-0_202008/page/n3/mode/2up"
+ {:title "The Manuals of Dhamma (Dīpanīs)"
+  :summary "Coletânea dos oito manuais escritos por Ledi Sayadaw entre o fim do séc. XIX e o início do XX para tornar o Abhidhamma acessível a leigos — projeto que está na origem da linhagem que chega a Saya Thetgyi, U Ba Khin e S. N. Goenka. Divide-se em dois blocos: manuais analíticos e ontológicos (Vipassanā Dīpanī, Paṭṭhānuddesa Dīpanī, Niyāma Dīpanī e Alin-Kyan), que classificam mente, matéria, causalidade e leis naturais; e manuais práticos de libertação (Sammādiṭṭhi Dīpanī, Catusacca Dīpanī, Bodhipakkhiya Dīpanī e Maggaṅga Dīpanī), que desconstroem visões incorretas e detalham o caminho. É a fonte primária da maior parte dos Nodes do grafo."
+  :diataxis-type {:how-to 0.1
+                  :tutorial 0.15
+                  :explanation 0.45
+                  :reference 0.3}
+  :media-type #{:text :book}
+  :interface-type :gui
+  :estimated-minutes 2075
+  :straight-to-the-point :medium
+  :didactic-score 3
+  :experience-level :advanced
+  :visual-score 1
+  :production-quality 3
+  :book-meta {:book-title "The Manuals of Dhamma"
+              :author "Mahāthera Ledi Sayadaw"
+              :publisher "Vipassana Research Institute"
+              :publication-year 1999
+              :edition "1st Edition"
+              :isbn "978-81-7414-202-9"
+              :chapter-title nil
+              :chapter-number nil
+              :page-range "1-301"}}
+
+ "https://www.accesstoinsight.org/tipitaka/abhi/index.html"
+ {:title "Abhidhamma Pitaka — índice do Access to Insight"
+  :summary "Página-índice do terceiro cesto do Tipitaka no Access to Insight. Apresenta o Abhidhamma como uma análise detalhada dos princípios naturais que governam os processos mentais e físicos, e enumera os sete livros canônicos: Dhammasangani (enumeração das realidades últimas), Vibhanga, Dhatukatha, Puggalapaññatti (tipos de personalidade), Kathavatthu (controvérsias entre escolas), Yamaka e Patthana (as 24 relações condicionais, o volume mais longo do cânone). Traz também contexto histórico, traduções disponíveis e indicações de leitura introdutória. Serve ao projeto como porta de entrada canônica e como fonte para fatos biográficos e doutrinários que não constam nos livros do Goenka."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.0
+                  :explanation 0.3
+                  :reference 0.7}
+  :media-type #{:text :website}
+  :interface-type :gui
+  :estimated-minutes 15
+  :straight-to-the-point :straight
+  :didactic-score 4
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 4
+  :book-meta {:book-title "Access to Insight: Readings in Theravada Buddhism"
+              :author "John T. Bullitt (org.)"
+              :publisher "Access to Insight"
+              :publication-year nil
+              :edition nil
+              :isbn nil
+              :chapter-title "Abhidhamma Pitaka"
+              :chapter-number nil
+              :page-range nil}}
+
+ "https://www.acessoaoinsight.net/arquivo_textos_theravada/Abhidhamma.php.html"
+ {:title "O Abhidhamma — ensaio introdutório (em português)"
+  :summary "Ensaio em português sobre o Abhidhamma, publicado pelo Acesso ao Insight. Cobre a origem histórica e o desenvolvimento textual do terceiro cesto, seus fundamentos filosóficos (a distinção entre fenomenologia e ontologia), o conceito de realidade última (paramattha) e a análise da consciência. Inclui seções sobre os compêndios de consciência, fatores mentais, matéria, processos cognitivos e condicionalidade, referenciando Ācariya Anuruddha e Bhikkhu Bodhi. É a contrapartida em português do índice do Access to Insight e a fonte mais acessível do projeto para o enquadramento geral do Abhidhamma."
+  :diataxis-type {:how-to 0.0
+                  :tutorial 0.0
+                  :explanation 0.75
+                  :reference 0.25}
+  :media-type #{:text :website}
+  :interface-type :gui
+  :estimated-minutes 30
+  :straight-to-the-point :medium
+  :didactic-score 4
+  :experience-level :intermediate
+  :visual-score 1
+  :production-quality 3
+  :book-meta {:book-title "Acesso ao Insight — Textos Theravada"
+              :author "Acesso ao Insight (trad./org.)"
+              :publisher "Acesso ao Insight"
+              :publication-year nil
+              :edition nil
+              :isbn nil
+              :chapter-title "O Abhidhamma"
+              :chapter-number nil
+              :page-range nil}}
+
+ "https://www.acessoaoinsight.net/arquivo_textos_theravada/abc_budismo.php.html"
+ {:title "ABC do Budismo — introdução em perguntas e respostas"
+  :summary "Introduz os fundamentos do Budismo Theravada para iniciantes. Cobre o que é o Budismo (bodhi como despertar, o Buda como humano aperfeiçoado), o credo básico dos budistas Theravada, a cosmologia dos 31 planos de existência, a distinção entre renascimento e reencarnação (sem alma permanente, com a analogia da chama), a acusação de niilismo (śūnyatā como originação dependente), o budismo e a homossexualidade, se todo desejo é ruim, por que meditar (samādhi e vipassanā) e como confiar nos Suttas (transmissão oral, Primeiro Concílio, comparação com os Āgamas chineses). Estrutura-se como adaptação/versão de Good Question, Good Answer de Ven. Shravasti Dhammika."
+  :diataxis-type {:how-to 0.05
+                  :tutorial 0.15
+                  :explanation 0.3
+                  :reference 0.5}
+  :media-type #{:text :website}
+  :interface-type :gui
+  :estimated-minutes 45
+  :straight-to-the-point :medium
+  :didactic-score 4
+  :experience-level :beginner
+  :visual-score 1
+  :production-quality 3
+  :book-meta {:book-title "Acesso ao Insight — Textos Theravada"
+              :author "Michael Beisert (trad./org.); baseado em Good Question, Good Answer de Ven. Shravasti Dhammika"
+              :publisher "Acesso ao Insight"
+              :publication-year nil
+              :edition nil
+              :isbn nil
+              :chapter-title "ABC do Budismo"
+              :chapter-number nil
+              :page-range nil}}
+}
